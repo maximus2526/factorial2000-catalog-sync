@@ -194,7 +194,7 @@ function pxi_handle_import_action() {
 
 		$xml_parser = new XML_Parser( $file_path );
 		try {
-			$result = $xml_parser->import_products( $offset, 1 );
+			$result = $xml_parser->import_products( $offset, 10 );
 			wp_send_json_success(
 				array(
 					'imported' => $result['imported'] + $offset,

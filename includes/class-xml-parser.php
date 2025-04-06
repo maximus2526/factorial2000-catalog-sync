@@ -9,6 +9,9 @@ defined( 'ABSPATH' ) || exit;
  */
 class XML_Parser {
 	private string $xml_url;
+	private array $categories = array(); // Cache for categories
+	private array $term_cache = array(); // Cache for terms
+	private array $sku_cache = array(); // Cache for product SKUs
 
 	/**
 	 * XML_Parser constructor.
@@ -29,6 +32,11 @@ class XML_Parser {
 	 * @throws Exception If the XML file can't be opened.
 	 */
 	public function import_products( int $offset = 0, int $limit = 10 ): array {
+		if ( empty( $this->categories ) ) {
+			$this->categories = $this->load_categories_from_xml();
+			$this->preload_category_terms(); // Preload category terms
+		}
+
 		$reader = new XMLReader();
 
 		if ( ! $reader->open( $this->xml_url ) ) {
@@ -119,6 +127,36 @@ class XML_Parser {
 	}
 
 	/**
+	 * Preload existing category terms to avoid redundant database queries
+	 */
+	private function preload_category_terms(): void {
+		// Get all existing product categories
+		$terms = get_terms([
+			'taxonomy' => 'product_cat',
+			'hide_empty' => false,
+			'fields' => 'all'
+		]);
+
+		if (is_wp_error($terms) || empty($terms)) {
+			return;
+		}
+
+		// Create a map of term names to term IDs
+		$term_names = [];
+		foreach ($terms as $term) {
+			$term_names[$term->name] = $term->term_id;
+		}
+
+		// Map XML category IDs to WP term IDs where possible
+		foreach ($this->categories as $category_id => $category_data) {
+			$name = $category_data['name'];
+			if (isset($term_names[$name])) {
+				$this->term_cache[$category_id] = $term_names[$name];
+			}
+		}
+	}
+
+	/**
 	 * Loads categories from XML and builds a hierarchy.
 	 *
 	 * @return array Array of category data [id => ['name' => ..., 'parent' => ...]].
@@ -158,15 +196,11 @@ class XML_Parser {
 	 * @param string $category_id XML category ID.
 	 */
 	private function set_product_category( int $post_id, string $category_id ): void {
-		static $term_cache = array();
-
-		$categories = $this->load_categories_from_xml();
-
-		if ( ! isset( $categories[ $category_id ] ) ) {
+		if ( ! isset( $this->categories[ $category_id ] ) ) {
 			return;
 		}
 
-		$term_id = $this->ensure_category_term( $category_id, $categories, $term_cache );
+		$term_id = $this->ensure_category_term( $category_id, $this->categories, $this->term_cache );
 		if ( $term_id ) {
 			wp_set_object_terms( $post_id, array( (int) $term_id ), 'product_cat' );
 		}
@@ -198,6 +232,7 @@ class XML_Parser {
 			$parent_term_id = $this->ensure_category_term( $parent_id, $categories, $cache );
 		}
 
+		// First check if we already have a term with this name
 		$term = get_term_by( 'name', $name, 'product_cat' );
 		if ( ! $term ) {
 			$term = wp_insert_term(
@@ -269,18 +304,42 @@ class XML_Parser {
 			return array();
 		}
 
-		$placeholders = implode( ',', array_fill( 0, count( $skus ), '%s' ) );
-		$sql          = $wpdb->prepare(
-			"SELECT pm.meta_value AS sku, p.ID
-			FROM {$wpdb->posts} p
-			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
-			WHERE p.post_type IN ('product', 'product_variation')
-			AND pm.meta_key = '_sku'
-			AND pm.meta_value IN ($placeholders)",
-			$skus
-		);
+		// Check cache first for each SKU
+		$result = [];
+		$uncached_skus = [];
+		
+		foreach ($skus as $sku) {
+			if (isset($this->sku_cache[$sku])) {
+				$result[$sku] = $this->sku_cache[$sku];
+			} else {
+				$uncached_skus[] = $sku;
+			}
+		}
+		
+		// Only query the database for SKUs not in cache
+		if (!empty($uncached_skus)) {
+			$placeholders = implode( ',', array_fill( 0, count( $uncached_skus ), '%s' ) );
+			$sql = $wpdb->prepare(
+				"SELECT pm.meta_value AS sku, p.ID
+				FROM {$wpdb->posts} p
+				INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+				WHERE p.post_type IN ('product', 'product_variation')
+				AND pm.meta_key = '_sku'
+				AND pm.meta_value IN ($placeholders)",
+				$uncached_skus
+			);
 
-		$results = $wpdb->get_results( $sql );
-		return array_column( $results, 'ID', 'sku' );
+			$db_results = $wpdb->get_results( $sql );
+			$db_results = array_column( $db_results, 'ID', 'sku' );
+			
+			// Add to cache
+			foreach ($db_results as $sku => $id) {
+				$this->sku_cache[$sku] = $id;
+			}
+			
+			$result = array_merge($result, $db_results);
+		}
+
+		return $result;
 	}
 }
