@@ -443,6 +443,8 @@ class XML_Parser {
 	 * @param array $urls    Array of image URLs.
 	 */
 	private function handle_product_images( int $post_id, array $urls ): void {
+		add_filter( 'intermediate_image_sizes_advanced', '__return_empty_array' );
+
 		if ( empty( $urls ) ) {
 			return;
 		}
@@ -491,6 +493,8 @@ class XML_Parser {
 				update_post_meta( $post_id, '_product_image_gallery', implode( ',', $gallery_attachment_ids ) );
 			}
 		}
+
+		remove_filter( 'intermediate_image_sizes_advanced', '__return_empty_array' );
 	}
 
 	/**
