@@ -119,52 +119,9 @@ class XML_Parser {
 	}
 
 	/**
-	 * Assigns a product category.
+	 * Loads categories from XML and builds a hierarchy.
 	 *
-	 * @param int    $post_id     Product ID.
-	 * @param string $category_id Category ID from the XML.
-	 */
-	private function set_product_category( int $post_id, string $category_id ): void {
-		$category_name = $this->get_category_name_by_id( $category_id );
-
-		if ( ! $category_name ) {
-			return;
-		}
-
-		$term = term_exists( $category_name, 'product_cat' );
-
-		if ( ! $term ) {
-			$term = wp_insert_term( $category_name, 'product_cat' );
-			if ( is_wp_error( $term ) ) {
-				return;
-			}
-		}
-
-		$term_id = is_array( $term ) ? $term['term_id'] : $term;
-		wp_set_object_terms( $post_id, array( $term_id ), 'product_cat' );
-	}
-
-	/**
-	 * Retrieves the category name by its ID.
-	 *
-	 * @param string $category_id Category ID from the XML.
-	 *
-	 * @return string|null Category name or null if not found.
-	 */
-	private function get_category_name_by_id( string $category_id ): ?string {
-		static $category_mapping = null;
-
-		if ( $category_mapping === null ) {
-			$category_mapping = $this->load_categories_from_xml();
-		}
-
-		return $category_mapping[ $category_id ] ?? null;
-	}
-
-	/**
-	 * Loads all categories from the XML file.
-	 *
-	 * @return array Array of [id => name].
+	 * @return array Array of category data [id => ['name' => ..., 'parent' => ...]].
 	 */
 	private function load_categories_from_xml(): array {
 		$categories = array();
@@ -177,17 +134,91 @@ class XML_Parser {
 		while ( $reader->read() ) {
 			if ( $reader->nodeType === XMLReader::ELEMENT && $reader->name === 'category' ) {
 				$category_id = $reader->getAttribute( 'id' );
+				$parent_id   = $reader->getAttribute( 'parentId' );
 				$reader->read();
 				$category_name = trim( $reader->value );
 
 				if ( $category_id && $category_name ) {
-					$categories[ $category_id ] = $category_name;
+					$categories[ $category_id ] = array(
+						'name'   => $category_name,
+						'parent' => $parent_id ?: null,
+					);
 				}
 			}
 		}
 
 		$reader->close();
 		return $categories;
+	}
+
+	/**
+	 * Assigns a product to the correct category by its XML category ID.
+	 *
+	 * @param int    $post_id     Product ID.
+	 * @param string $category_id XML category ID.
+	 */
+	private function set_product_category( int $post_id, string $category_id ): void {
+		static $term_cache = array();
+
+		$categories = $this->load_categories_from_xml();
+
+		if ( ! isset( $categories[ $category_id ] ) ) {
+			return;
+		}
+
+		$term_id = $this->ensure_category_term( $category_id, $categories, $term_cache );
+		if ( $term_id ) {
+			wp_set_object_terms( $post_id, array( (int) $term_id ), 'product_cat' );
+		}
+	}
+
+	/**
+	 * Recursively ensures a product category term exists and returns its term ID.
+	 *
+	 * @param string $category_id Category ID from XML.
+	 * @param array  $categories  Full list of categories from XML.
+	 * @param array  $cache       Reference to already created term cache.
+	 *
+	 * @return int|null The term ID or null on failure.
+	 */
+	private function ensure_category_term( string $category_id, array $categories, array &$cache ): ?int {
+		if ( isset( $cache[ $category_id ] ) ) {
+			return $cache[ $category_id ];
+		}
+
+		if ( ! isset( $categories[ $category_id ] ) ) {
+			return null;
+		}
+
+		$name      = $categories[ $category_id ]['name'];
+		$parent_id = $categories[ $category_id ]['parent'];
+
+		$parent_term_id = null;
+		if ( $parent_id ) {
+			$parent_term_id = $this->ensure_category_term( $parent_id, $categories, $cache );
+		}
+
+		$term = get_term_by( 'name', $name, 'product_cat' );
+		if ( ! $term ) {
+			$term = wp_insert_term(
+				$name,
+				'product_cat',
+				array(
+					'parent' => $parent_term_id ?? 0,
+				)
+			);
+
+			if ( is_wp_error( $term ) ) {
+				return null;
+			}
+
+			$term_id = $term['term_id'];
+		} else {
+			$term_id = $term->term_id;
+		}
+
+		$cache[ $category_id ] = $term_id;
+		return $term_id;
 	}
 
 	/**
