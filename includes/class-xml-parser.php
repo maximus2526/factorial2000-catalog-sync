@@ -80,6 +80,7 @@ class XML_Parser {
 			$desc      = (string) $offer->description;
 			$category  = (string) $offer->categoryId;
 			$available = (string) $offer['available'] === 'true' ? 'instock' : 'outofstock';
+			$vendor    = isset($offer->vendor) ? (string) $offer->vendor : '';
 
 			// Get all product images
 			$images = array();
@@ -137,6 +138,14 @@ class XML_Parser {
 			
 			update_post_meta( $post_id, '_stock_status', $available );
 			update_post_meta( $post_id, '_manage_stock', 'no' );
+
+			// Set vendor as product attribute if available
+			if (!empty($vendor)) {
+				// Add vendor to attributes list if it's not already there
+				if (!isset($attributes['Виробник'])) {
+					$attributes['Виробник'] = $vendor;
+				}
+			}
 
 			// Handle product attributes
 			if ( ! empty( $attributes ) ) {
