@@ -1,211 +1,255 @@
 <?php
 
-defined('ABSPATH') || exit;
+defined( 'ABSPATH' ) || exit;
 
 /**
  * Class XML_Parser
  *
- * A class for parsing XML data and updating product stock status in WooCommerce.
+ * Imports products from an XML file into WooCommerce.
  */
 class XML_Parser {
-    /**
-     * URL for fetching XML data.
-     *
-     * @var string
-     */
-    private $xml_url;
+	private string $xml_url;
 
-    /**
-     * Telegram bot token ID.
-     *
-     * @var string
-     */
-    private $telegram_token_id;
+	/**
+	 * XML_Parser constructor.
+	 *
+	 * @param string $file_path Path to the XML file.
+	 */
+	public function __construct( string $file_path ) {
+		$this->xml_url = $file_path;
+	}
 
-    /**
-     * Array of Telegram user IDs to send messages to.
-     *
-     * @var array
-     */
-    private $telegram_user_ids;
+	/**
+	 * Imports products from XML.
+	 *
+	 * @param int $offset Offset for pagination.
+	 * @param int $limit Number of products to import.
+	 *
+	 * @return array Import results.
+	 * @throws Exception If the XML file can't be opened.
+	 */
+	public function import_products( int $offset = 0, int $limit = 10 ): array {
+		$reader = new XMLReader();
 
-    /**
-     * XML_Parser constructor.
-     *
-     * @param string $xml_url URL for fetching XML data.
-     */
-    public function __construct($xml_url) {
-        $this->xml_url = $xml_url;
-        $this->telegram_token_id = get_option('telegram_token_id', '');
-        $this->telegram_user_ids = array_map('trim', explode(',', get_option('telegram_user_ids', '')));
-    }
+		if ( ! $reader->open( $this->xml_url ) ) {
+			throw new Exception( 'Failed to open XML file.' );
+		}
 
-    /**
-     * Update the stock status of products based on XML data.
-     *
-     * @return void
-     */
-    public function update_products_stock_status() {
-        $start_time = microtime(true);
-        $start_memory = memory_get_usage();
+		$total_products = 0;
+		while ( $reader->read() ) {
+			if ( $reader->nodeType === XMLReader::ELEMENT && $reader->name === 'offer' ) {
+				++$total_products;
+			}
+		}
 
-        $xml_data = $this->fetch_xml_data();
-        if (!$xml_data) {
-            return $this->send_telegram_message('Failed to retrieve XML data');
-        }
+		$reader->close();
+		$reader->open( $this->xml_url );
 
-        try {
-            $products = new XMLReader();
-            $products->open($this->xml_url);
-            if ($products->isEmpty) {
-                return $this->send_telegram_message('XML data is empty or not created');
-            }
-        } catch (Exception $e) {
-            return $this->send_telegram_message('XML parsing error: ' . $e->getMessage());
-        }
+		$imported       = 0;
+		$skipped        = 0;
+		$current_offset = 0;
 
-        $updates = [];
-        while ($products->read()) {
-            if ($products->nodeType == XMLReader::ELEMENT && $products->localName == 'offer') {
-                $sku = (string)$products->getAttribute('id');
-                $available = (string)$products->getAttribute('available');
-                $stock_status = "true" === $available ? 'instock' : 'outofstock';
-                $updates[$sku] = $stock_status;
-            }
-        }
-        $products->close();
+		while ( $reader->read() ) {
+			if ( $reader->nodeType !== XMLReader::ELEMENT || $reader->name !== 'offer' ) {
+				continue;
+			}
 
-        $product_ids = $this->get_product_ids_by_skus(array_keys($updates));
-        $updated_in_stock = $updated_out_of_stock = $not_found = 0;
+			if ( $current_offset < $offset ) {
+				++$current_offset;
+				continue;
+			}
 
-        foreach ($updates as $sku => $stock_status) {
-            $product_id = $product_ids[$sku] ?? false;
-            if (!$product_id) {
-                ++$not_found;
-                continue;
-            }
+			if ( $imported >= $limit ) {
+				break;
+			}
 
-            $product = wc_get_product($product_id);
-            if (!$product) {
-                ++$not_found;
-                continue;
-            }
+			$offer = simplexml_load_string( $reader->readOuterXML() );
 
-            $this->update_product_stock($product, $stock_status);
-            $stock_status === 'instock' ? ++$updated_in_stock : ++$updated_out_of_stock;
-        }
+			$sku       = (string) $offer['id'];
+			$title     = (string) $offer->name;
+			$price     = (float) $offer->price;
+			$desc      = (string) $offer->description;
+			$img_url   = (string) $offer->picture;
+			$category  = (string) $offer->categoryId;
+			$available = (string) $offer['available'] === 'true' ? 'instock' : 'outofstock';
 
-        $this->send_telegram_message(sprintf(
-            "Products found: %d\nUpdated to 'in stock': %d\nUpdated to 'out of stock': %d\nNot found: %d",
-            count($updates), $updated_in_stock, $updated_out_of_stock, $not_found
-        ));
+			if ( empty( $sku ) || empty( $title ) || $price <= 0 || $available === 'outofstock' ) {
+				++$skipped;
+				continue;
+			}
 
-        $this->log_memory_usage($start_time, $start_memory, 'Stock status update completed');
-    }
+			if ( $this->get_product_ids_by_skus( array( $sku ) ) ) {
+				++$skipped;
+				continue;
+			}
 
-    /**
-     * Fetch XML data from the specified URL.
-     *
-     * @return string|false XML data or false on failure.
-     */
-    private function fetch_xml_data() {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->xml_url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 600);
-        $body = curl_exec($ch);
-        curl_close($ch);
+			$post_id = wp_insert_post(
+				array(
+					'post_title'   => $title,
+					'post_content' => $desc,
+					'post_status'  => 'publish',
+					'post_type'    => 'product',
+				)
+			);
 
-        return $body ?: false;
-    }
+			if ( is_wp_error( $post_id ) ) {
+				continue;
+			}
 
-    /**
-     * Find the product IDs by SKUs.
-     *
-     * @param array $skus SKUs of the products.
-     * @return array Associative array of SKU and Product ID.
-     */
-    private function get_product_ids_by_skus($skus) {
-        global $wpdb;
+			update_post_meta( $post_id, '_sku', $sku );
+			update_post_meta( $post_id, '_regular_price', $price );
+			update_post_meta( $post_id, '_price', $price );
+			update_post_meta( $post_id, '_stock_status', $available );
+			update_post_meta( $post_id, '_manage_stock', 'no' );
 
-        $placeholders = implode(',', array_fill(0, count($skus), '%s'));
-        $sql = $wpdb->prepare("SELECT pm.meta_value AS sku, p.ID
-            FROM {$wpdb->posts} p
-            INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
-            WHERE p.post_type IN ('product', 'product_variation')
-            AND pm.meta_key = '_sku'
-            AND pm.meta_value IN ($placeholders)", $skus);
-        
-        $results = $wpdb->get_results($sql);
-        return array_column($results, 'ID', 'sku');
-    }
+			$this->handle_product_image( $post_id, $img_url );
+			$this->set_product_category( $post_id, $category );
 
-    /**
-     * Update the stock status of a product.
-     *
-     * @param WC_Product $product Product object.
-     * @param string     $stock_status Stock status.
-     * @return void
-     */
-    private function update_product_stock($product, $stock_status) {
-        $product->set_stock_status($stock_status);
-        $product->save();
-        wc_delete_product_transients($product->get_id());
+			++$imported;
+		}
 
-        // Update variations if the product is a variable product.
-        if ('variable' === $product->get_type()) {
-            foreach ($product->get_children() as $variation_id) {
-                $variation = wc_get_product($variation_id);
-                $variation->set_stock_status($stock_status);
-                $variation->save();
-                wc_delete_product_transients($variation_id);
-            }
-        }
-    }
+		$reader->close();
 
-    /**
-     * Log memory usage and execution time.
-     *
-     * @param float $start_time Start time of the process.
-     * @param int   $start_memory Start memory usage in bytes.
-     * @param string $message Log message.
-     * @return void
-     */
-    private function log_memory_usage($start_time, $start_memory, $message) {
-        $end_time = microtime(true);
-        $end_memory = memory_get_usage();
-        
-        $execution_time = $end_time - $start_time;
-        $memory_usage = ($end_memory - $start_memory) / 1048576; // Convert to megabytes
+		return array(
+			'imported' => $imported,
+			'skipped'  => $skipped,
+			'total'    => $total_products,
+			'finished' => $offset + $imported >= $total_products,
+		);
+	}
 
-        // Format the log message
-        $log_message = sprintf(
-            "[%s] %s | Execution time: %.2f sec | Memory usage: %.2f MB\n",
-            date('Y-m-d H:i:s'), $message, $execution_time, $memory_usage
-        );
+	/**
+	 * Assigns a product category.
+	 *
+	 * @param int    $post_id     Product ID.
+	 * @param string $category_id Category ID from the XML.
+	 */
+	private function set_product_category( int $post_id, string $category_id ): void {
+		$category_name = $this->get_category_name_by_id( $category_id );
 
-        // Send log to Telegram
-        $this->send_telegram_message($log_message);
-    }
+		if ( ! $category_name ) {
+			return;
+		}
 
-    /**
-     * Send a message to Telegram.
-     *
-     * @param string $message Message to send.
-     * @return void
-     */
-    private function send_telegram_message($message) {
-        foreach ($this->telegram_user_ids as $chat_id) {
-            $url = "https://api.telegram.org/bot{$this->telegram_token_id}/sendMessage";
-            $data = ['chat_id' => trim($chat_id), 'text' => $message, 'parse_mode' => 'HTML'];
+		$term = term_exists( $category_name, 'product_cat' );
 
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_exec($ch);
-            curl_close($ch);
-        }
-    }
+		if ( ! $term ) {
+			$term = wp_insert_term( $category_name, 'product_cat' );
+			if ( is_wp_error( $term ) ) {
+				return;
+			}
+		}
+
+		$term_id = is_array( $term ) ? $term['term_id'] : $term;
+		wp_set_object_terms( $post_id, array( $term_id ), 'product_cat' );
+	}
+
+	/**
+	 * Retrieves the category name by its ID.
+	 *
+	 * @param string $category_id Category ID from the XML.
+	 *
+	 * @return string|null Category name or null if not found.
+	 */
+	private function get_category_name_by_id( string $category_id ): ?string {
+		static $category_mapping = null;
+
+		if ( $category_mapping === null ) {
+			$category_mapping = $this->load_categories_from_xml();
+		}
+
+		return $category_mapping[ $category_id ] ?? null;
+	}
+
+	/**
+	 * Loads all categories from the XML file.
+	 *
+	 * @return array Array of [id => name].
+	 */
+	private function load_categories_from_xml(): array {
+		$categories = array();
+		$reader     = new XMLReader();
+
+		if ( ! $reader->open( $this->xml_url ) ) {
+			return $categories;
+		}
+
+		while ( $reader->read() ) {
+			if ( $reader->nodeType === XMLReader::ELEMENT && $reader->name === 'category' ) {
+				$category_id = $reader->getAttribute( 'id' );
+				$reader->read();
+				$category_name = trim( $reader->value );
+
+				if ( $category_id && $category_name ) {
+					$categories[ $category_id ] = $category_name;
+				}
+			}
+		}
+
+		$reader->close();
+		return $categories;
+	}
+
+	/**
+	 * Downloads and attaches the product image.
+	 *
+	 * @param int    $post_id Product ID.
+	 * @param string $url     Image URL.
+	 */
+	private function handle_product_image( int $post_id, string $url ): void {
+		if ( empty( $url ) ) {
+			return;
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+
+		$tmp = download_url( $url );
+		if ( is_wp_error( $tmp ) ) {
+			return;
+		}
+
+		$file_array = array(
+			'name'     => basename( $url ),
+			'tmp_name' => $tmp,
+		);
+
+		$attachment_id = media_handle_sideload( $file_array, $post_id );
+		if ( is_wp_error( $attachment_id ) ) {
+			@unlink( $tmp );
+			return;
+		}
+
+		set_post_thumbnail( $post_id, $attachment_id );
+	}
+
+	/**
+	 * Retrieves product IDs by their SKUs.
+	 *
+	 * @param array $skus Array of SKUs.
+	 *
+	 * @return array Array of [sku => product ID].
+	 */
+	private function get_product_ids_by_skus( array $skus ): array {
+		global $wpdb;
+
+		if ( empty( $skus ) ) {
+			return array();
+		}
+
+		$placeholders = implode( ',', array_fill( 0, count( $skus ), '%s' ) );
+		$sql          = $wpdb->prepare(
+			"SELECT pm.meta_value AS sku, p.ID
+			FROM {$wpdb->posts} p
+			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+			WHERE p.post_type IN ('product', 'product_variation')
+			AND pm.meta_key = '_sku'
+			AND pm.meta_value IN ($placeholders)",
+			$skus
+		);
+
+		$results = $wpdb->get_results( $sql );
+		return array_column( $results, 'ID', 'sku' );
+	}
 }
