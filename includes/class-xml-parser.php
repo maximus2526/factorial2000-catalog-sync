@@ -76,6 +76,7 @@ class XML_Parser {
 			$sku       = (string) $offer['id'];
 			$title     = (string) $offer->name;
 			$price     = (float) $offer->price;
+			$old_price = isset($offer->oldprice) ? (float) $offer->oldprice : 0;
 			$desc      = (string) $offer->description;
 			$category  = (string) $offer->categoryId;
 			$available = (string) $offer['available'] === 'true' ? 'instock' : 'outofstock';
@@ -98,7 +99,7 @@ class XML_Parser {
 				}
 			}
 
-			if ( empty( $sku ) || empty( $title ) || $price <= 0 || $available === 'outofstock' ) {
+			if ( empty( $sku ) || empty( $title ) || $price <= 0 ) {
 				++$skipped;
 				continue;
 			}
@@ -122,8 +123,18 @@ class XML_Parser {
 			}
 
 			update_post_meta( $post_id, '_sku', $sku );
-			update_post_meta( $post_id, '_regular_price', $price );
-			update_post_meta( $post_id, '_price', $price );
+			
+			// If old price exists and is greater than current price, set it as regular price and current as sale price
+			if ($old_price > 0 && $old_price > $price) {
+				update_post_meta( $post_id, '_regular_price', number_format($old_price, 2, '.', '') );
+				update_post_meta( $post_id, '_sale_price', number_format($price, 2, '.', '') );
+				update_post_meta( $post_id, '_price', number_format($price, 2, '.', '') );
+			} else {
+				// Otherwise just set current price as regular price
+				update_post_meta( $post_id, '_regular_price', number_format($price, 2, '.', '') );
+				update_post_meta( $post_id, '_price', number_format($price, 2, '.', '') );
+			}
+			
 			update_post_meta( $post_id, '_stock_status', $available );
 			update_post_meta( $post_id, '_manage_stock', 'no' );
 
