@@ -263,13 +263,18 @@ class XML_Stock_Updater {
 		$updated_in_stock     = 0;
 		$updated_out_of_stock = 0;
 		$not_found            = 0;
+		$skipped_unchanged    = 0; // Count of products where status didn't change
 
 		// Process in batches to avoid memory issues
 		$batches     = array_chunk( $updates, $this->batch_size, true );
 		$batch_count = count( $batches );
 
 		$this->send_telegram_message( "Processing $total products in $batch_count batches" );
-		prom_log( "Processing $total products in $batch_count batches", 'info' );
+
+		// Reduce logging - only log this for debugging
+		if ( WP_DEBUG ) {
+			prom_log( "Processing $total products in $batch_count batches", 'info' );
+		}
 
 		$process_start_time = microtime( true );
 
@@ -308,9 +313,14 @@ class XML_Stock_Updater {
 						continue;
 					}
 
-					$this->update_product_stock( $product, $stock_status );
-					$stock_status === 'instock' ? ++$updated_in_stock : ++$updated_out_of_stock;
+					// Update product and track if status actually changed
+					$status_changed = $this->update_product_stock( $product, $stock_status );
 
+					if ( $status_changed ) {
+						$stock_status === 'instock' ? ++$updated_in_stock : ++$updated_out_of_stock;
+					} else {
+						++$skipped_unchanged;
+					}
 				} catch ( Exception $e ) {
 					prom_log( "Error updating product $sku: " . $e->getMessage(), 'error' );
 				}
@@ -318,10 +328,14 @@ class XML_Stock_Updater {
 				++$processed;
 			}
 
-			// Send progress update every 5 batches or for the last batch
-			if ( $batch_index % 5 === 0 || $batch_index === $batch_count - 1 ) {
+			// Reduce progress updates - only report every 10 batches instead of 5
+			if ( $batch_index % 10 === 0 || $batch_index === $batch_count - 1 ) {
 				$progress_percent = round( ( $batch_index + 1 ) / $batch_count * 100 );
-				prom_log( 'Processed batch ' . ( $batch_index + 1 ) . "/$batch_count ($progress_percent%)", 'info' );
+
+				// Only log detailed progress in debug mode
+				if ( WP_DEBUG ) {
+					prom_log( 'Processed batch ' . ( $batch_index + 1 ) . "/$batch_count ($progress_percent%)", 'info' );
+				}
 			}
 
 			// Free up memory more aggressively for production
@@ -334,16 +348,36 @@ class XML_Stock_Updater {
 			}
 		}
 
-		// Send final results
+		// Send final results with improved information
 		$this->send_telegram_message(
 			sprintf(
-				"Products found: %d\nProcessed: %d\nUpdated to 'in stock': %d\nUpdated to 'out of stock': %d\nNot found: %d",
+				"Результати оновлення запасів:\n" .
+				"---------------------------\n" .
+				"• Всього товарів в XML: %d\n" .
+				"• Оброблено товарів: %d\n" .
+				"• Оновлено статус \"В наявності\": %d\n" .
+				"• Оновлено статус \"Немає в наявності\": %d\n" .
+				"• Пропущено (статус не змінився): %d\n" .
+				'• Не знайдено товарів: %d',
 				$total,
 				$processed,
 				$updated_in_stock,
 				$updated_out_of_stock,
+				$skipped_unchanged,
 				$not_found
 			)
+		);
+
+		// Log only important info to system log
+		prom_log(
+			sprintf(
+				'Stock update completed. Total: %d, Changed: %d, Unchanged: %d, Not found: %d',
+				$total,
+				$updated_in_stock + $updated_out_of_stock,
+				$skipped_unchanged,
+				$not_found
+			),
+			'info'
 		);
 	}
 
@@ -438,12 +472,12 @@ class XML_Stock_Updater {
 	 *
 	 * @param WC_Product $product Product object.
 	 * @param string     $stock_status Stock status.
-	 * @return void
+	 * @return bool Whether the stock status was changed
 	 */
 	private function update_product_stock( $product, $stock_status ) {
 		// Check if stock status already matches to avoid unnecessary updates
 		if ( $product->get_stock_status() === $stock_status ) {
-			return;
+			return false; // No change was made
 		}
 
 		// Update directly via database if possible for better performance
@@ -463,6 +497,8 @@ class XML_Stock_Updater {
 			$product->set_stock_status( $stock_status );
 			$product->save();
 		}
+
+		return true; // Stock status was changed
 	}
 
 	/**
@@ -490,10 +526,15 @@ class XML_Stock_Updater {
 			return;
 		}
 
-		// Update each variation stock status
+		// Update only variations where status actually needs to change
 		foreach ( $variation_ids as $variation_id ) {
-			update_post_meta( $variation_id, '_stock_status', $stock_status );
-			wc_delete_product_transients( $variation_id );
+			$current_status = get_post_meta( $variation_id, '_stock_status', true );
+
+			// Only update if different
+			if ( $current_status !== $stock_status ) {
+				update_post_meta( $variation_id, '_stock_status', $stock_status );
+				wc_delete_product_transients( $variation_id );
+			}
 		}
 	}
 
@@ -515,9 +556,7 @@ class XML_Stock_Updater {
 
 		// Format the log message
 		$log_message = sprintf(
-			'[%s] %s | Execution time: %.2f sec | Memory usage: %.2f MB | Peak memory: %.2f MB',
-			date( 'Y-m-d H:i:s' ),
-			$message,
+			'Процес завершено за %.1f сек | Використано пам\'яті: %.1f MB | Пікове використання: %.1f MB',
 			$execution_time,
 			$memory_usage,
 			$peak_memory
@@ -525,7 +564,20 @@ class XML_Stock_Updater {
 
 		// Send log to Telegram
 		$this->send_telegram_message( $log_message );
-		prom_log( $log_message, 'info' );
+
+		// Only log detailed memory usage in debug mode
+		if ( WP_DEBUG ) {
+			prom_log(
+				sprintf(
+					'%s | Execution time: %.2f sec | Memory usage: %.2f MB | Peak memory: %.2f MB',
+					$message,
+					$execution_time,
+					$memory_usage,
+					$peak_memory
+				),
+				'info'
+			);
+		}
 	}
 
 	/**
