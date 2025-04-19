@@ -61,7 +61,7 @@ function prom_xml_importer_update_page() {
 			</table>
 			
 			<p>
-				<input type="submit" name="run_script" class="button button-primary" value="<?php esc_attr_e( 'Run Auto Stock Status', 'xml-prom' ); ?>" style="margin-right: 10px;">
+				<input type="submit" name="run_script" class="button button-primary" value="<?php esc_attr_e( 'Update Stock Status', 'xml-prom' ); ?>" style="margin-right: 10px;">
 				<input type="submit" name="prom_xml_importer_stop" class="button button-secondary" value="<?php esc_attr_e( 'Stop Cron Jobs', 'xml-prom' ); ?>">
 			</p>
 		</form>
@@ -306,11 +306,11 @@ function prom_xml_importer_handle_action() {
 		$xml_url = get_option( 'prom_xml_url', '' );
 
 		if ( $xml_url ) {
-			// For production: Use background processing for large XML files
+			// Check if we should run in background or immediately
 			$bg_option = isset( $_POST['use_background'] ) ? $_POST['use_background'] : 'no';
 
 			if ( $bg_option === 'yes' ) {
-				// Run in background
+				// Run in background and ensure cron is active
 				if ( prom_trigger_background_sync( $xml_url ) ) {
 					add_settings_error(
 						'prom_xml_importer_settings',
@@ -319,8 +319,14 @@ function prom_xml_importer_handle_action() {
 						'updated'
 					);
 				}
+
+				// Ensure cron is active for future scheduled runs
+				if ( ! wp_next_scheduled( 'prom_update_stock_cron' ) ) {
+					Cron_Job::deactivate();
+					Cron_Job::activate();
+				}
 			} else {
-				// Run immediately
+				// Run immediately without scheduling cron jobs
 				try {
 					// Increase time limit for direct execution
 					if ( function_exists( 'set_time_limit' ) && ! ini_get( 'safe_mode' ) ) {
@@ -344,6 +350,8 @@ function prom_xml_importer_handle_action() {
 						'error'
 					);
 				}
+
+				// Do NOT schedule any cron tasks here - we want to run just once
 			}
 		} else {
 			add_settings_error(
@@ -352,12 +360,6 @@ function prom_xml_importer_handle_action() {
 				__( 'Please configure an XML URL first.', 'xml-prom' ),
 				'error'
 			);
-		}
-
-		// Ensure cron is active
-		if ( ! wp_next_scheduled( 'prom_update_stock_cron' ) ) {
-			Cron_Job::deactivate();
-			Cron_Job::activate();
 		}
 	}
 
