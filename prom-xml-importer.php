@@ -2,14 +2,15 @@
 /**
  * Plugin Name: Prom XML Importer
  * Description: Плагін для імпорту XML даних та оновлення статусу запасів.
- * Version: 1.0
+ * Version: 1.1
  * Author: KMax
  */
 
 defined( 'ABSPATH' ) || exit;
 
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cron-job.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/class-xml-parser.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-stock-updater.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/parsers/class-xml-parser.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/functions.php';
 require_once plugin_dir_path( __FILE__ ) . 'admin/settings-page.php';
 

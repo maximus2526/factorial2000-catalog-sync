@@ -35,6 +35,19 @@ function prom_xml_importer_update_page() {
 			submit_button( 'Save Settings' );
 			?>
 		</form>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php
+			wp_nonce_field( 'prom_xml_importer_action', 'prom_xml_importer_nonce' );
+			?>
+			<input type="hidden" name="action" value="prom_xml_importer_action">
+			<input type="submit" name="run_script" class="button button-primary" value="<?php esc_attr_e( 'Run Auto Stock Status', 'xml-prom' ); ?>" style="margin-right: 10px;">
+			<input type="submit" name="prom_xml_importer_stop" class="button button-secondary" value="<?php esc_attr_e( 'Stop Cron Jobs', 'xml-prom' ); ?>">
+		</form>
+		<?php
+		if ( isset( $_GET['settings-updated'] ) && $_GET['settings-updated'] ) {
+			echo '<div class="updated"><p>' . esc_html__( 'Settings saved.', 'xml-prom' ) . '</p></div>';
+		}
+		?>
 	</div>
 	<?php
 }
@@ -179,7 +192,7 @@ function prom_xml_importer_telegram_token_id_render() {
 	<?php
 }
 
-function pxi_handle_import_action() {
+function prom_xml_importer_handle_import_action() {
 	if ( ! isset( $_POST['prom_xml_import_nonce'] ) || ! wp_verify_nonce( $_POST['prom_xml_import_nonce'], 'prom_xml_import_action' ) ) {
 		wp_send_json_error( array( 'message' => 'Nonce verification failed' ) );
 	}
@@ -209,6 +222,43 @@ function pxi_handle_import_action() {
 		wp_send_json_error( array( 'message' => 'Помилка завантаження файлу.' ) );
 	}
 }
-add_action( 'wp_ajax_prom_xml_import_action', 'pxi_handle_import_action' );
+add_action( 'wp_ajax_prom_xml_import_action', 'prom_xml_importer_handle_import_action' );
+
+/**
+ * Handles the admin post actions for running the script and stopping cron jobs.
+ *
+ * @return void
+ */
+function prom_xml_importer_handle_action() {
+	if ( ! isset( $_POST['prom_xml_importer_nonce'] ) || ! wp_verify_nonce( $_POST['prom_xml_importer_nonce'], 'prom_xml_importer_action' ) ) {
+		wp_die( 'Nonce verification failed' );
+	}
+
+	if ( isset( $_POST['run_script'] ) ) {
+		$xml_url = get_option( 'prom_xml_url', '' );
+
+		if ( $xml_url ) {
+			$xml_parser = new XML_Parser( $xml_url );
+			$xml_parser->update_products_stock_status();
+		}
+
+		if ( ! wp_next_scheduled( 'prom_update_stock_cron' ) ) {
+			Cron_Job::deactivate();
+			Cron_Job::activate();
+		}
+
+		add_settings_error( 'prom_xml_importer_settings', 'settings_updated', __( 'Script run successfully.', 'xml-prom' ), 'updated' );
+	}
+
+	if ( isset( $_POST['prom_xml_importer_stop'] ) ) {
+		wp_clear_scheduled_hook( 'prom_update_stock_cron' );
+		add_settings_error( 'prom_xml_importer_settings', 'settings_updated', __( 'Cron jobs stopped.', 'xml-prom' ), 'updated' );
+	}
+
+	wp_redirect( add_query_arg( 'settings-updated', 'true', wp_get_referer() ) );
+	exit;
+}
+
+add_action( 'admin_post_prom_xml_importer_action', 'prom_xml_importer_handle_action' );
 
 ?>
