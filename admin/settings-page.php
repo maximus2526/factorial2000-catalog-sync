@@ -28,6 +28,9 @@ function prom_xml_importer_update_page() {
 	?>
 	<div class="wrap">
 		<h1><?php esc_html_e( 'Prom XML Importer – Оновлення', 'xml-prom' ); ?></h1>
+		
+		<?php settings_errors(); ?>
+		
 		<form method="post" action="options.php">
 			<?php
 			settings_fields( 'prom_xml_importer_settings' );
@@ -35,19 +38,84 @@ function prom_xml_importer_update_page() {
 			submit_button( 'Save Settings' );
 			?>
 		</form>
+		
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<?php
-			wp_nonce_field( 'prom_xml_importer_action', 'prom_xml_importer_nonce' );
-			?>
+			<?php wp_nonce_field( 'prom_xml_importer_action', 'prom_xml_importer_nonce' ); ?>
 			<input type="hidden" name="action" value="prom_xml_importer_action">
-			<input type="submit" name="run_script" class="button button-primary" value="<?php esc_attr_e( 'Run Auto Stock Status', 'xml-prom' ); ?>" style="margin-right: 10px;">
-			<input type="submit" name="prom_xml_importer_stop" class="button button-secondary" value="<?php esc_attr_e( 'Stop Cron Jobs', 'xml-prom' ); ?>">
+			
+			<table class="form-table">
+				<tr>
+					<th><?php esc_html_e( 'Background Processing', 'xml-prom' ); ?></th>
+					<td>
+						<label>
+							<input type="radio" name="use_background" value="yes" checked>
+							<?php esc_html_e( 'Run in background (recommended for large XML files)', 'xml-prom' ); ?>
+						</label>
+						<br>
+						<label>
+							<input type="radio" name="use_background" value="no">
+							<?php esc_html_e( 'Run immediately', 'xml-prom' ); ?>
+						</label>
+					</td>
+				</tr>
+			</table>
+			
+			<p>
+				<input type="submit" name="run_script" class="button button-primary" value="<?php esc_attr_e( 'Run Auto Stock Status', 'xml-prom' ); ?>" style="margin-right: 10px;">
+				<input type="submit" name="prom_xml_importer_stop" class="button button-secondary" value="<?php esc_attr_e( 'Stop Cron Jobs', 'xml-prom' ); ?>">
+			</p>
 		</form>
+		
 		<?php
-		if ( isset( $_GET['settings-updated'] ) && $_GET['settings-updated'] ) {
-			echo '<div class="updated"><p>' . esc_html__( 'Settings saved.', 'xml-prom' ) . '</p></div>';
+		// Display cron status
+		$next_run   = wp_next_scheduled( 'prom_update_stock_cron' );
+		$interval   = get_option( 'prom_xml_update_interval', 'hourly' );
+		$bg_pending = wp_next_scheduled( 'prom_single_update_event' );
+
+		echo '<div class="prom-xml-status">';
+		echo '<h3>' . esc_html__( 'Status', 'xml-prom' ) . '</h3>';
+
+		if ( $next_run ) {
+			echo '<p>' . esc_html__( 'Automatic updates: ', 'xml-prom' ) . '<span class="active">✅ ' . esc_html__( 'Active', 'xml-prom' ) . '</span></p>';
+			echo '<p>' . esc_html__( 'Next scheduled update: ', 'xml-prom' ) . date_i18n( 'j F Y, H:i', $next_run ) . '</p>';
+			echo '<p>' . esc_html__( 'Update interval: ', 'xml-prom' ) . esc_html( $interval ) . '</p>';
+		} else {
+			echo '<p>' . esc_html__( 'Automatic updates: ', 'xml-prom' ) . '<span class="inactive">❌ ' . esc_html__( 'Inactive', 'xml-prom' ) . '</span></p>';
 		}
+
+		if ( $bg_pending ) {
+			echo '<p>' . esc_html__( 'Background update: ', 'xml-prom' ) . '<span class="pending">⏳ ' . esc_html__( 'Pending', 'xml-prom' ) . '</span></p>';
+			echo '<p>' . esc_html__( 'Scheduled for: ', 'xml-prom' ) . date_i18n( 'F j, Y, g:i a', $bg_pending ) . '</p>';
+		}
+
+		echo '</div>';
+
+		// Add some basic styling
 		?>
+		<style>
+			.prom-xml-status {
+				margin-top: 20px;
+				background: #fff;
+				padding: 15px;
+				border: 1px solid #ccd0d4;
+				box-shadow: 0 1px 1px rgba(0,0,0,.04);
+			}
+			.prom-xml-status h3 {
+				margin-top: 0;
+			}
+			.prom-xml-status .active {
+				color: green;
+				font-weight: bold;
+			}
+			.prom-xml-status .inactive {
+				color: red;
+				font-weight: bold;
+			}
+			.prom-xml-status .pending {
+				color: orange;
+				font-weight: bold;
+			}
+		</style>
 	</div>
 	<?php
 }
@@ -238,23 +306,74 @@ function prom_xml_importer_handle_action() {
 		$xml_url = get_option( 'prom_xml_url', '' );
 
 		if ( $xml_url ) {
-			$xml_parser = new XML_Parser( $xml_url );
-			$xml_parser->update_products_stock_status();
+			// For production: Use background processing for large XML files
+			$bg_option = isset( $_POST['use_background'] ) ? $_POST['use_background'] : 'no';
+
+			if ( $bg_option === 'yes' ) {
+				// Run in background
+				if ( prom_trigger_background_sync( $xml_url ) ) {
+					add_settings_error(
+						'prom_xml_importer_settings',
+						'background_sync_started',
+						__( 'Stock update has been scheduled to run in the background.', 'xml-prom' ),
+						'updated'
+					);
+				}
+			} else {
+				// Run immediately
+				try {
+					// Increase time limit for direct execution
+					if ( function_exists( 'set_time_limit' ) && ! ini_get( 'safe_mode' ) ) {
+						@set_time_limit( 300 ); // 5 minutes
+					}
+
+					$updater = new XML_Stock_Updater( $xml_url );
+					$updater->update_products_stock_status();
+
+					add_settings_error(
+						'prom_xml_importer_settings',
+						'settings_updated',
+						__( 'Stock update completed successfully.', 'xml-prom' ),
+						'updated'
+					);
+				} catch ( Exception $e ) {
+					add_settings_error(
+						'prom_xml_importer_settings',
+						'update_error',
+						__( 'Error updating stock: ', 'xml-prom' ) . $e->getMessage(),
+						'error'
+					);
+				}
+			}
+		} else {
+			add_settings_error(
+				'prom_xml_importer_settings',
+				'missing_url',
+				__( 'Please configure an XML URL first.', 'xml-prom' ),
+				'error'
+			);
 		}
 
+		// Ensure cron is active
 		if ( ! wp_next_scheduled( 'prom_update_stock_cron' ) ) {
 			Cron_Job::deactivate();
 			Cron_Job::activate();
 		}
-
-		add_settings_error( 'prom_xml_importer_settings', 'settings_updated', __( 'Script run successfully.', 'xml-prom' ), 'updated' );
 	}
 
 	if ( isset( $_POST['prom_xml_importer_stop'] ) ) {
 		wp_clear_scheduled_hook( 'prom_update_stock_cron' );
-		add_settings_error( 'prom_xml_importer_settings', 'settings_updated', __( 'Cron jobs stopped.', 'xml-prom' ), 'updated' );
+		wp_clear_scheduled_hook( 'prom_single_update_event' );
+
+		add_settings_error(
+			'prom_xml_importer_settings',
+			'settings_updated',
+			__( 'Cron jobs stopped.', 'xml-prom' ),
+			'updated'
+		);
 	}
 
+	// Redirect back to settings page
 	wp_redirect( add_query_arg( 'settings-updated', 'true', wp_get_referer() ) );
 	exit;
 }

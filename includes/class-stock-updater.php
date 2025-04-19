@@ -50,19 +50,19 @@ class XML_Stock_Updater {
 	 * @param string $xml_url URL for fetching XML data.
 	 */
 	public function __construct( $xml_url ) {
-		$this->xml_url = $xml_url;
+		$this->xml_url           = $xml_url;
 		$this->telegram_token_id = get_option( 'telegram_token_id', '' );
 		$this->telegram_user_ids = array_map( 'trim', explode( ',', get_option( 'telegram_user_ids', '' ) ) );
-		
+
 		// Get the current PHP max execution time and set our limit slightly below it
-		$current_limit = ini_get('max_execution_time');
-		$this->max_execution_time = ($current_limit > 0) ? $current_limit - 5 : 0;
-		
+		$current_limit            = ini_get( 'max_execution_time' );
+		$this->max_execution_time = ( $current_limit > 0 ) ? $current_limit - 5 : 0;
+
 		// Set batch size based on available memory
 		$memory_limit = $this->get_memory_limit_in_bytes();
-		if ($memory_limit < 64 * 1024 * 1024) { // Less than 64MB
+		if ( $memory_limit < 64 * 1024 * 1024 ) { // Less than 64MB
 			$this->batch_size = 20;
-		} elseif ($memory_limit < 128 * 1024 * 1024) { // Less than 128MB
+		} elseif ( $memory_limit < 128 * 1024 * 1024 ) { // Less than 128MB
 			$this->batch_size = 50;
 		} else {
 			$this->batch_size = 100;
@@ -75,16 +75,19 @@ class XML_Stock_Updater {
 	 * @return int Memory limit in bytes.
 	 */
 	private function get_memory_limit_in_bytes() {
-		$memory_limit = ini_get('memory_limit');
-		$unit = strtolower(substr($memory_limit, -1));
-		$value = (int) substr($memory_limit, 0, -1);
-		
-		switch ($unit) {
-			case 'g': $value *= 1024;
-			case 'm': $value *= 1024;
-			case 'k': $value *= 1024;
+		$memory_limit = ini_get( 'memory_limit' );
+		$unit         = strtolower( substr( $memory_limit, -1 ) );
+		$value        = (int) substr( $memory_limit, 0, -1 );
+
+		switch ( $unit ) {
+			case 'g':
+				$value *= 1024;
+			case 'm':
+				$value *= 1024;
+			case 'k':
+				$value *= 1024;
 		}
-		
+
 		return $value;
 	}
 
@@ -94,113 +97,157 @@ class XML_Stock_Updater {
 	 * @return void
 	 */
 	public function update_products_stock_status() {
-		$start_time = microtime( true );
+		$start_time   = microtime( true );
 		$start_memory = memory_get_usage();
 
 		// Check if we can proceed with the update
-		if (!$this->xml_url) {
-			prom_log('No XML URL provided', 'error');
+		if ( ! $this->xml_url ) {
+			prom_log( 'No XML URL provided', 'error' );
 			return;
 		}
 
-		prom_log('Starting stock update process', 'info');
-		$this->send_telegram_message('Starting stock update process for XML: ' . $this->xml_url);
+		// Set maximum execution time
+		$this->set_max_execution_time();
+
+		// Increase memory limit if possible
+		$this->increase_memory_limit();
+
+		prom_log( 'Starting stock update process', 'info' );
+		$this->send_telegram_message( 'Starting stock update process for XML: ' . $this->xml_url );
 
 		try {
 			// Process XML in chunks to extract stock data
 			$updates = $this->extract_stock_data_from_xml();
-			
-			if (empty($updates)) {
-				$this->send_telegram_message('No product data found in XML or XML could not be parsed');
-				prom_log('No product data found in XML', 'warning');
+
+			if ( empty( $updates ) ) {
+				$this->send_telegram_message( 'No product data found in XML or XML could not be parsed' );
+				prom_log( 'No product data found in XML', 'warning' );
 				return;
 			}
 
-			$total_products = count($updates);
-			prom_log("Found $total_products products in XML", 'info');
-			$this->send_telegram_message("Found $total_products products to process");
+			$total_products = count( $updates );
+			prom_log( "Found $total_products products in XML", 'info' );
+			$this->send_telegram_message( "Found $total_products products to process" );
 
 			// Process updates in batches
-			$this->process_updates_in_batches($updates);
+			$this->process_updates_in_batches( $updates );
 
-			$this->log_memory_usage($start_time, $start_memory, 'Stock status update completed');
-			
-		} catch (Exception $e) {
+			$this->log_memory_usage( $start_time, $start_memory, 'Stock status update completed' );
+
+		} catch ( Exception $e ) {
 			$error_message = 'Error updating stock: ' . $e->getMessage();
-			prom_log($error_message, 'error');
-			$this->send_telegram_message($error_message);
+			prom_log( $error_message, 'error' );
+			$this->send_telegram_message( $error_message );
+		} finally {
+			// Clean up any resources
+			$this->cleanup_resources();
 		}
 	}
 
 	/**
+	 * Set maximum execution time for long-running process
+	 */
+	private function set_max_execution_time() {
+		// Only try to change if we can
+		if ( function_exists( 'set_time_limit' ) && ! ini_get( 'safe_mode' ) ) {
+			@set_time_limit( 600 ); // 10 minutes
+		}
+	}
+
+	/**
+	 * Increase memory limit if possible
+	 */
+	private function increase_memory_limit() {
+		// Try to increase memory limit to 256MB if less than that
+		$current_limit = $this->get_memory_limit_in_bytes();
+		if ( $current_limit < 256 * 1024 * 1024 ) {
+			@ini_set( 'memory_limit', '256M' );
+		}
+	}
+
+	/**
+	 * Clean up resources after processing
+	 */
+	private function cleanup_resources() {
+		// Clear WP object cache and run garbage collection
+		if ( function_exists( 'wp_cache_flush' ) ) {
+			wp_cache_flush();
+		}
+		gc_collect_cycles();
+
+		// Clear WooCommerce transients to free memory
+		prom_cleanup_wc_transients();
+	}
+
+	/**
 	 * Extract stock data from XML file.
-	 * 
+	 *
 	 * @return array Array of [sku => stock_status]
 	 */
 	private function extract_stock_data_from_xml() {
-		$updates = [];
-		$reader = null;
-		
+		$updates = array();
+		$reader  = null;
+
 		try {
 			$reader = new XMLReader();
-			
+
 			// Try to open the XML file
-			if (!$reader->open($this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING)) {
+			if ( ! $reader->open( $this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING ) ) {
 				// If direct URL open fails, try to download the file first
 				$xml_data = $this->fetch_xml_data();
-				if (!$xml_data) {
-					throw new Exception('Failed to retrieve XML data');
+				if ( ! $xml_data ) {
+					throw new Exception( 'Failed to retrieve XML data' );
 				}
-				
+
 				// Create a temporary file to store the XML
-				$temp_file = wp_tempnam('prom_xml_');
-				if (file_put_contents($temp_file, $xml_data)) {
-					$reader->open($temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING);
+				$temp_file = wp_tempnam( 'prom_xml_' );
+				if ( file_put_contents( $temp_file, $xml_data ) ) {
+					$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING );
 				} else {
-					throw new Exception('Failed to create temporary XML file');
+					throw new Exception( 'Failed to create temporary XML file' );
 				}
 			}
-			
+
 			// Check if we have a valid XMLReader object
-			if (!$reader->read()) {
-				throw new Exception('Failed to read XML content');
+			if ( ! $reader->read() ) {
+				throw new Exception( 'Failed to read XML content' );
 			}
 
 			// Extract stock data
-			while ($reader->read()) {
-				if ($reader->nodeType == XMLReader::ELEMENT && $reader->localName == 'offer') {
-					$sku = (string) $reader->getAttribute('id');
-					$available = (string) $reader->getAttribute('available');
+			while ( $reader->read() ) {
+				if ( $reader->nodeType == XMLReader::ELEMENT && $reader->localName == 'offer' ) {
+					$sku          = (string) $reader->getAttribute( 'id' );
+					$available    = (string) $reader->getAttribute( 'available' );
 					$stock_status = 'true' === $available ? 'instock' : 'outofstock';
-					
-					if (!empty($sku)) {
-						$updates[$sku] = $stock_status;
+
+					if ( ! empty( $sku ) ) {
+						$updates[ $sku ] = $stock_status;
 					}
-					
+
 					// Free memory to avoid memory leaks
 					$reader->next();
 				}
-				
+
 				// Free memory periodically
-				if (count($updates) % 500 === 0) {
+				if ( count( $updates ) % 500 === 0 ) {
 					gc_collect_cycles();
 				}
 			}
-		} catch (Exception $e) {
-			prom_log('XML parsing error: ' . $e->getMessage(), 'error');
-			$this->send_telegram_message('XML parsing error: ' . $e->getMessage());
+		} catch ( Exception $e ) {
+			prom_log( 'XML parsing error: ' . $e->getMessage(), 'error' );
+			$this->send_telegram_message( 'XML parsing error: ' . $e->getMessage() );
 		} finally {
 			// Always close the reader to free resources
-			if ($reader !== null) {
+			if ( $reader !== null ) {
 				$reader->close();
 			}
-			
+
 			// Remove temporary file if it exists
-			if (isset($temp_file) && file_exists($temp_file)) {
-				@unlink($temp_file);
+			if ( isset( $temp_file ) && file_exists( $temp_file ) ) {
+				@unlink( $temp_file );
 			}
 		}
-		
+
 		return $updates;
 	}
 
@@ -210,71 +257,83 @@ class XML_Stock_Updater {
 	 * @param array $updates Array of [sku => stock_status].
 	 * @return void
 	 */
-	private function process_updates_in_batches($updates) {
-		$total = count($updates);
-		$processed = 0;
-		$updated_in_stock = 0;
+	private function process_updates_in_batches( $updates ) {
+		$total                = count( $updates );
+		$processed            = 0;
+		$updated_in_stock     = 0;
 		$updated_out_of_stock = 0;
-		$not_found = 0;
-		
+		$not_found            = 0;
+
 		// Process in batches to avoid memory issues
-		$batches = array_chunk($updates, $this->batch_size, true);
-		$batch_count = count($batches);
-		
-		$this->send_telegram_message("Processing $total products in $batch_count batches");
-		prom_log("Processing $total products in $batch_count batches", 'info');
-		
-		$process_start_time = microtime(true);
-		
-		foreach ($batches as $batch_index => $batch) {
-			// Check if we're approaching the max execution time
-			if ($this->max_execution_time > 0 && (microtime(true) - $process_start_time) > $this->max_execution_time) {
-				$this->send_telegram_message("Execution time limit approaching. Processed $processed/$total products. Continuing in next run.");
-				prom_log("Execution time limit reached after processing $processed products", 'warning');
+		$batches     = array_chunk( $updates, $this->batch_size, true );
+		$batch_count = count( $batches );
+
+		$this->send_telegram_message( "Processing $total products in $batch_count batches" );
+		prom_log( "Processing $total products in $batch_count batches", 'info' );
+
+		$process_start_time = microtime( true );
+
+		foreach ( $batches as $batch_index => $batch ) {
+			// Add timing checks to avoid timeouts
+			if ( connection_aborted() ) {
+				$this->send_telegram_message( "Connection aborted. Processed $processed/$total products." );
+				prom_log( "Connection aborted after processing $processed products", 'warning' );
 				break;
 			}
-			
+
+			// Check if we're approaching the max execution time
+			if ( $this->max_execution_time > 0 && ( microtime( true ) - $process_start_time ) > $this->max_execution_time ) {
+				$this->send_telegram_message( "Execution time limit approaching. Processed $processed/$total products. Continuing in next run." );
+				prom_log( "Execution time limit reached after processing $processed products", 'warning' );
+				break;
+			}
+
 			// Get product IDs for this batch
-			$skus = array_keys($batch);
-			$product_ids = $this->get_product_ids_by_skus($skus);
-			
+			$skus        = array_keys( $batch );
+			$product_ids = $this->get_product_ids_by_skus( $skus );
+
 			// Update each product in the batch
-			foreach ($batch as $sku => $stock_status) {
-				$product_id = $product_ids[$sku] ?? false;
-				
-				if (!$product_id) {
+			foreach ( $batch as $sku => $stock_status ) {
+				$product_id = $product_ids[ $sku ] ?? false;
+
+				if ( ! $product_id ) {
 					++$not_found;
 					continue;
 				}
-				
+
 				try {
-					$product = wc_get_product($product_id);
-					if (!$product) {
+					$product = wc_get_product( $product_id );
+					if ( ! $product ) {
 						++$not_found;
 						continue;
 					}
-					
-					$this->update_product_stock($product, $stock_status);
+
+					$this->update_product_stock( $product, $stock_status );
 					$stock_status === 'instock' ? ++$updated_in_stock : ++$updated_out_of_stock;
-					
-				} catch (Exception $e) {
-					prom_log("Error updating product $sku: " . $e->getMessage(), 'error');
+
+				} catch ( Exception $e ) {
+					prom_log( "Error updating product $sku: " . $e->getMessage(), 'error' );
 				}
-				
-				$processed++;
+
+				++$processed;
 			}
-			
+
 			// Send progress update every 5 batches or for the last batch
-			if ($batch_index % 5 === 0 || $batch_index === $batch_count - 1) {
-				$progress_percent = round(($batch_index + 1) / $batch_count * 100);
-				prom_log("Processed batch " . ($batch_index + 1) . "/$batch_count ($progress_percent%)", 'info');
+			if ( $batch_index % 5 === 0 || $batch_index === $batch_count - 1 ) {
+				$progress_percent = round( ( $batch_index + 1 ) / $batch_count * 100 );
+				prom_log( 'Processed batch ' . ( $batch_index + 1 ) . "/$batch_count ($progress_percent%)", 'info' );
 			}
-			
-			// Free up memory
-			wp_cache_flush();
-			gc_collect_cycles();
+
+			// Free up memory more aggressively for production
+			if ( $batch_index % 2 === 0 ) {
+				wp_cache_flush();
+				gc_collect_cycles();
+
+				// Sleep briefly to prevent server overload
+				usleep( 100000 ); // 100ms
+			}
 		}
-		
+
 		// Send final results
 		$this->send_telegram_message(
 			sprintf(
@@ -295,31 +354,34 @@ class XML_Stock_Updater {
 	 */
 	private function fetch_xml_data() {
 		// First try to use WordPress HTTP API
-		$response = wp_remote_get($this->xml_url, [
-			'timeout' => 60,
-			'httpversion' => '1.1',
-			'sslverify' => false
-		]);
-		
-		if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) === 200) {
-			return wp_remote_retrieve_body($response);
+		$response = wp_remote_get(
+			$this->xml_url,
+			array(
+				'timeout'     => 60,
+				'httpversion' => '1.1',
+				'sslverify'   => false,
+			)
+		);
+
+		if ( ! is_wp_error( $response ) && wp_remote_retrieve_response_code( $response ) === 200 ) {
+			return wp_remote_retrieve_body( $response );
 		}
-		
+
 		// Fallback to cURL if WordPress HTTP API fails
-		if (function_exists('curl_init')) {
+		if ( function_exists( 'curl_init' ) ) {
 			$ch = curl_init();
-			curl_setopt($ch, CURLOPT_URL, $this->xml_url);
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-			curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-			curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-			curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-			$body = curl_exec($ch);
-			curl_close($ch);
-			
+			curl_setopt( $ch, CURLOPT_URL, $this->xml_url );
+			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+			curl_setopt( $ch, CURLOPT_TIMEOUT, 60 );
+			curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, false );
+			curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, false );
+			curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
+			$body = curl_exec( $ch );
+			curl_close( $ch );
+
 			return $body ?: false;
 		}
-		
+
 		return false;
 	}
 
@@ -329,16 +391,32 @@ class XML_Stock_Updater {
 	 * @param array $skus SKUs of the products.
 	 * @return array Associative array of SKU and Product ID.
 	 */
-	private function get_product_ids_by_skus($skus) {
+	private function get_product_ids_by_skus( $skus ) {
 		global $wpdb;
-		
-		if (empty($skus)) {
-			return [];
+
+		if ( empty( $skus ) ) {
+			return array();
 		}
-		
+
+		// Limit query size to prevent database overload
+		if ( count( $skus ) > 500 ) {
+			$chunks  = array_chunk( $skus, 500 );
+			$results = array();
+
+			foreach ( $chunks as $chunk ) {
+				$chunk_results = $this->get_product_ids_by_skus( $chunk );
+				$results       = array_merge( $results, $chunk_results );
+
+				// Brief pause to prevent database overload
+				usleep( 50000 ); // 50ms
+			}
+
+			return $results;
+		}
+
 		// Prepare IN clause with proper escaping
-		$placeholders = implode(',', array_fill(0, count($skus), '%s'));
-		
+		$placeholders = implode( ',', array_fill( 0, count( $skus ), '%s' ) );
+
 		// Use a direct query for better performance with indexes
 		$sql = $wpdb->prepare(
 			"SELECT pm.meta_value AS sku, p.ID
@@ -350,39 +428,39 @@ class XML_Stock_Updater {
 			AND pm.meta_value IN ($placeholders)",
 			$skus
 		);
-		
-		$results = $wpdb->get_results($sql);
-		return array_column($results, 'ID', 'sku');
+
+		$results = $wpdb->get_results( $sql );
+		return array_column( $results, 'ID', 'sku' );
 	}
 
 	/**
 	 * Update the stock status of a product with minimal operations.
 	 *
 	 * @param WC_Product $product Product object.
-	 * @param string $stock_status Stock status.
+	 * @param string     $stock_status Stock status.
 	 * @return void
 	 */
-	private function update_product_stock($product, $stock_status) {
+	private function update_product_stock( $product, $stock_status ) {
 		// Check if stock status already matches to avoid unnecessary updates
-		if ($product->get_stock_status() === $stock_status) {
+		if ( $product->get_stock_status() === $stock_status ) {
 			return;
 		}
-		
+
 		// Update directly via database if possible for better performance
-		if (method_exists($product, 'get_id')) {
+		if ( method_exists( $product, 'get_id' ) ) {
 			$product_id = $product->get_id();
-			update_post_meta($product_id, '_stock_status', $stock_status);
-			
+			update_post_meta( $product_id, '_stock_status', $stock_status );
+
 			// Clear necessary transients only
-			wc_delete_product_transients($product_id);
-			
+			wc_delete_product_transients( $product_id );
+
 			// For variable products, update variations
-			if ('variable' === $product->get_type()) {
-				$this->update_variation_stock_statuses($product, $stock_status);
+			if ( 'variable' === $product->get_type() ) {
+				$this->update_variation_stock_statuses( $product, $stock_status );
 			}
 		} else {
 			// Fallback to standard WooCommerce API if needed
-			$product->set_stock_status($stock_status);
+			$product->set_stock_status( $stock_status );
 			$product->save();
 		}
 	}
@@ -391,52 +469,54 @@ class XML_Stock_Updater {
 	 * Update stock status for product variations directly via database.
 	 *
 	 * @param WC_Product_Variable $product Variable product object.
-	 * @param string $stock_status Stock status.
+	 * @param string              $stock_status Stock status.
 	 * @return void
 	 */
-	private function update_variation_stock_statuses($product, $stock_status) {
+	private function update_variation_stock_statuses( $product, $stock_status ) {
 		global $wpdb;
-		
+
 		// Get variation IDs directly from database for better performance
-		$variation_ids = $wpdb->get_col($wpdb->prepare(
-			"SELECT ID FROM {$wpdb->posts} 
+		$variation_ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT ID FROM {$wpdb->posts} 
 			WHERE post_parent = %d 
 			AND post_type = 'product_variation' 
 			AND post_status = 'publish'",
-			$product->get_id()
-		));
-		
-		if (empty($variation_ids)) {
+				$product->get_id()
+			)
+		);
+
+		if ( empty( $variation_ids ) ) {
 			return;
 		}
-		
+
 		// Update each variation stock status
-		foreach ($variation_ids as $variation_id) {
-			update_post_meta($variation_id, '_stock_status', $stock_status);
-			wc_delete_product_transients($variation_id);
+		foreach ( $variation_ids as $variation_id ) {
+			update_post_meta( $variation_id, '_stock_status', $stock_status );
+			wc_delete_product_transients( $variation_id );
 		}
 	}
 
 	/**
 	 * Log memory usage and execution time.
 	 *
-	 * @param float $start_time Start time of the process.
-	 * @param int $start_memory Start memory usage in bytes.
+	 * @param float  $start_time Start time of the process.
+	 * @param int    $start_memory Start memory usage in bytes.
 	 * @param string $message Log message.
 	 * @return void
 	 */
-	private function log_memory_usage($start_time, $start_memory, $message) {
-		$end_time = microtime(true);
+	private function log_memory_usage( $start_time, $start_memory, $message ) {
+		$end_time   = microtime( true );
 		$end_memory = memory_get_usage();
 
 		$execution_time = $end_time - $start_time;
-		$memory_usage = ($end_memory - $start_memory) / 1048576; // Convert to megabytes
-		$peak_memory = memory_get_peak_usage(true) / 1048576; // Convert to megabytes
+		$memory_usage   = ( $end_memory - $start_memory ) / 1048576; // Convert to megabytes
+		$peak_memory    = memory_get_peak_usage( true ) / 1048576; // Convert to megabytes
 
 		// Format the log message
 		$log_message = sprintf(
-			"[%s] %s | Execution time: %.2f sec | Memory usage: %.2f MB | Peak memory: %.2f MB",
-			date('Y-m-d H:i:s'),
+			'[%s] %s | Execution time: %.2f sec | Memory usage: %.2f MB | Peak memory: %.2f MB',
+			date( 'Y-m-d H:i:s' ),
 			$message,
 			$execution_time,
 			$memory_usage,
@@ -444,8 +524,8 @@ class XML_Stock_Updater {
 		);
 
 		// Send log to Telegram
-		$this->send_telegram_message($log_message);
-		prom_log($log_message, 'info');
+		$this->send_telegram_message( $log_message );
+		prom_log( $log_message, 'info' );
 	}
 
 	/**
@@ -454,12 +534,12 @@ class XML_Stock_Updater {
 	 * @param string $message Message to send.
 	 * @return void
 	 */
-	private function send_telegram_message($message) {
-		if (empty($this->telegram_token_id) || empty($this->telegram_user_ids)) {
+	private function send_telegram_message( $message ) {
+		if ( empty( $this->telegram_token_id ) || empty( $this->telegram_user_ids ) ) {
 			return;
 		}
 
 		// Use the helper function from functions.php
-		prom_send_telegram_notification($message);
+		prom_send_telegram_notification( $message );
 	}
 }

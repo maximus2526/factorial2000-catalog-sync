@@ -6,6 +6,7 @@ defined( 'ABSPATH' ) || exit;
  * Class XML_Parser
  *
  * Imports products from an XML file into WooCommerce.
+ * Optimized for weak hosting use.
  */
 class XML_Parser {
 	private string $xml_url;
@@ -35,6 +36,11 @@ class XML_Parser {
 		$start_time   = microtime( true );
 		$start_memory = memory_get_usage();
 
+		// Set maximum execution time for production
+		if ( function_exists( 'set_time_limit' ) && ! ini_get( 'safe_mode' ) ) {
+			@set_time_limit( 600 ); // 10 minutes
+		}
+
 		$xml_data = $this->fetch_xml_data();
 		if ( ! $xml_data ) {
 			return $this->send_telegram_message( 'Failed to retrieve XML data' );
@@ -43,30 +49,61 @@ class XML_Parser {
 		try {
 			$products = new XMLReader();
 			$products->open( $this->xml_url );
-			
-			// Fix: Check if XML is empty using proper XMLReader methods
-			if ( !$products->read() ) {
+
+			// Check if XML is empty using proper XMLReader methods
+			if ( ! $products->read() ) {
 				return $this->send_telegram_message( 'XML data is empty or not created' );
 			}
-			
+
 			// Reset the reader position
 			$products->close();
 			$products->open( $this->xml_url );
 		} catch ( Exception $e ) {
+			prom_log( 'XML parsing error: ' . $e->getMessage(), 'error' );
 			return $this->send_telegram_message( 'XML parsing error: ' . $e->getMessage() );
 		}
 
-		$updates = array();
+		// Process in batches for production
+		$batch_size  = 100;
+		$updates     = array();
+		$batch_count = 0;
+
 		while ( $products->read() ) {
 			if ( $products->nodeType == XMLReader::ELEMENT && $products->localName == 'offer' ) {
 				$sku             = (string) $products->getAttribute( 'id' );
 				$available       = (string) $products->getAttribute( 'available' );
 				$stock_status    = 'true' === $available ? 'instock' : 'outofstock';
 				$updates[ $sku ] = $stock_status;
+
+				// Process in batches to avoid memory issues
+				if ( count( $updates ) >= $batch_size ) {
+					$this->process_stock_updates_batch( $updates );
+					$updates = array();
+					++$batch_count;
+
+					// Free memory
+					gc_collect_cycles();
+				}
 			}
 		}
+
+		// Process any remaining updates
+		if ( ! empty( $updates ) ) {
+			$this->process_stock_updates_batch( $updates );
+			++$batch_count;
+		}
+
 		$products->close();
 
+		$this->log_memory_usage( $start_time, $start_memory, "Stock status update completed ($batch_count batches)" );
+	}
+
+	/**
+	 * Process a batch of stock updates
+	 *
+	 * @param array $updates Array of SKU => stock_status
+	 */
+	private function process_stock_updates_batch( $updates ) {
 		$product_ids      = $this->get_product_ids_by_skus( array_keys( $updates ) );
 		$updated_in_stock = $updated_out_of_stock = $not_found = 0;
 
@@ -87,17 +124,15 @@ class XML_Parser {
 			$stock_status === 'instock' ? ++$updated_in_stock : ++$updated_out_of_stock;
 		}
 
-		$this->send_telegram_message(
+		prom_log(
 			sprintf(
-				"Products found: %d\nUpdated to 'in stock': %d\nUpdated to 'out of stock': %d\nNot found: %d",
-				count( $updates ),
+				'Batch processed: In stock: %d, Out of stock: %d, Not found: %d',
 				$updated_in_stock,
 				$updated_out_of_stock,
 				$not_found
-			)
+			),
+			'info'
 		);
-
-		$this->log_memory_usage( $start_time, $start_memory, 'Stock status update completed' );
 	}
 
 	/**
@@ -393,8 +428,8 @@ class XML_Parser {
 	 */
 	private function handle_product_image( int $post_id, string $url ): void {
 		// Validate URL to prevent errors
-		if ( empty( $url ) || !filter_var($url, FILTER_VALIDATE_URL) ) {
-			prom_log("Invalid image URL for product ID: $post_id", 'warning');
+		if ( empty( $url ) || ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
+			prom_log( "Invalid image URL for product ID: $post_id", 'warning' );
 			return;
 		}
 
@@ -645,25 +680,36 @@ class XML_Parser {
 	}
 
 	/**
-	 * Update the stock status of a product.
+	 * Update the stock status of a product with improved error handling.
 	 *
 	 * @param WC_Product $product Product object.
 	 * @param string     $stock_status Stock status.
 	 * @return void
 	 */
 	private function update_product_stock( $product, $stock_status ) {
-		$product->set_stock_status( $stock_status );
-		$product->save();
-		wc_delete_product_transients( $product->get_id() );
-
-		// Update variations if the product is a variable product.
-		if ( 'variable' === $product->get_type() ) {
-			foreach ( $product->get_children() as $variation_id ) {
-				$variation = wc_get_product( $variation_id );
-				$variation->set_stock_status( $stock_status );
-				$variation->save();
-				wc_delete_product_transients( $variation_id );
+		try {
+			// Skip if the stock status is already set to the same value
+			if ( $product->get_stock_status() === $stock_status ) {
+				return;
 			}
+
+			$product->set_stock_status( $stock_status );
+			$product->save();
+			wc_delete_product_transients( $product->get_id() );
+
+			// Update variations if the product is a variable product.
+			if ( 'variable' === $product->get_type() ) {
+				foreach ( $product->get_children() as $variation_id ) {
+					$variation = wc_get_product( $variation_id );
+					if ( $variation ) {
+						$variation->set_stock_status( $stock_status );
+						$variation->save();
+						wc_delete_product_transients( $variation_id );
+					}
+				}
+			}
+		} catch ( Exception $e ) {
+			prom_log( 'Error updating product #' . $product->get_id() . ': ' . $e->getMessage(), 'error' );
 		}
 	}
 

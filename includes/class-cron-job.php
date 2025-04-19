@@ -84,15 +84,15 @@ class Cron_Job {
 		if ( $xml_url ) {
 			// Clean up transients before starting the update process
 			prom_cleanup_wc_transients();
-			
+
 			// Use the optimized stock updater
 			$updater = new XML_Stock_Updater( $xml_url );
 			$updater->update_products_stock_status();
-			
+
 			// Clean up again after the process completes
 			prom_cleanup_wc_transients();
 		} else {
-			prom_log("Cannot update stock - XML URL not configured", 'error');
+			prom_log( 'Cannot update stock - XML URL not configured', 'error' );
 		}
 	}
 }
