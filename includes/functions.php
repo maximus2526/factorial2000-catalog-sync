@@ -19,6 +19,10 @@ function prom_send_telegram_notification( $message ) {
 	$success        = true;
 
 	foreach ( $user_ids_array as $user_id ) {
+		if (empty($user_id)) {
+			continue;
+		}
+
 		$url  = "https://api.telegram.org/bot{$token}/sendMessage";
 		$args = array(
 			'body'    => array(
@@ -69,4 +73,48 @@ function prom_get_settings_url() {
 function prom_is_configured() {
 	$xml_url = get_option( 'prom_xml_url', '' );
 	return ! empty( $xml_url );
+}
+
+/**
+ * Clean up WooCommerce transients to free memory
+ *
+ * @return void
+ */
+function prom_cleanup_wc_transients() {
+	global $wpdb;
+
+	// Delete specific WooCommerce transients that might be using memory
+	$wpdb->query("
+		DELETE FROM $wpdb->options 
+		WHERE option_name LIKE '%_transient_wc_product_%' 
+		OR option_name LIKE '%_transient_timeout_wc_product_%'
+	");
+
+	// Clear object cache if available
+	if (function_exists('wp_cache_flush')) {
+		wp_cache_flush();
+	}
+}
+
+/**
+ * Check server resources availability for XML processing
+ *
+ * @return array Status information
+ */
+function prom_check_server_resources() {
+	$memory_limit = ini_get('memory_limit');
+	$max_execution_time = ini_get('max_execution_time');
+	$post_max_size = ini_get('post_max_size');
+	$upload_max_filesize = ini_get('upload_max_filesize');
+
+	return [
+		'memory_limit' => $memory_limit,
+		'max_execution_time' => $max_execution_time,
+		'post_max_size' => $post_max_size,
+		'upload_max_filesize' => $upload_max_filesize,
+		'is_optimal' => (
+			intval($memory_limit) >= 128 && 
+			intval($max_execution_time) >= 60
+		)
+	];
 }

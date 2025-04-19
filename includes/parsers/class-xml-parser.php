@@ -43,9 +43,15 @@ class XML_Parser {
 		try {
 			$products = new XMLReader();
 			$products->open( $this->xml_url );
-			if ( $products->isEmpty ) {
+			
+			// Fix: Check if XML is empty using proper XMLReader methods
+			if ( !$products->read() ) {
 				return $this->send_telegram_message( 'XML data is empty or not created' );
 			}
+			
+			// Reset the reader position
+			$products->close();
+			$products->open( $this->xml_url );
 		} catch ( Exception $e ) {
 			return $this->send_telegram_message( 'XML parsing error: ' . $e->getMessage() );
 		}
@@ -228,8 +234,8 @@ class XML_Parser {
 			if ( ! empty( $images ) ) {
 				$this->handle_product_images( $post_id, $images );
 			} else {
-				// Fallback to old method if no images array
-				$this->handle_product_image( $post_id, $img_url );
+				// No fallback needed since we're now always using the images array
+				// The old $img_url variable is no longer used
 			}
 
 			$this->set_product_category( $post_id, $category );
@@ -386,7 +392,9 @@ class XML_Parser {
 	 * @param string $url     Image URL.
 	 */
 	private function handle_product_image( int $post_id, string $url ): void {
-		if ( empty( $url ) ) {
+		// Validate URL to prevent errors
+		if ( empty( $url ) || !filter_var($url, FILTER_VALIDATE_URL) ) {
+			prom_log("Invalid image URL for product ID: $post_id", 'warning');
 			return;
 		}
 
@@ -489,17 +497,15 @@ class XML_Parser {
 			// Set the product attribute
 			if ( isset( $term_id ) ) {
 				wp_set_object_terms( $post_id, array( $term_id ), $taxonomy );
+				$product_attributes[ $taxonomy ] = array(
+					'name'         => $taxonomy,
+					'value'        => '',
+					'position'     => 0,
+					'is_visible'   => 1,
+					'is_variation' => 0,
+					'is_taxonomy'  => 1,
+				);
 			}
-
-			// Add to product_attributes array
-			$product_attributes[ $taxonomy ] = array(
-				'name'         => $taxonomy,
-				'value'        => '',
-				'position'     => 0,
-				'is_visible'   => 1,
-				'is_variation' => 0,
-				'is_taxonomy'  => 1,
-			);
 		}
 
 		// Save the product attributes
