@@ -5,7 +5,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Class XML_Stock_Updater
  *
- * A class for parsing XML data and updating product stock status in WooCommerce.
+ * A class for parsing XML data and updating product stock status and prices in WooCommerce.
  * Optimized for weak hosting environments with large product catalogs.
  */
 class XML_Stock_Updater {
@@ -92,7 +92,7 @@ class XML_Stock_Updater {
 	}
 
 	/**
-	 * Update the stock status of products based on XML data.
+	 * Update the stock status and prices of products based on XML data.
 	 *
 	 * @return void
 	 */
@@ -112,12 +112,12 @@ class XML_Stock_Updater {
 		// Increase memory limit if possible
 		$this->increase_memory_limit();
 
-		prom_log( 'Starting stock update process', 'info' );
-		$this->send_telegram_message( 'Starting stock update process for XML: ' . $this->xml_url );
+		prom_log( 'Starting stock and price update process', 'info' );
+		$this->send_telegram_message( 'Starting stock and price update process for XML: ' . $this->xml_url );
 
 		try {
-			// Process XML in chunks to extract stock data
-			$updates = $this->extract_stock_data_from_xml();
+			// Process XML in chunks to extract stock and price data
+			$updates = $this->extract_data_from_xml();
 
 			if ( empty( $updates ) ) {
 				$this->send_telegram_message( 'No product data found in XML or XML could not be parsed' );
@@ -132,10 +132,10 @@ class XML_Stock_Updater {
 			// Process updates in batches
 			$this->process_updates_in_batches( $updates );
 
-			$this->log_memory_usage( $start_time, $start_memory, 'Stock status update completed' );
+			$this->log_memory_usage( $start_time, $start_memory, 'Stock and price update completed' );
 
 		} catch ( Exception $e ) {
-			$error_message = 'Error updating stock: ' . $e->getMessage();
+			$error_message = 'Error updating products: ' . $e->getMessage();
 			prom_log( $error_message, 'error' );
 			$this->send_telegram_message( $error_message );
 		} finally {
@@ -180,11 +180,11 @@ class XML_Stock_Updater {
 	}
 
 	/**
-	 * Extract stock data from XML file.
+	 * Extract stock and price data from XML file.
 	 *
-	 * @return array Array of [sku => stock_status]
+	 * @return array Array of [sku => ['stock_status' => status, 'price' => price, 'old_price' => old_price]]
 	 */
-	private function extract_stock_data_from_xml() {
+	private function extract_data_from_xml() {
 		$updates = array();
 		$reader  = null;
 
@@ -213,15 +213,27 @@ class XML_Stock_Updater {
 				throw new Exception( 'Failed to read XML content' );
 			}
 
-			// Extract stock data
+			// Extract stock and price data
 			while ( $reader->read() ) {
 				if ( $reader->nodeType == XMLReader::ELEMENT && $reader->localName == 'offer' ) {
-					$sku          = (string) $reader->getAttribute( 'id' );
-					$available    = (string) $reader->getAttribute( 'available' );
+					$sku       = (string) $reader->getAttribute( 'id' );
+					$available = (string) $reader->getAttribute( 'available' );
+					
+					// Get the offer node as SimpleXML to extract pricing
+					$offer_xml = simplexml_load_string( $reader->readOuterXML() );
+					
+					// Extract prices 
+					$price     = isset($offer_xml->price) ? (float) $offer_xml->price : 0;
+					$old_price = isset($offer_xml->oldprice) ? (float) $offer_xml->oldprice : 0;
+					
 					$stock_status = 'true' === $available ? 'instock' : 'outofstock';
 
 					if ( ! empty( $sku ) ) {
-						$updates[ $sku ] = $stock_status;
+						$updates[ $sku ] = array(
+							'stock_status' => $stock_status,
+							'price'        => $price,
+							'old_price'    => $old_price
+						);
 					}
 
 					// Free memory to avoid memory leaks
@@ -254,7 +266,7 @@ class XML_Stock_Updater {
 	/**
 	 * Process product updates in batches.
 	 *
-	 * @param array $updates Array of [sku => stock_status].
+	 * @param array $updates Array of [sku => ['stock_status' => status, 'price' => price, 'old_price' => old_price]].
 	 * @return void
 	 */
 	private function process_updates_in_batches( $updates ) {
@@ -262,8 +274,9 @@ class XML_Stock_Updater {
 		$processed            = 0;
 		$updated_in_stock     = 0;
 		$updated_out_of_stock = 0;
+		$updated_price        = 0;
 		$not_found            = 0;
-		$skipped_unchanged    = 0; // Count of products where status didn't change
+		$skipped_unchanged    = 0; // Count of products where nothing changed
 
 		// Process in batches to avoid memory issues
 		$batches     = array_chunk( $updates, $this->batch_size, true );
@@ -298,7 +311,7 @@ class XML_Stock_Updater {
 			$product_ids = $this->get_product_ids_by_skus( $skus );
 
 			// Update each product in the batch
-			foreach ( $batch as $sku => $stock_status ) {
+			foreach ( $batch as $sku => $product_data ) {
 				$product_id = $product_ids[ $sku ] ?? false;
 
 				if ( ! $product_id ) {
@@ -313,14 +326,28 @@ class XML_Stock_Updater {
 						continue;
 					}
 
-					// Update product and track if status actually changed
-					$status_changed = $this->update_product_stock( $product, $stock_status );
+					$changes_made = false;
 
-					if ( $status_changed ) {
-						$stock_status === 'instock' ? ++$updated_in_stock : ++$updated_out_of_stock;
-					} else {
+					// Update stock status if needed
+					$stock_status_changed = $this->update_product_stock( $product, $product_data['stock_status'] );
+					if ( $stock_status_changed ) {
+						$product_data['stock_status'] === 'instock' ? ++$updated_in_stock : ++$updated_out_of_stock;
+						$changes_made = true;
+					}
+
+					// Update prices if needed
+					if ( $product_data['price'] > 0 ) {
+						$price_changed = $this->update_product_price( $product, $product_data['price'], $product_data['old_price'] );
+						if ( $price_changed ) {
+							++$updated_price;
+							$changes_made = true;
+						}
+					}
+
+					if ( !$changes_made ) {
 						++$skipped_unchanged;
 					}
+
 				} catch ( Exception $e ) {
 					prom_log( "Error updating product $sku: " . $e->getMessage(), 'error' );
 				}
@@ -351,18 +378,20 @@ class XML_Stock_Updater {
 		// Send final results with improved information
 		$this->send_telegram_message(
 			sprintf(
-				"Результати оновлення запасів:\n" .
+				"Результати оновлення товарів:\n" .
 				"---------------------------\n" .
 				"• Всього товарів в XML: %d\n" .
 				"• Оброблено товарів: %d\n" .
 				"• Оновлено статус \"В наявності\": %d\n" .
 				"• Оновлено статус \"Немає в наявності\": %d\n" .
-				"• Пропущено (статус не змінився): %d\n" .
+				"• Оновлено цін: %d\n" .
+				"• Пропущено (без змін): %d\n" .
 				'• Не знайдено товарів: %d',
 				$total,
 				$processed,
 				$updated_in_stock,
 				$updated_out_of_stock,
+				$updated_price,
 				$skipped_unchanged,
 				$not_found
 			)
@@ -371,9 +400,10 @@ class XML_Stock_Updater {
 		// Log only important info to system log
 		prom_log(
 			sprintf(
-				'Stock update completed. Total: %d, Changed: %d, Unchanged: %d, Not found: %d',
+				'Update completed. Total: %d, Stock changed: %d, Price changed: %d, Unchanged: %d, Not found: %d',
 				$total,
 				$updated_in_stock + $updated_out_of_stock,
+				$updated_price,
 				$skipped_unchanged,
 				$not_found
 			),
@@ -593,5 +623,104 @@ class XML_Stock_Updater {
 
 		// Use the helper function from functions.php
 		prom_send_telegram_notification( $message );
+	}
+
+	/**
+	 * Update product prices if they've changed
+	 *
+	 * @param WC_Product $product Product object
+	 * @param float $price Regular or sale price from XML
+	 * @param float $old_price Old price from XML (if available)
+	 * @return bool Whether prices were changed
+	 */
+	private function update_product_price( $product, $price, $old_price = 0 ) {
+		$product_id = $product->get_id();
+		$changed = false;
+
+		// Format prices to ensure consistent decimal places
+		$price = number_format( (float) $price, 2, '.', '' );
+		
+		// Handle sale pricing if old_price is provided and greater than current price
+		if ( $old_price > 0 && $old_price > $price ) {
+			$old_price = number_format( (float) $old_price, 2, '.', '' );
+			
+			$current_regular_price = $product->get_regular_price();
+			$current_sale_price = $product->get_sale_price();
+			
+			// Only update if prices have changed
+			if ( $current_regular_price !== $old_price || $current_sale_price !== $price ) {
+				update_post_meta( $product_id, '_regular_price', $old_price );
+				update_post_meta( $product_id, '_sale_price', $price );
+				update_post_meta( $product_id, '_price', $price );
+				$changed = true;
+			}
+		} else {
+			// Just update regular price
+			$current_regular_price = $product->get_regular_price();
+			
+			if ( $current_regular_price !== $price ) {
+				update_post_meta( $product_id, '_regular_price', $price );
+				update_post_meta( $product_id, '_price', $price );
+				
+				// Remove any sale price
+				delete_post_meta( $product_id, '_sale_price' );
+				$changed = true;
+			}
+		}
+		
+		// If product is variable, update variation prices
+		if ( $changed && 'variable' === $product->get_type() ) {
+			$this->update_variation_prices( $product, $price, $old_price );
+		}
+		
+		// Clear product cache if prices were changed
+		if ( $changed ) {
+			wc_delete_product_transients( $product_id );
+		}
+		
+		return $changed;
+	}
+
+	/**
+	 * Update prices for product variations
+	 *
+	 * @param WC_Product_Variable $product Variable product object
+	 * @param float $price New price
+	 * @param float $old_price Old price for sales
+	 */
+	private function update_variation_prices( $product, $price, $old_price = 0 ) {
+		global $wpdb;
+		
+		// Get variation IDs directly from database for better performance
+		$variation_ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT ID FROM {$wpdb->posts} 
+				WHERE post_parent = %d 
+				AND post_type = 'product_variation' 
+				AND post_status = 'publish'",
+				$product->get_id()
+			)
+		);
+		
+		if ( empty( $variation_ids ) ) {
+			return;
+		}
+		
+		// Update all variations with the same pricing as parent
+		foreach ( $variation_ids as $variation_id ) {
+			if ( $old_price > 0 && $old_price > $price ) {
+				// Apply sale pricing
+				update_post_meta( $variation_id, '_regular_price', number_format( (float) $old_price, 2, '.', '' ) );
+				update_post_meta( $variation_id, '_sale_price', number_format( (float) $price, 2, '.', '' ) );
+				update_post_meta( $variation_id, '_price', number_format( (float) $price, 2, '.', '' ) );
+			} else {
+				// Regular pricing only
+				update_post_meta( $variation_id, '_regular_price', number_format( (float) $price, 2, '.', '' ) );
+				update_post_meta( $variation_id, '_price', number_format( (float) $price, 2, '.', '' ) );
+				delete_post_meta( $variation_id, '_sale_price' );
+			}
+			
+			wc_delete_product_transients( $variation_id );
+		}
 	}
 }
