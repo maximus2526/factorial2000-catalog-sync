@@ -218,21 +218,21 @@ class XML_Stock_Updater {
 				if ( $reader->nodeType == XMLReader::ELEMENT && $reader->localName == 'offer' ) {
 					$sku       = (string) $reader->getAttribute( 'id' );
 					$available = (string) $reader->getAttribute( 'available' );
-					
+
 					// Get the offer node as SimpleXML to extract pricing
 					$offer_xml = simplexml_load_string( $reader->readOuterXML() );
-					
-					// Extract prices 
-					$price     = isset($offer_xml->price) ? (float) $offer_xml->price : 0;
-					$old_price = isset($offer_xml->oldprice) ? (float) $offer_xml->oldprice : 0;
-					
+
+					// Extract prices
+					$price     = isset( $offer_xml->price ) ? (float) $offer_xml->price : 0;
+					$old_price = isset( $offer_xml->oldprice ) ? (float) $offer_xml->oldprice : 0;
+
 					$stock_status = 'true' === $available ? 'instock' : 'outofstock';
 
 					if ( ! empty( $sku ) ) {
 						$updates[ $sku ] = array(
 							'stock_status' => $stock_status,
 							'price'        => $price,
-							'old_price'    => $old_price
+							'old_price'    => $old_price,
 						);
 					}
 
@@ -344,10 +344,9 @@ class XML_Stock_Updater {
 						}
 					}
 
-					if ( !$changes_made ) {
+					if ( ! $changes_made ) {
 						++$skipped_unchanged;
 					}
-
 				} catch ( Exception $e ) {
 					prom_log( "Error updating product $sku: " . $e->getMessage(), 'error' );
 				}
@@ -629,24 +628,24 @@ class XML_Stock_Updater {
 	 * Update product prices if they've changed
 	 *
 	 * @param WC_Product $product Product object
-	 * @param float $price Regular or sale price from XML
-	 * @param float $old_price Old price from XML (if available)
+	 * @param float      $price Regular or sale price from XML
+	 * @param float      $old_price Old price from XML (if available)
 	 * @return bool Whether prices were changed
 	 */
 	private function update_product_price( $product, $price, $old_price = 0 ) {
 		$product_id = $product->get_id();
-		$changed = false;
+		$changed    = false;
 
 		// Format prices to ensure consistent decimal places
 		$price = number_format( (float) $price, 2, '.', '' );
-		
+
 		// Handle sale pricing if old_price is provided and greater than current price
 		if ( $old_price > 0 && $old_price > $price ) {
 			$old_price = number_format( (float) $old_price, 2, '.', '' );
-			
+
 			$current_regular_price = $product->get_regular_price();
-			$current_sale_price = $product->get_sale_price();
-			
+			$current_sale_price    = $product->get_sale_price();
+
 			// Only update if prices have changed
 			if ( $current_regular_price !== $old_price || $current_sale_price !== $price ) {
 				update_post_meta( $product_id, '_regular_price', $old_price );
@@ -657,27 +656,27 @@ class XML_Stock_Updater {
 		} else {
 			// Just update regular price
 			$current_regular_price = $product->get_regular_price();
-			
+
 			if ( $current_regular_price !== $price ) {
 				update_post_meta( $product_id, '_regular_price', $price );
 				update_post_meta( $product_id, '_price', $price );
-				
+
 				// Remove any sale price
 				delete_post_meta( $product_id, '_sale_price' );
 				$changed = true;
 			}
 		}
-		
+
 		// If product is variable, update variation prices
 		if ( $changed && 'variable' === $product->get_type() ) {
 			$this->update_variation_prices( $product, $price, $old_price );
 		}
-		
+
 		// Clear product cache if prices were changed
 		if ( $changed ) {
 			wc_delete_product_transients( $product_id );
 		}
-		
+
 		return $changed;
 	}
 
@@ -685,12 +684,12 @@ class XML_Stock_Updater {
 	 * Update prices for product variations
 	 *
 	 * @param WC_Product_Variable $product Variable product object
-	 * @param float $price New price
-	 * @param float $old_price Old price for sales
+	 * @param float               $price New price
+	 * @param float               $old_price Old price for sales
 	 */
 	private function update_variation_prices( $product, $price, $old_price = 0 ) {
 		global $wpdb;
-		
+
 		// Get variation IDs directly from database for better performance
 		$variation_ids = $wpdb->get_col(
 			$wpdb->prepare(
@@ -701,11 +700,11 @@ class XML_Stock_Updater {
 				$product->get_id()
 			)
 		);
-		
+
 		if ( empty( $variation_ids ) ) {
 			return;
 		}
-		
+
 		// Update all variations with the same pricing as parent
 		foreach ( $variation_ids as $variation_id ) {
 			if ( $old_price > 0 && $old_price > $price ) {
@@ -719,7 +718,7 @@ class XML_Stock_Updater {
 				update_post_meta( $variation_id, '_price', number_format( (float) $price, 2, '.', '' ) );
 				delete_post_meta( $variation_id, '_sale_price' );
 			}
-			
+
 			wc_delete_product_transients( $variation_id );
 		}
 	}

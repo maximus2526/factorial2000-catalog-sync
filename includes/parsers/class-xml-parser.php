@@ -15,16 +15,18 @@ class XML_Parser {
 	private array $sku_cache  = array(); // Cache for product SKUs
 	private string $telegram_token_id;
 	private array $telegram_user_ids;
+	private bool $new_category = false;
 
 	/**
 	 * XML_Parser constructor.
 	 *
 	 * @param string $file_path Path to the XML file.
 	 */
-	public function __construct( string $file_path ) {
+	public function __construct( string $file_path, bool $new_category ) {
 		$this->xml_url           = $file_path;
 		$this->telegram_token_id = get_option( 'telegram_token_id', '' );
 		$this->telegram_user_ids = array_map( 'trim', explode( ',', get_option( 'telegram_user_ids', '' ) ) );
+		$this->new_category      = $new_category;
 	}
 
 	/**
@@ -218,6 +220,13 @@ class XML_Parser {
 				continue;
 			}
 
+			$is_new_product = ! $this->get_product_ids_by_skus( array( $sku ) );
+
+			if ( ! $is_new_product ) {
+				++$skipped;
+				continue;
+			}
+
 			if ( $this->get_product_ids_by_skus( array( $sku ) ) ) {
 				++$skipped;
 				continue;
@@ -273,7 +282,16 @@ class XML_Parser {
 				// The old $img_url variable is no longer used
 			}
 
-			$this->set_product_category( $post_id, $category );
+			if ( ! $this->new_category ) {
+				$this->set_product_category( $post_id, $category );
+			}
+
+			if ( $this->new_category && $is_new_product ) {
+				if ( term_exists( 'Новинки', 'product_cat' ) === 0 ) {
+					wp_insert_term( 'Новинки', 'product_cat' );
+				}
+				wp_set_object_terms( $post_id, 'Новинки', 'product_cat', true );
+			}
 
 			++$imported;
 		}

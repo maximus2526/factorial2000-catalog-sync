@@ -132,6 +132,10 @@ function prom_xml_importer_import_page() {
 					<td><input type="file" name="import_xml_file" id="import_xml_file" accept=".xml" required></td>
 				</tr>
 			</table>
+			<div style="margin-bottom: 20px;" valign="top">
+				<label for="new_category"><?php esc_html_e( 'Додавати неіснуючі товари в категорію New', 'xml-prom' ); ?></label>
+				<input type="checkbox" name="new_category" id="new_category" value="1">
+			</div>
 			<button type="button" id="start-import" class="button button-primary"><?php esc_html_e( 'Імпортувати', 'xml-prom' ); ?></button>
 			<button type="button" id="stop-import" class="button button-secondary" style="display: none;"><?php esc_html_e( 'Зупинити', 'xml-prom' ); ?></button>
 		</form>
@@ -151,6 +155,8 @@ function prom_xml_importer_import_page() {
 				stopImport = false;
 				var formData = new FormData($('#xml-import-form')[0]);
 				formData.append('action', 'prom_xml_import_action');
+				formData.append('new_category', $('#new_category').is(':checked') ? '1' : '0');
+
 				$('#import-progress-container').show();
 				$('#stop-import').show();
 				$('#start-import').prop('disabled', true);
@@ -270,10 +276,11 @@ function prom_xml_importer_handle_import_action() {
 	}
 
 	if ( isset( $_FILES['import_xml_file'] ) && $_FILES['import_xml_file']['error'] === UPLOAD_ERR_OK ) {
-		$file_path = $_FILES['import_xml_file']['tmp_name'];
-		$offset    = isset( $_POST['offset'] ) ? intval( $_POST['offset'] ) : 0;
+		$file_path    = $_FILES['import_xml_file']['tmp_name'];
+		$offset       = isset( $_POST['offset'] ) ? intval( $_POST['offset'] ) : 0;
+		$new_category = isset( $_POST['new_category'] ) && $_POST['new_category'] === '1';
 
-		$xml_parser = new XML_Parser( $file_path );
+		$xml_parser = new XML_Parser( $file_path, $new_category );
 		try {
 			$result = $xml_parser->import_products( $offset, 1 );
 			wp_send_json_success(
