@@ -132,6 +132,9 @@ class XML_Stock_Updater {
 			// Process updates in batches
 			$this->process_updates_in_batches( $updates );
 
+			// Find and report missing products
+			$this->find_missing_products_in_xml( $updates );
+
 			$this->log_memory_usage( $start_time, $start_memory, 'Stock and price update completed' );
 
 		} catch ( Exception $e ) {
@@ -724,6 +727,171 @@ class XML_Stock_Updater {
 			}
 
 			wc_delete_product_transients( $variation_id );
+		}
+	}
+
+	/**
+	 * Find products that exist in database but are missing from XML feed.
+	 *
+	 * @param array $xml_skus Array of SKUs from XML feed.
+	 * @return void
+	 */
+	private function find_missing_products_in_xml( $xml_skus ) {
+		global $wpdb;
+
+		// Get all SKUs from database
+		$db_skus = $wpdb->get_col(
+			"SELECT pm.meta_value AS sku
+			FROM {$wpdb->posts} p
+			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+			WHERE p.post_type IN ('product', 'product_variation')
+			AND p.post_status = 'publish'
+			AND pm.meta_key = '_sku'
+			AND pm.meta_value != ''
+			AND pm.meta_value IS NOT NULL"
+		);
+
+		if ( empty( $db_skus ) ) {
+			$this->send_telegram_message( 'No products found in database to compare with XML' );
+			return;
+		}
+
+		// Get XML SKU keys
+		$xml_sku_keys = array_keys( $xml_skus );
+
+		// Find missing SKUs
+		$missing_skus = array_diff( $db_skus, $xml_sku_keys );
+
+		if ( empty( $missing_skus ) ) {
+			$this->send_telegram_message( '✅ Всі товари з бази даних присутні у вигрузці XML' );
+			return;
+		}
+
+		// Get product details for missing SKUs
+		$missing_products = $this->get_missing_products_details( $missing_skus );
+
+		// Send report to Telegram
+		$this->send_missing_products_report( $missing_products, count( $missing_skus ) );
+	}
+
+	/**
+	 * Get detailed information about missing products.
+	 *
+	 * @param array $missing_skus Array of missing SKUs.
+	 * @return array Array of product details.
+	 */
+	private function get_missing_products_details( $missing_skus ) {
+		global $wpdb;
+
+		$placeholders = implode( ',', array_fill( 0, count( $missing_skus ), '%s' ) );
+
+		$sql = $wpdb->prepare(
+			"SELECT p.ID, p.post_title, pm.meta_value AS sku, p.post_status
+			FROM {$wpdb->posts} p
+			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+			WHERE p.post_type IN ('product', 'product_variation')
+			AND pm.meta_key = '_sku'
+			AND pm.meta_value IN ($placeholders)
+			ORDER BY p.post_title ASC",
+			$missing_skus
+		);
+
+		return $wpdb->get_results( $sql );
+	}
+
+	/**
+	 * Send missing products report to Telegram.
+	 *
+	 * @param array $missing_products Array of missing product details.
+	 * @param int   $total_missing Total count of missing products.
+	 * @return void
+	 */
+	private function send_missing_products_report( $missing_products, $total_missing ) {
+		$message = "⚠️ Товари, яких немає у вигрузці XML:\n\n";
+		$message .= "📊 Всього відсутніх товарів: $total_missing\n";
+		$message .= "🔗 URL вигрузки: $this->xml_url\n\n";
+
+		// Group products by type (product vs variation)
+		$products = array();
+		$variations = array();
+
+		foreach ( $missing_products as $product ) {
+			$product_obj = wc_get_product( $product->ID );
+			if ( $product_obj && $product_obj->get_type() === 'variation' ) {
+				$variations[] = $product;
+			} else {
+				$products[] = $product;
+			}
+		}
+
+		// Add main products
+		if ( ! empty( $products ) ) {
+			$message .= "📦 Основні товари (" . count( $products ) . "):\n";
+			foreach ( array_slice( $products, 0, 20 ) as $product ) { // Limit to first 20
+				$message .= "• {$product->post_title} (SKU: {$product->sku})\n";
+			}
+			if ( count( $products ) > 20 ) {
+				$message .= "... та ще " . ( count( $products ) - 20 ) . " товарів\n";
+			}
+			$message .= "\n";
+		}
+
+		// Add variations
+		if ( ! empty( $variations ) ) {
+			$message .= "🔄 Варіації товарів (" . count( $variations ) . "):\n";
+			foreach ( array_slice( $variations, 0, 20 ) as $variation ) { // Limit to first 20
+				$message .= "• {$variation->post_title} (SKU: {$variation->sku})\n";
+			}
+			if ( count( $variations ) > 20 ) {
+				$message .= "... та ще " . ( count( $variations ) - 20 ) . " варіацій\n";
+			}
+			$message .= "\n";
+		}
+
+		$message .= "💡 Рекомендація: Перевірте, чи ці товари дійсно відсутні у постачальника, або це помилка у вигрузці.";
+
+		$this->send_telegram_message( $message );
+
+		// Convert missing products to draft status
+		$this->convert_missing_products_to_draft( $missing_products );
+	}
+
+	/**
+	 * Convert missing products to draft status.
+	 *
+	 * @param array $missing_products Array of missing product details.
+	 * @return void
+	 */
+	private function convert_missing_products_to_draft( $missing_products ) {
+		$converted_count = 0;
+
+		foreach ( $missing_products as $product ) {
+			try {
+				// Update post status to draft
+				$result = wp_update_post(
+					array(
+						'ID'          => $product->ID,
+						'post_status' => 'draft',
+					),
+					true // Return WP_Error on failure
+				);
+
+				if ( ! is_wp_error( $result ) ) {
+					++$converted_count;
+					
+					// Clear product cache
+					wc_delete_product_transients( $product->ID );
+				} else {
+					prom_log( "Failed to convert product {$product->sku} to draft: " . $result->get_error_message(), 'error' );
+				}
+			} catch ( Exception $e ) {
+				prom_log( "Error converting product {$product->sku} to draft: " . $e->getMessage(), 'error' );
+			}
+		}
+
+		if ( $converted_count > 0 ) {
+			$this->send_telegram_message( "✅ Переведено в статус 'Чернетка': $converted_count товарів" );
+			prom_log( "Converted $converted_count missing products to draft status", 'info' );
 		}
 	}
 }
