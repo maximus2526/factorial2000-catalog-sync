@@ -408,6 +408,10 @@ class XML_Stock_Updater {
 			),
 			'info'
 		);
+
+		if ( function_exists( 'rocket_clean_domain' ) ) {
+			rocket_clean_domain();
+		}
 	}
 
 	/**
