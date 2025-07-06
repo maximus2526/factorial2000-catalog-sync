@@ -296,10 +296,7 @@ class XML_Stock_Updater {
 
 		$this->send_telegram_message( "Processing $total products in $batch_count batches" );
 
-		// Reduce logging - only log this for debugging
-		if ( WP_DEBUG ) {
-			prom_log( "Processing $total products in $batch_count batches", 'info' );
-		}
+
 
 		$process_start_time = microtime( true );
 
@@ -366,15 +363,7 @@ class XML_Stock_Updater {
 				++$processed;
 			}
 
-			// Reduce progress updates - only report every 10 batches instead of 5
-			if ( $batch_index % 10 === 0 || $batch_index === $batch_count - 1 ) {
-				$progress_percent = round( ( $batch_index + 1 ) / $batch_count * 100 );
 
-				// Only log detailed progress in debug mode
-				if ( WP_DEBUG ) {
-					prom_log( 'Processed batch ' . ( $batch_index + 1 ) . "/$batch_count ($progress_percent%)", 'info' );
-				}
-			}
 
 			// Free up memory more aggressively for production
 			if ( $batch_index % 2 === 0 ) {
@@ -502,7 +491,7 @@ class XML_Stock_Updater {
 			FROM {$wpdb->posts} p
 			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
 			WHERE p.post_type IN ('product', 'product_variation')
-			AND p.post_status = 'publish'
+			AND p.post_status IN ('publish', 'draft', 'private')
 			AND pm.meta_key = '_sku'
 			AND pm.meta_value IN ($placeholders)",
 			$skus
@@ -748,21 +737,29 @@ class XML_Stock_Updater {
 	private function find_missing_products_in_xml( $xml_skus ) {
 		global $wpdb;
 
-		// Get all SKUs from database
+		// Only check products with the same SKU prefix as current XML feed
+		if ( empty( $this->sku_prefix ) ) {
+			return; // Skip if no SKU prefix configured
+		}
+
+		// Get SKUs from database that match current feed's prefix
 		$db_skus = $wpdb->get_col(
-			"SELECT pm.meta_value AS sku
-			FROM {$wpdb->posts} p
-			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
-			WHERE p.post_type IN ('product', 'product_variation')
-			AND p.post_status = 'publish'
-			AND pm.meta_key = '_sku'
-			AND pm.meta_value != ''
-			AND pm.meta_value IS NOT NULL"
+			$wpdb->prepare(
+				"SELECT pm.meta_value AS sku
+				FROM {$wpdb->posts} p
+				INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+				WHERE p.post_type IN ('product', 'product_variation')
+				AND p.post_status IN ('publish', 'draft', 'private')
+				AND pm.meta_key = '_sku'
+				AND pm.meta_value != ''
+				AND pm.meta_value IS NOT NULL
+				AND pm.meta_value LIKE %s",
+				$this->sku_prefix . '%'
+			)
 		);
 
 		if ( empty( $db_skus ) ) {
-			$this->send_telegram_message( 'No products found in database to compare with XML' );
-			return;
+			return; // No products with this prefix found
 		}
 
 		// Get XML SKU keys
@@ -799,6 +796,7 @@ class XML_Stock_Updater {
 			FROM {$wpdb->posts} p
 			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
 			WHERE p.post_type IN ('product', 'product_variation')
+			AND p.post_status IN ('publish', 'draft', 'private')
 			AND pm.meta_key = '_sku'
 			AND pm.meta_value IN ($placeholders)
 			ORDER BY p.post_title ASC",
