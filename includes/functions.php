@@ -172,10 +172,6 @@ function prom_check_server_resources() {
 		'max_execution_time'  => $max_execution_time,
 		'post_max_size'       => $post_max_size,
 		'upload_max_filesize' => $upload_max_filesize,
-		'is_optimal'          => (
-			intval( $memory_limit ) >= 128 &&
-			intval( $max_execution_time ) >= 60
-		),
 	);
 }
 

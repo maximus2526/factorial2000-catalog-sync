@@ -83,20 +83,6 @@ function prom_xml_importer_check_resources() {
 		return;
 	}
 
-	// Check server resources
-	$resources = prom_check_server_resources();
-	if ( ! $resources['is_optimal'] ) {
-		echo '<div class="notice notice-warning">';
-		echo '<p><strong>Prom XML Importer:</strong> ';
-		echo esc_html__( 'Your server has limited resources which may affect performance with large XML files:', 'xml-prom' );
-		echo '<ul>';
-		echo '<li>' . esc_html__( 'Memory Limit:', 'xml-prom' ) . ' ' . esc_html( $resources['memory_limit'] ) . '</li>';
-		echo '<li>' . esc_html__( 'Max Execution Time:', 'xml-prom' ) . ' ' . esc_html( $resources['max_execution_time'] ) . '</li>';
-		echo '</ul>';
-		echo esc_html__( 'For large XML files (3000+ products), we recommend at least 128MB of memory and 60 seconds execution time.', 'xml-prom' );
-		echo '</p></div>';
-	}
-
 	// Check if XML URL is set
 	if ( ! prom_is_configured() && isset( $_GET['page'] ) && $_GET['page'] === 'prom-xml-importer-update' ) {
 		echo '<div class="notice notice-warning">';
