@@ -429,7 +429,7 @@ function prom_xml_importer_handle_action() {
 				// Run in background and ensure cron is active
 				$started = false;
 				foreach ( $xml_urls as $index => $xml_url ) {
-					$sku_prefix = get_option( 'prom_xml_sku_prefix' . ( $index === 1 ? '' : '_' . $index ), '' );
+					$sku_prefix = get_option( 'prom_xml_sku_prefix_' . $index, '' );
 					if ( prom_trigger_background_sync( $xml_url, $sku_prefix ) ) {
 						$started = true;
 					}
@@ -462,10 +462,10 @@ function prom_xml_importer_handle_action() {
 
 					foreach ( $xml_urls as $index => $xml_url ) {
 						try {
-							$sku_prefix = get_option( 'prom_xml_sku_prefix' . ( $index === 1 ? '' : '_' . $index ), '' );
-							$updater = new XML_Stock_Updater( $xml_url, $sku_prefix );
+							$sku_prefix = get_option( 'prom_xml_sku_prefix_' . $index, '' );
+							$updater    = new XML_Stock_Updater( $xml_url, $sku_prefix );
 							$updater->update_products_stock_status();
-							$success_count++;
+							++$success_count;
 						} catch ( Exception $e ) {
 							prom_log( "Error updating stock for XML URL $index: " . $e->getMessage(), 'error' );
 						}
@@ -475,7 +475,7 @@ function prom_xml_importer_handle_action() {
 						add_settings_error(
 							'prom_xml_importer_settings',
 							'settings_updated',
-							sprintf( __( 'Stock update completed successfully for %d out of %d XML files.', 'xml-prom' ), $success_count, $total_count ),
+							sprintf( __( 'Stock update completed successfully for %1$d out of %2$d XML files.', 'xml-prom' ), $success_count, $total_count ),
 							'updated'
 						);
 					} else {
