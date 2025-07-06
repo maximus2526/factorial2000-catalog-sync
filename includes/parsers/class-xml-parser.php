@@ -16,17 +16,21 @@ class XML_Parser {
 	private string $telegram_token_id;
 	private array $telegram_user_ids;
 	private bool $new_category = false;
+	private string $sku_prefix = '';
 
 	/**
 	 * XML_Parser constructor.
 	 *
 	 * @param string $file_path Path to the XML file.
+	 * @param bool $new_category Whether to add new products to "New" category.
+	 * @param string $sku_prefix Prefix to add to SKU values.
 	 */
-	public function __construct( string $file_path, bool $new_category ) {
+	public function __construct( string $file_path, bool $new_category, string $sku_prefix = '' ) {
 		$this->xml_url           = $file_path;
 		$this->telegram_token_id = get_option( 'telegram_token_id', '' );
 		$this->telegram_user_ids = array_map( 'trim', explode( ',', get_option( 'telegram_user_ids', '' ) ) );
 		$this->new_category      = $new_category;
+		$this->sku_prefix        = $sku_prefix;
 	}
 
 	/**
@@ -196,6 +200,11 @@ class XML_Parser {
 			$category  = (string) $offer->categoryId;
 			$available = (string) $offer['available'] === 'true' ? 'instock' : 'outofstock';
 			$vendor    = isset( $offer->vendor ) ? (string) $offer->vendor : '';
+
+			// Apply SKU prefix if set
+			if ( ! empty( $this->sku_prefix ) ) {
+				$sku = $this->sku_prefix . $sku;
+			}
 
 			// Get all product images
 			$images = array();

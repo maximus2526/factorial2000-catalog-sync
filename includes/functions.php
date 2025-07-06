@@ -106,8 +106,14 @@ function prom_get_settings_url() {
  * @return bool True if configured, false otherwise
  */
 function prom_is_configured() {
-	$xml_url = get_option( 'prom_xml_url', '' );
-	return ! empty( $xml_url );
+	// Check if at least one XML URL is configured
+	for ( $i = 1; $i <= 5; $i++ ) {
+		$xml_url = get_option( 'prom_xml_url' . ( $i === 1 ? '' : '_' . $i ), '' );
+		if ( ! empty( $xml_url ) ) {
+			return true;
+		}
+	}
+	return false;
 }
 
 /**
@@ -177,9 +183,10 @@ function prom_check_server_resources() {
  * Run product synchronization via a background process
  *
  * @param string $xml_url URL of the XML file
+ * @param string $sku_prefix SKU prefix for this XML source
  * @return bool Whether sync was started
  */
-function prom_trigger_background_sync( $xml_url ) {
+function prom_trigger_background_sync( $xml_url, $sku_prefix = '' ) {
 	if ( empty( $xml_url ) ) {
 		return false;
 	}
@@ -189,9 +196,9 @@ function prom_trigger_background_sync( $xml_url ) {
 	}
 
 	// Schedule the update to happen in the background in 30 seconds
-	if ( ! wp_next_scheduled( 'prom_single_update_event', array( $xml_url ) ) ) {
-		wp_schedule_single_event( time() + 30, 'prom_single_update_event', array( $xml_url ) );
-		prom_log( "Scheduled background sync for XML: $xml_url", 'info' );
+	if ( ! wp_next_scheduled( 'prom_single_update_event', array( $xml_url, $sku_prefix ) ) ) {
+		wp_schedule_single_event( time() + 30, 'prom_single_update_event', array( $xml_url, $sku_prefix ) );
+		prom_log( "Scheduled background sync for XML: $xml_url with SKU prefix: $sku_prefix", 'info' );
 		return true;
 	}
 
@@ -201,10 +208,10 @@ function prom_trigger_background_sync( $xml_url ) {
 // Add action for the single update event
 add_action(
 	'prom_single_update_event',
-	function ( $xml_url ) {
+	function ( $xml_url, $sku_prefix = '' ) {
 		if ( ! empty( $xml_url ) ) {
 			prom_cleanup_wc_transients();
-			$updater = new XML_Stock_Updater( $xml_url );
+			$updater = new XML_Stock_Updater( $xml_url, $sku_prefix );
 			$updater->update_products_stock_status();
 			prom_cleanup_wc_transients( true );
 		}

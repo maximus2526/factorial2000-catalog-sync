@@ -45,14 +45,23 @@ class XML_Stock_Updater {
 	private $max_execution_time = 0;
 
 	/**
+	 * SKU prefix for this XML source.
+	 *
+	 * @var string
+	 */
+	private $sku_prefix = '';
+
+	/**
 	 * XML_Stock_Updater constructor.
 	 *
 	 * @param string $xml_url URL for fetching XML data.
+	 * @param string $sku_prefix Prefix to add to SKU values.
 	 */
-	public function __construct( $xml_url ) {
+	public function __construct( $xml_url, $sku_prefix = '' ) {
 		$this->xml_url           = $xml_url;
 		$this->telegram_token_id = get_option( 'telegram_token_id', '' );
 		$this->telegram_user_ids = array_map( 'trim', explode( ',', get_option( 'telegram_user_ids', '' ) ) );
+		$this->sku_prefix        = $sku_prefix;
 
 		// Get the current PHP max execution time and set our limit slightly below it
 		$current_limit            = ini_get( 'max_execution_time' );
@@ -232,7 +241,7 @@ class XML_Stock_Updater {
 					$stock_status = 'true' === $available ? 'instock' : 'outofstock';
 
 					if ( ! empty( $sku ) ) {
-						$updates[ $sku ] = array(
+						$updates[ $this->sku_prefix . $sku ] = array(
 							'stock_status' => $stock_status,
 							'price'        => $price,
 							'old_price'    => $old_price,
