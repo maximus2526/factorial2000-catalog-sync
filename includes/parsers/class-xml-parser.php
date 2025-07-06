@@ -22,7 +22,7 @@ class XML_Parser {
 	 * XML_Parser constructor.
 	 *
 	 * @param string $file_path Path to the XML file.
-	 * @param bool $new_category Whether to add new products to "New" category.
+	 * @param bool   $new_category Whether to add new products to "New" category.
 	 * @param string $sku_prefix Prefix to add to SKU values.
 	 */
 	public function __construct( string $file_path, bool $new_category, string $sku_prefix = '' ) {
@@ -232,11 +232,6 @@ class XML_Parser {
 			$is_new_product = ! $this->get_product_ids_by_skus( array( $sku ) );
 
 			if ( ! $is_new_product ) {
-				++$skipped;
-				continue;
-			}
-
-			if ( $this->get_product_ids_by_skus( array( $sku ) ) ) {
 				++$skipped;
 				continue;
 			}
@@ -651,15 +646,24 @@ class XML_Parser {
 			return array();
 		}
 
-		// Check cache first for each SKU
+		// Add prefix to SKUs for database search if prefix is set
+		$skus_with_prefix = array();
+		foreach ( $skus as $sku ) {
+			$sku_with_prefix    = ! empty( $this->sku_prefix ) ? $this->sku_prefix . $sku : $sku;
+			$skus_with_prefix[] = $sku_with_prefix;
+		}
+
+		// Check cache first for each SKU with prefix
 		$result        = array();
 		$uncached_skus = array();
 
-		foreach ( $skus as $sku ) {
-			if ( isset( $this->sku_cache[ $sku ] ) ) {
-				$result[ $sku ] = $this->sku_cache[ $sku ];
+		foreach ( $skus_with_prefix as $sku_with_prefix ) {
+			if ( isset( $this->sku_cache[ $sku_with_prefix ] ) ) {
+				// Map back to original SKU without prefix
+				$original_sku            = ! empty( $this->sku_prefix ) ? substr( $sku_with_prefix, strlen( $this->sku_prefix ) ) : $sku_with_prefix;
+				$result[ $original_sku ] = $this->sku_cache[ $sku_with_prefix ];
 			} else {
-				$uncached_skus[] = $sku;
+				$uncached_skus[] = $sku_with_prefix;
 			}
 		}
 
@@ -679,12 +683,12 @@ class XML_Parser {
 			$db_results = $wpdb->get_results( $sql );
 			$db_results = array_column( $db_results, 'ID', 'sku' );
 
-			// Add to cache
-			foreach ( $db_results as $sku => $id ) {
-				$this->sku_cache[ $sku ] = $id;
+			// Add to cache and map back to original SKU
+			foreach ( $db_results as $sku_with_prefix => $id ) {
+				$this->sku_cache[ $sku_with_prefix ] = $id;
+				$original_sku                        = ! empty( $this->sku_prefix ) ? substr( $sku_with_prefix, strlen( $this->sku_prefix ) ) : $sku_with_prefix;
+				$result[ $original_sku ]             = $id;
 			}
-
-			$result = array_merge( $result, $db_results );
 		}
 
 		return $result;
