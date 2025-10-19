@@ -131,18 +131,57 @@ function prom_xml_importer_import_page() {
 					<th scope="row"><label for="import_xml_file"><?php esc_html_e( 'Виберіть XML файл для імпорту', 'xml-prom' ); ?></label></th>
 					<td><input type="file" name="import_xml_file" id="import_xml_file" accept=".xml" required></td>
 				</tr>
-				<tr valign="top">
-					<th scope="row"><label for="import_sku_prefix"><?php esc_html_e( 'SKU Prefix', 'xml-prom' ); ?></label></th>
-					<td><input type="text" name="import_sku_prefix" id="import_sku_prefix" placeholder="<?php esc_attr_e( 'Наприклад: NEW_', 'xml-prom' ); ?>" required></td>
-				</tr>
-			</table>
-			<div style="margin-bottom: 20px;" valign="top">
-				<label for="new_category"><?php esc_html_e( 'Додавати неіснуючі товари в категорію New', 'xml-prom' ); ?></label>
+			<tr valign="top">
+				<th scope="row"><label for="import_sku_prefix"><?php esc_html_e( 'SKU Prefix', 'xml-prom' ); ?></label></th>
+				<td><input type="text" name="import_sku_prefix" id="import_sku_prefix" placeholder="<?php esc_attr_e( 'Наприклад: NEW_', 'xml-prom' ); ?>" required></td>
+			</tr>
+		</table>
+		<div style="margin-bottom: 15px;">
+			<label for="new_category">
 				<input type="checkbox" name="new_category" id="new_category" value="1">
+				<?php esc_html_e( 'Додавати неіснуючі товари в категорію New', 'xml-prom' ); ?>
+			</label>
+		</div>
+		
+		<div style="margin-bottom: 20px;">
+			<label style="font-weight: bold; display: block; margin-bottom: 10px;">
+				<?php esc_html_e( 'Режим імпорту:', 'xml-prom' ); ?>
+			</label>
+			<div style="margin-left: 20px;">
+				<label style="display: block; margin-bottom: 8px;">
+					<input type="radio" name="import_mode" value="simple" checked>
+					<?php esc_html_e( 'Прості продукти (тільки товари БЕЗ group_id)', 'xml-prom' ); ?>
+				</label>
+				<label style="display: block;">
+					<input type="radio" name="import_mode" value="variable">
+					<?php esc_html_e( 'Варіативні продукти (тільки товари З group_id, з вибором атрибутів)', 'xml-prom' ); ?>
+				</label>
 			</div>
-			<button type="button" id="start-import" class="button button-primary"><?php esc_html_e( 'Імпортувати', 'xml-prom' ); ?></button>
-			<button type="button" id="stop-import" class="button button-secondary" style="display: none;"><?php esc_html_e( 'Зупинити', 'xml-prom' ); ?></button>
+		</div>
+
+		<div style="margin-bottom: 20px;">
+			<button type="button" id="analyze-xml" class="button button-secondary" style="display: none;">
+				<?php esc_html_e( 'Проаналізувати XML', 'xml-prom' ); ?>
+			</button>
+			<button type="button" id="start-import" class="button button-primary">
+				<?php esc_html_e( 'Імпортувати', 'xml-prom' ); ?>
+			</button>
+			<button type="button" id="stop-import" class="button button-secondary" style="display: none;">
+				<?php esc_html_e( 'Зупинити', 'xml-prom' ); ?>
+			</button>
+		</div>
 		</form>
+
+		<!-- Контейнер для аналізу груп -->
+		<div id="groups-analysis-container" style="display: none; margin-top: 30px; border: 1px solid #ccc; padding: 20px; background: #f9f9f9;">
+			<h3><?php esc_html_e( 'Вибір варіаційних атрибутів', 'xml-prom' ); ?></h3>
+			<p class="description"><?php esc_html_e( 'Для кожної групи товарів виберіть атрибут який буде використовуватись для створення варіацій:', 'xml-prom' ); ?></p>
+			<div id="analysis-status" style="margin: 15px 0;"></div>
+			<div id="groups-list" style="margin-top: 20px; max-height: 600px; overflow-y: auto;"></div>
+			<button type="button" id="start-import-with-selection" class="button button-primary" style="margin-top: 20px; display: none;">
+				<?php esc_html_e( 'Імпортувати з вибраними атрибутами', 'xml-prom' ); ?>
+			</button>
+		</div>
 
 		<div id="import-progress-container" style="display: none;">
 			<h3><?php esc_html_e( 'Прогрес імпорту', 'xml-prom' ); ?></h3>
@@ -154,6 +193,204 @@ function prom_xml_importer_import_page() {
 	<script type="text/javascript">
 		jQuery(document).ready(function($) {
 			let stopImport = false;
+			let groupsData = {}; // Зберігаємо дані груп та вибрані атрибути
+
+			// Перемикач режиму імпорту
+			$('input[name="import_mode"]').on('change', function() {
+				const mode = $(this).val();
+				if (mode === 'variable') {
+					$('#analyze-xml').show();
+					$('#start-import').hide();
+					$('#groups-analysis-container').hide();
+				} else {
+					$('#analyze-xml').hide();
+					$('#start-import').show();
+					$('#groups-analysis-container').hide();
+				}
+			});
+
+			// Аналіз XML для варіативних продуктів
+			$('#analyze-xml').on('click', function() {
+				const fileInput = $('#import_xml_file')[0];
+				const skuPrefix = $('#import_sku_prefix').val().trim();
+
+				if (!fileInput.files.length) {
+					alert('<?php esc_html_e( 'Будь ласка, виберіть XML файл.', 'xml-prom' ); ?>');
+					return;
+				}
+
+				if (!skuPrefix) {
+					alert('<?php esc_html_e( 'Будь ласка, введіть SKU Prefix.', 'xml-prom' ); ?>');
+					$('#import_sku_prefix').focus();
+					return;
+				}
+
+				const formData = new FormData($('#xml-import-form')[0]);
+				formData.append('action', 'prom_xml_analyze_groups');
+				formData.append('sku_prefix', skuPrefix);
+
+				$('#analysis-status').html('<p><?php esc_html_e( 'Аналіз XML файлу...', 'xml-prom' ); ?></p>');
+				$('#groups-analysis-container').show();
+				$('#groups-list').empty();
+				$(this).prop('disabled', true);
+
+				$.ajax({
+					url: ajaxurl,
+					type: 'POST',
+					data: formData,
+					processData: false,
+					contentType: false,
+					success: function(response) {
+						if (response.success) {
+							groupsData = response.data.groups;
+							displayGroups(response.data.groups);
+							$('#analysis-status').html('<p style="color: green;"><?php esc_html_e( 'Аналіз завершено! Знайдено груп:', 'xml-prom' ); ?> ' + Object.keys(groupsData).length + '</p>');
+							$('#start-import-with-selection').show();
+						} else {
+							$('#analysis-status').html('<p style="color: red;">' + response.data.message + '</p>');
+						}
+						$('#analyze-xml').prop('disabled', false);
+					},
+					error: function() {
+						$('#analysis-status').html('<p style="color: red;"><?php esc_html_e( 'Помилка при аналізі XML.', 'xml-prom' ); ?></p>');
+						$('#analyze-xml').prop('disabled', false);
+					}
+				});
+			});
+
+			// Відображення груп з атрибутами
+			function displayGroups(groups) {
+				const $container = $('#groups-list');
+				$container.empty();
+
+				Object.keys(groups).forEach(function(groupId) {
+					const group = groups[groupId];
+					const $groupBox = $('<div>').css({
+						'border': '1px solid #ddd',
+						'padding': '15px',
+						'margin-bottom': '15px',
+						'background': 'white'
+					});
+
+					// Заголовок з фото
+					const $header = $('<div>').css({
+						'display': 'flex',
+						'align-items': 'flex-start',
+						'margin-bottom': '10px'
+					});
+
+					if (group.image) {
+						const $img = $('<img>').attr('src', group.image).css({
+							'width': '80px',
+							'height': '80px',
+							'object-fit': 'cover',
+							'margin-right': '15px',
+							'border': '1px solid #ddd'
+						});
+						$header.append($img);
+					}
+
+					const $info = $('<div>');
+					$info.append($('<h4>').text(group.name).css('margin', '0 0 5px 0'));
+					$info.append($('<p>').html('<strong><?php esc_html_e( 'Group ID:', 'xml-prom' ); ?></strong> ' + groupId).css('margin', '0 0 5px 0'));
+					
+					// Елемент для динамічного відображення кількості варіацій
+					const $variationsInfo = $('<p>').attr('id', 'variations_count_' + groupId).css('margin', '0');
+					$variationsInfo.html('<strong><?php esc_html_e( 'Варіацій в XML:', 'xml-prom' ); ?></strong> ' + group.variations_count);
+					$info.append($variationsInfo);
+					
+					// Додамо інфо про розраховану кількість варіацій
+					const $calculatedInfo = $('<p>').attr('id', 'calculated_count_' + groupId).css({'margin': '5px 0 0 0', 'color': '#2271b1', 'font-weight': 'bold'});
+					$info.append($calculatedInfo);
+					
+					$header.append($info);
+
+					$groupBox.append($header);
+
+					// Атрибути для вибору
+					if (group.attributes && group.attributes.length > 0) {
+						const $attrLabel = $('<p>').html('<strong><?php esc_html_e( 'Виберіть варіаційні атрибути:', 'xml-prom' ); ?></strong>').css('margin', '10px 0 5px 0');
+						$groupBox.append($attrLabel);
+
+						// Ініціалізуємо масив вибраних атрибутів
+						if (!groupsData[groupId].selected_attributes) {
+							groupsData[groupId].selected_attributes = [group.attributes[0].name]; // Перший за замовчуванням
+						}
+
+						group.attributes.forEach(function(attr, index) {
+							const checkboxId = 'attr_' + groupId + '_' + index;
+							const $checkboxWrapper = $('<div>').css('margin', '5px 0 5px 20px');
+							const $checkbox = $('<input>').attr({
+								'type': 'checkbox',
+								'name': 'group_attr_' + groupId + '[]',
+								'id': checkboxId,
+								'value': attr.name,
+								'checked': index === 0 // Перший вибраний за замовчуванням
+							}).on('change', function() {
+								// Оновлюємо масив вибраних атрибутів
+								const selected = [];
+								$('input[name="group_attr_' + groupId + '[]"]:checked').each(function() {
+									selected.push($(this).val());
+								});
+								groupsData[groupId].selected_attributes = selected;
+								
+								// Оновлюємо розрахунок варіацій
+								updateVariationsCount(groupId);
+							});
+
+							const $label = $('<label>').attr('for', checkboxId).css({
+								'margin-left': '5px',
+								'cursor': 'pointer'
+							});
+
+							$label.text(attr.name + ' (' + attr.values.join(', ') + ')');
+
+							$checkboxWrapper.append($checkbox).append($label);
+							$groupBox.append($checkboxWrapper);
+						});
+					} else {
+						$groupBox.append($('<p>').text('<?php esc_html_e( 'Немає атрибутів що відрізняються', 'xml-prom' ); ?>').css('color', 'orange'));
+					}
+
+					$container.append($groupBox);
+					
+					// Початковий розрахунок варіацій
+					updateVariationsCount(groupId);
+				});
+			}
+
+			// Функція для розрахунку кількості варіацій
+			function updateVariationsCount(groupId) {
+				const group = groupsData[groupId];
+				if (!group || !group.selected_attributes || group.selected_attributes.length === 0) {
+					$('#calculated_count_' + groupId).html('');
+					return;
+				}
+
+				// Розраховуємо добуток кількості значень всіх вибраних атрибутів
+				let totalVariations = 1;
+				const selectedAttrNames = group.selected_attributes;
+				const attrInfo = [];
+
+				group.attributes.forEach(function(attr) {
+					if (selectedAttrNames.includes(attr.name)) {
+						totalVariations *= attr.values.length;
+						attrInfo.push(attr.name + ': ' + attr.values.length);
+					}
+				});
+
+				// Показуємо розрахунок
+				if (selectedAttrNames.length > 1) {
+					$('#calculated_count_' + groupId).html(
+						'<strong><?php esc_html_e( 'Буде створено варіацій:', 'xml-prom' ); ?></strong> ' + 
+						totalVariations + ' (' + attrInfo.join(' × ') + ')'
+					);
+				} else {
+					$('#calculated_count_' + groupId).html(
+						'<strong><?php esc_html_e( 'Буде створено варіацій:', 'xml-prom' ); ?></strong> ' + totalVariations
+					);
+				}
+			}
 
 			$('#start-import').on('click', function() {
 				// Check if SKU prefix is provided
@@ -164,11 +401,12 @@ function prom_xml_importer_import_page() {
 					return;
 				}
 
-				stopImport = false;
-				var formData = new FormData($('#xml-import-form')[0]);
-				formData.append('action', 'prom_xml_import_action');
-				formData.append('new_category', $('#new_category').is(':checked') ? '1' : '0');
-				formData.append('sku_prefix', skuPrefix);
+			stopImport = false;
+			var formData = new FormData($('#xml-import-form')[0]);
+			formData.append('action', 'prom_xml_import_action');
+			formData.append('new_category', $('#new_category').is(':checked') ? '1' : '0');
+			formData.append('import_variations', '0'); // Завжди прості товари для цієї кнопки
+			formData.append('sku_prefix', skuPrefix);
 
 				$('#import-progress-container').show();
 				$('#stop-import').show();
@@ -224,6 +462,91 @@ function prom_xml_importer_import_page() {
 
 			$('#stop-import').on('click', function() {
 				stopImport = true;
+			});
+
+			// Імпорт з вибраними атрибутами
+			$('#start-import-with-selection').on('click', function() {
+				const skuPrefix = $('#import_sku_prefix').val().trim();
+				
+				// Збираємо вибрані атрибути
+				const selectedAttributes = {};
+				let hasEmptySelection = false;
+				
+				Object.keys(groupsData).forEach(function(groupId) {
+					const selected = groupsData[groupId].selected_attributes || [];
+					selectedAttributes[groupId] = selected;
+					
+					if (selected.length === 0) {
+						hasEmptySelection = true;
+					}
+				});
+
+				// Перевіряємо чи всі групи мають вибрані атрибути
+				if (hasEmptySelection) {
+					alert('<?php esc_html_e( 'Будь ласка, виберіть хоча б один атрибут для кожної групи товарів.', 'xml-prom' ); ?>');
+					return;
+				}
+
+				stopImport = false;
+				const formData = new FormData($('#xml-import-form')[0]);
+				formData.append('action', 'prom_xml_import_action');
+				formData.append('new_category', $('#new_category').is(':checked') ? '1' : '0');
+				formData.append('import_variations', '1');
+				formData.append('sku_prefix', skuPrefix);
+				formData.append('selected_attributes', JSON.stringify(selectedAttributes));
+
+				$('#import-progress-container').show();
+				$('#stop-import').show();
+				$('#start-import-with-selection').prop('disabled', true);
+				$('#groups-analysis-container').hide();
+
+				function importChunk(offset = 0) {
+					if (stopImport) {
+						$('#import-status').text('<?php esc_html_e( 'Імпорт зупинено.', 'xml-prom' ); ?>');
+						$('#stop-import').hide();
+						$('#start-import-with-selection').prop('disabled', false);
+						return;
+					}
+
+					formData.set('offset', offset);
+
+					$.ajax({
+						url: ajaxurl,
+						type: 'POST',
+						data: formData,
+						processData: false,
+						contentType: false,
+						success: function(response) {
+							if (response.success) {
+								const imported = response.data.imported;
+								const total = response.data.total;
+								const progress = (imported / total) * 100;
+
+								$('#import-progress').val(progress);
+								$('#import-status').html('<?php esc_html_e( 'Імпортовано:', 'xml-prom' ); ?> ' + imported + ' / ' + total);
+
+								if (!response.data.finished && !stopImport) {
+									importChunk(imported);
+								} else {
+									$('#import-status').html('<?php esc_html_e( 'Імпорт завершено! Імпортовано:', 'xml-prom' ); ?> ' + imported + ' <?php esc_html_e( 'товарів', 'xml-prom' ); ?>');
+									$('#stop-import').hide();
+									$('#start-import-with-selection').prop('disabled', false);
+								}
+							} else {
+								alert('<?php esc_html_e( 'Помилка:', 'xml-prom' ); ?> ' + response.data.message);
+								$('#stop-import').hide();
+								$('#start-import-with-selection').prop('disabled', false);
+							}
+						},
+						error: function() {
+							alert('<?php esc_html_e( 'Сталася помилка під час імпорту.', 'xml-prom' ); ?>');
+							$('#stop-import').hide();
+							$('#start-import-with-selection').prop('disabled', false);
+						}
+					});
+				}
+
+				importChunk();
 			});
 		});
 	</script>
@@ -377,14 +700,41 @@ function prom_xml_importer_handle_import_action() {
 	}
 
 	if ( isset( $_FILES['import_xml_file'] ) && $_FILES['import_xml_file']['error'] === UPLOAD_ERR_OK ) {
-		$file_path    = $_FILES['import_xml_file']['tmp_name'];
-		$offset       = isset( $_POST['offset'] ) ? intval( $_POST['offset'] ) : 0;
-		$new_category = isset( $_POST['new_category'] ) && $_POST['new_category'] === '1';
-		$sku_prefix   = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( $_POST['sku_prefix'] ) : '';
+		$file_path         = $_FILES['import_xml_file']['tmp_name'];
+		$offset            = isset( $_POST['offset'] ) ? intval( $_POST['offset'] ) : 0;
+		$new_category      = isset( $_POST['new_category'] ) && $_POST['new_category'] === '1';
+		$import_variations = isset( $_POST['import_variations'] ) && $_POST['import_variations'] === '1';
+		$sku_prefix        = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( $_POST['sku_prefix'] ) : '';
+
+		// Get selected attributes for manual mode
+		$selected_attributes = array();
+		if ( isset( $_POST['selected_attributes'] ) ) {
+			$decoded = json_decode( stripslashes( $_POST['selected_attributes'] ), true );
+			if ( is_array( $decoded ) ) {
+				$selected_attributes = $decoded;
+			}
+		}
+
+		// Debug log
+		prom_log( 'Setting import_variations transient: POST=' . var_export( $_POST['import_variations'] ?? 'NOT SET', true ) . ', value=' . ( $import_variations ? '1' : '0' ) );
+		if ( ! empty( $selected_attributes ) ) {
+			prom_log( 'Manual attribute selection enabled, groups: ' . count( $selected_attributes ) );
+		}
+
+		// Set temporary options for this import session
+		set_transient( 'prom_xml_import_variations_temp', $import_variations ? '1' : '0', HOUR_IN_SECONDS );
+		set_transient( 'prom_xml_selected_attributes_temp', $selected_attributes, HOUR_IN_SECONDS );
 
 		$xml_parser = new XML_Parser( $file_path, $new_category, $sku_prefix );
 		try {
 			$result = $xml_parser->import_products( $offset, 1 );
+			
+			// Clear transients if import is finished
+			if ( $result['finished'] ) {
+				delete_transient( 'prom_xml_import_variations_temp' );
+				delete_transient( 'prom_xml_selected_attributes_temp' );
+			}
+			
 			wp_send_json_success(
 				array(
 					'imported' => $result['imported'] + $offset,
@@ -400,6 +750,130 @@ function prom_xml_importer_handle_import_action() {
 	}
 }
 add_action( 'wp_ajax_prom_xml_import_action', 'prom_xml_importer_handle_import_action' );
+add_action( 'wp_ajax_prom_xml_analyze_groups', 'prom_xml_importer_handle_analyze_groups' );
+
+/**
+ * Handle analyze groups action - scans XML and returns variable product groups
+ */
+function prom_xml_importer_handle_analyze_groups() {
+	if ( ! isset( $_POST['prom_xml_import_nonce'] ) || ! wp_verify_nonce( $_POST['prom_xml_import_nonce'], 'prom_xml_import_action' ) ) {
+		wp_send_json_error( array( 'message' => 'Nonce verification failed' ) );
+	}
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_send_json_error( array( 'message' => 'Permission denied' ) );
+	}
+
+	if ( isset( $_FILES['import_xml_file'] ) && $_FILES['import_xml_file']['error'] === UPLOAD_ERR_OK ) {
+		$file_path = $_FILES['import_xml_file']['tmp_name'];
+
+		try {
+			$groups = prom_xml_analyze_variable_groups( $file_path );
+			wp_send_json_success( array( 'groups' => $groups ) );
+		} catch ( Exception $e ) {
+			wp_send_json_error( array( 'message' => $e->getMessage() ) );
+		}
+	} else {
+		wp_send_json_error( array( 'message' => 'Помилка завантаження файлу.' ) );
+	}
+}
+
+/**
+ * Analyze XML file and extract variable product groups with their attributes
+ *
+ * @param string $file_path Path to XML file.
+ * @return array Groups data.
+ */
+function prom_xml_analyze_variable_groups( string $file_path ): array {
+	$reader = new XMLReader();
+
+	if ( ! $reader->open( $file_path ) ) {
+		throw new Exception( 'Failed to open XML file.' );
+	}
+
+	$groups = array();
+
+	while ( $reader->read() ) {
+		if ( $reader->nodeType !== XMLReader::ELEMENT || $reader->name !== 'offer' ) {
+			continue;
+		}
+
+		$offer = simplexml_load_string( $reader->readOuterXML() );
+
+		// Тільки offers з group_id
+		if ( ! isset( $offer['group_id'] ) || empty( (string) $offer['group_id'] ) ) {
+			continue;
+		}
+
+		$group_id = (string) $offer['group_id'];
+
+		// Extract offer data
+		$offer_data = array(
+			'id'     => (string) $offer['id'],
+			'name'   => (string) $offer->name,
+			'image'  => isset( $offer->picture[0] ) ? (string) $offer->picture[0] : '',
+			'attributes' => array(),
+		);
+
+		// Extract all attributes
+		if ( isset( $offer->param ) ) {
+			foreach ( $offer->param as $param ) {
+				$attr_name  = (string) $param['name'];
+				$attr_value = (string) $param;
+				if ( ! empty( $attr_name ) && ! empty( $attr_value ) ) {
+					$offer_data['attributes'][ $attr_name ] = $attr_value;
+				}
+			}
+		}
+
+		// Add to group
+		if ( ! isset( $groups[ $group_id ] ) ) {
+			$groups[ $group_id ] = array(
+				'name'              => $offer_data['name'],
+				'image'             => $offer_data['image'],
+				'variations_count'  => 0,
+				'variations'        => array(),
+				'all_attributes'    => array(),
+			);
+		}
+
+		$groups[ $group_id ]['variations'][] = $offer_data;
+		$groups[ $group_id ]['variations_count']++;
+
+		// Collect all attributes from all variations
+		foreach ( $offer_data['attributes'] as $attr_name => $attr_value ) {
+			if ( ! isset( $groups[ $group_id ]['all_attributes'][ $attr_name ] ) ) {
+				$groups[ $group_id ]['all_attributes'][ $attr_name ] = array();
+			}
+			if ( ! in_array( $attr_value, $groups[ $group_id ]['all_attributes'][ $attr_name ], true ) ) {
+				$groups[ $group_id ]['all_attributes'][ $attr_name ][] = $attr_value;
+			}
+		}
+	}
+
+	$reader->close();
+
+	// Filter attributes - only those that vary between products
+	foreach ( $groups as $group_id => &$group ) {
+		$varying_attributes = array();
+
+		foreach ( $group['all_attributes'] as $attr_name => $attr_values ) {
+			// Атрибут варіюється якщо має більше 1 значення
+			if ( count( $attr_values ) > 1 ) {
+				$varying_attributes[] = array(
+					'name'   => $attr_name,
+					'values' => $attr_values,
+				);
+			}
+		}
+
+		$group['attributes'] = $varying_attributes;
+		unset( $group['all_attributes'] ); // Видаляємо тимчасові дані
+		unset( $group['variations'] ); // Не передаємо всі варіації на фронтенд
+	}
+
+	return $groups;
+}
 
 /**
  * Handles the admin post actions for running the script and stopping cron jobs.

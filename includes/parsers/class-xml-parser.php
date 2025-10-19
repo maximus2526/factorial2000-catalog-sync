@@ -34,6 +34,108 @@ class XML_Parser {
 	}
 
 	/**
+	 * Sanitize string for taxonomy name.
+	 *
+	 * @param string $text Text to sanitize.
+	 * @return string Sanitized text.
+	 */
+	private function sanitize_for_taxonomy( $text ) {
+		// Транслітерація кирилиці в латиницю
+		$translit = array(
+			'а' => 'a', 'б' => 'b', 'в' => 'v', 'г' => 'g', 'ґ' => 'g', 'д' => 'd', 'е' => 'e',
+			'є' => 'ie', 'ж' => 'zh', 'з' => 'z', 'и' => 'y', 'і' => 'i', 'ї' => 'i', 'й' => 'i',
+			'к' => 'k', 'л' => 'l', 'м' => 'm', 'н' => 'n', 'о' => 'o', 'п' => 'p', 'р' => 'r',
+			'с' => 's', 'т' => 't', 'у' => 'u', 'ф' => 'f', 'х' => 'h', 'ц' => 'ts', 'ч' => 'ch',
+			'ш' => 'sh', 'щ' => 'shch', 'ь' => '', 'ю' => 'iu', 'я' => 'ia',
+			'А' => 'A', 'Б' => 'B', 'В' => 'V', 'Г' => 'G', 'Ґ' => 'G', 'Д' => 'D', 'Е' => 'E',
+			'Є' => 'Ie', 'Ж' => 'Zh', 'З' => 'Z', 'И' => 'Y', 'І' => 'I', 'Ї' => 'I', 'Й' => 'I',
+			'К' => 'K', 'Л' => 'L', 'М' => 'M', 'Н' => 'N', 'О' => 'O', 'П' => 'P', 'Р' => 'R',
+			'С' => 'S', 'Т' => 'T', 'У' => 'U', 'Ф' => 'F', 'Х' => 'H', 'Ц' => 'Ts', 'Ч' => 'Ch',
+			'Ш' => 'Sh', 'Щ' => 'Shch', 'Ь' => '', 'Ю' => 'Iu', 'Я' => 'Ia',
+			'ы' => 'y', 'э' => 'e', 'ъ' => '', 'Ы' => 'Y', 'Э' => 'E', 'Ъ' => '',
+		);
+		
+		$text = strtr( $text, $translit );
+		$text = strtolower( $text );
+		$text = preg_replace( '/[^a-z0-9_\-]/', '_', $text );
+		$text = preg_replace( '/_+/', '_', $text );
+		$text = trim( $text, '_' );
+		return substr( $text, 0, 28 );
+	}
+
+	/**
+	 * Ensure WooCommerce global attribute exists in wc table so it appears in admin/UI.
+	 * Falls back to direct DB insert if Woo helper is unavailable.
+	 *
+	 * @param string $attribute_label Human-readable label (e.g., "Колір").
+	 * @param string $attribute_slug  Sanitized slug without 'pa_' prefix (e.g., "kolir").
+	 * @return void
+	 */
+	private function ensure_global_attribute( string $attribute_label, string $attribute_slug ): void {
+		global $wpdb;
+
+		if ( empty( $attribute_slug ) ) {
+			return;
+		}
+
+		// Trim to WC limits
+		$attribute_slug = substr( $attribute_slug, 0, 28 );
+
+		// Check if attribute already exists (by slug)
+		$attr_tax_table = $wpdb->prefix . 'woocommerce_attribute_taxonomies';
+		$existing       = $wpdb->get_var( $wpdb->prepare( "SELECT attribute_id FROM {$attr_tax_table} WHERE attribute_name = %s LIMIT 1", $attribute_slug ) );
+		if ( $existing ) {
+			return;
+		}
+
+		// Prefer Woo helper if available
+		if ( function_exists( 'wc_create_attribute' ) ) {
+			$args = array(
+				'name'         => $attribute_label,
+				'slug'         => $attribute_slug,
+				'type'         => 'select',
+				'order_by'     => 'menu_order',
+				'has_archives' => false,
+			);
+
+			try {
+				$attr_id = wc_create_attribute( $args );
+				if ( is_wp_error( $attr_id ) ) {
+					// Fallback to direct insert
+					$wpdb->insert( $attr_tax_table, array(
+						'attribute_label'    => $attribute_label,
+						'attribute_name'     => $attribute_slug,
+						'attribute_type'     => 'select',
+						'attribute_orderby'  => 'menu_order',
+						'attribute_public'   => 0,
+					) );
+				}
+			} catch ( Exception $e ) {
+				// Fallback to direct insert on any exception
+				$wpdb->insert( $attr_tax_table, array(
+					'attribute_label'    => $attribute_label,
+					'attribute_name'     => $attribute_slug,
+					'attribute_type'     => 'select',
+					'attribute_orderby'  => 'menu_order',
+					'attribute_public'   => 0,
+				) );
+			}
+		} else {
+			// No Woo helper: direct insert
+			$wpdb->insert( $attr_tax_table, array(
+				'attribute_label'    => $attribute_label,
+				'attribute_name'     => $attribute_slug,
+				'attribute_type'     => 'select',
+				'attribute_orderby'  => 'menu_order',
+				'attribute_public'   => 0,
+			) );
+		}
+
+		// Clear cached attribute taxonomies so WC registers taxonomy on next init
+		delete_transient( 'wc_attribute_taxonomies' );
+	}
+
+	/**
 	 * Update the stock status of products based on XML data.
 	 *
 	 * @return void
@@ -156,31 +258,82 @@ class XML_Parser {
 			$this->preload_category_terms(); // Preload category terms
 		}
 
+		// Check if variable products import is enabled (from transient during import session)
+		$import_variations_transient = get_transient( 'prom_xml_import_variations_temp' );
+		$import_variations           = $import_variations_transient === '1';
+
+		// Debug log
+		prom_log( 'Import variations setting: transient=' . var_export( $import_variations_transient, true ) . ', enabled=' . var_export( $import_variations, true ) );
+
 		$reader = new XMLReader();
 
 		if ( ! $reader->open( $this->xml_url ) ) {
 			throw new Exception( 'Failed to open XML file.' );
 		}
 
-		$total_products = 0;
-		while ( $reader->read() ) {
-			if ( $reader->nodeType === XMLReader::ELEMENT && $reader->name === 'offer' ) {
-				++$total_products;
-			}
-		}
-
-		$reader->close();
-		$reader->open( $this->xml_url );
-
-		$imported       = 0;
-		$skipped        = 0;
-		$current_offset = 0;
+		// First pass: Group products by group_id
+		$simple_products  = array();
+		$grouped_products = array();
+		$total_offers     = 0;
+		$offers_with_group_id = 0;
+		$offers_without_group_id = 0;
 
 		while ( $reader->read() ) {
 			if ( $reader->nodeType !== XMLReader::ELEMENT || $reader->name !== 'offer' ) {
 				continue;
 			}
 
+			$offer = simplexml_load_string( $reader->readOuterXML() );
+			++$total_offers;
+
+			$offer_data = $this->extract_offer_data( $offer );
+
+			$has_group_id = ! empty( $offer_data['group_id'] );
+
+			if ( $import_variations ) {
+				// Режим варіативних: імпортуємо ТІЛЬКИ товари З group_id
+				if ( $has_group_id ) {
+					$grouped_products[ $offer_data['group_id'] ][] = $offer_data;
+					++$offers_with_group_id;
+				} else {
+					++$offers_without_group_id; // Пропускаємо
+				}
+			} else {
+				// Режим простих: імпортуємо ТІЛЬКИ товари БЕЗ group_id
+				if ( ! $has_group_id ) {
+					$simple_products[] = $offer_data;
+					++$offers_without_group_id;
+				} else {
+					++$offers_with_group_id; // Пропускаємо
+				}
+			}
+		}
+
+		$reader->close();
+
+		// Логуємо статистику групування
+		$mode = $import_variations ? 'VARIABLE' : 'SIMPLE';
+		prom_log( 
+			sprintf( 
+				'XML parsed in %s mode: total_offers=%d, with_group_id=%d (processed: %d), without_group_id=%d (processed: %d), unique_groups=%d',
+				$mode,
+				$total_offers,
+				$offers_with_group_id,
+				$import_variations ? $offers_with_group_id : 0,
+				$offers_without_group_id,
+				$import_variations ? 0 : $offers_without_group_id,
+				count( $grouped_products )
+			)
+		);
+
+		// Second pass: Create products
+		$imported       = 0;
+		$skipped        = 0;
+		$current_offset = 0;
+		$total_products = count( $simple_products ) + count( $grouped_products );
+
+		// Import simple products
+		foreach ( $simple_products as $offer_data ) {
 			if ( $current_offset < $offset ) {
 				++$current_offset;
 				continue;
@@ -190,9 +343,54 @@ class XML_Parser {
 				break;
 			}
 
-			$offer = simplexml_load_string( $reader->readOuterXML() );
+			$result = $this->import_simple_product( $offer_data );
+			if ( $result ) {
+				++$imported;
+			} else {
+				++$skipped;
+			}
 
+			++$current_offset;
+		}
+
+		// Import variable products
+		foreach ( $grouped_products as $group_id => $variations_data ) {
+			if ( $current_offset < $offset ) {
+				++$current_offset;
+				continue;
+			}
+
+			if ( $imported >= $limit ) {
+				break;
+			}
+
+			$result = $this->import_variable_product( $group_id, $variations_data );
+			if ( $result ) {
+				++$imported;
+			} else {
+				++$skipped;
+			}
+
+			++$current_offset;
+		}
+
+		return array(
+			'imported' => $imported,
+			'skipped'  => $skipped,
+			'total'    => $total_products,
+			'finished' => $offset + $imported >= $total_products,
+		);
+	}
+
+	/**
+	 * Extract offer data from SimpleXMLElement.
+	 *
+	 * @param SimpleXMLElement $offer Offer element.
+	 * @return array Offer data.
+	 */
+	private function extract_offer_data( $offer ): array {
 			$sku       = (string) $offer['id'];
+		$group_id  = isset( $offer['group_id'] ) ? (string) $offer['group_id'] : '';
 			$title     = (string) $offer->name;
 			$price     = (float) $offer->price;
 			$old_price = isset( $offer->oldprice ) ? (float) $offer->oldprice : 0;
@@ -200,11 +398,6 @@ class XML_Parser {
 			$category  = (string) $offer->categoryId;
 			$available = (string) $offer['available'] === 'true' ? 'instock' : 'outofstock';
 			$vendor    = isset( $offer->vendor ) ? (string) $offer->vendor : '';
-
-			// Apply SKU prefix if set
-			if ( ! empty( $this->sku_prefix ) ) {
-				$sku = $this->sku_prefix . $sku;
-			}
 
 			// Get all product images
 			$images = array();
@@ -224,16 +417,56 @@ class XML_Parser {
 				}
 			}
 
+		// Add vendor to attributes if available
+		if ( ! empty( $vendor ) && ! isset( $attributes['Виробник'] ) ) {
+			$attributes['Виробник'] = $vendor;
+		}
+
+		return array(
+			'sku'       => $sku,
+			'group_id'  => $group_id,
+			'title'     => $title,
+			'price'     => $price,
+			'old_price' => $old_price,
+			'desc'      => $desc,
+			'category'  => $category,
+			'available' => $available,
+			'vendor'    => $vendor,
+			'images'    => $images,
+			'attributes' => $attributes,
+		);
+	}
+
+	/**
+	 * Import a simple product.
+	 *
+	 * @param array $offer_data Offer data.
+	 * @return bool True if imported, false if skipped.
+	 */
+	private function import_simple_product( array $offer_data ): bool {
+		$sku       = $offer_data['sku'];
+		$title     = $offer_data['title'];
+		$price     = $offer_data['price'];
+		$old_price = $offer_data['old_price'];
+		$desc      = $offer_data['desc'];
+		$category  = $offer_data['category'];
+		$available = $offer_data['available'];
+		$images    = $offer_data['images'];
+		$attributes = $offer_data['attributes'];
+
+		// Apply SKU prefix if set
+		if ( ! empty( $this->sku_prefix ) ) {
+			$sku = $this->sku_prefix . $sku;
+			}
+
 			if ( empty( $sku ) || empty( $title ) || $price <= 0 ) {
-				++$skipped;
-				continue;
+			return false;
 			}
 
 			$is_new_product = ! $this->get_product_ids_by_skus( array( $sku ) );
 
 			if ( ! $is_new_product ) {
-				++$skipped;
-				continue;
+			return false;
 			}
 
 			$post_id = wp_insert_post(
@@ -246,18 +479,17 @@ class XML_Parser {
 			);
 
 			if ( is_wp_error( $post_id ) ) {
-				continue;
+			return false;
 			}
 
 			update_post_meta( $post_id, '_sku', $sku );
 
-			// If old price exists and is greater than current price, set it as regular price and current as sale price
+		// Set prices
 			if ( $old_price > 0 && $old_price > $price ) {
 				update_post_meta( $post_id, '_regular_price', number_format( $old_price, 2, '.', '' ) );
 				update_post_meta( $post_id, '_sale_price', number_format( $price, 2, '.', '' ) );
 				update_post_meta( $post_id, '_price', number_format( $price, 2, '.', '' ) );
 			} else {
-				// Otherwise just set current price as regular price
 				update_post_meta( $post_id, '_regular_price', number_format( $price, 2, '.', '' ) );
 				update_post_meta( $post_id, '_price', number_format( $price, 2, '.', '' ) );
 			}
@@ -265,27 +497,17 @@ class XML_Parser {
 			update_post_meta( $post_id, '_stock_status', $available );
 			update_post_meta( $post_id, '_manage_stock', 'no' );
 
-			// Set vendor as product attribute if available
-			if ( ! empty( $vendor ) ) {
-				// Add vendor to attributes list if it's not already there
-				if ( ! isset( $attributes['Виробник'] ) ) {
-					$attributes['Виробник'] = $vendor;
-				}
-			}
-
 			// Handle product attributes
 			if ( ! empty( $attributes ) ) {
 				$this->set_product_attributes( $post_id, $attributes );
 			}
 
-			// Handle product images (gallery)
+		// Handle product images
 			if ( ! empty( $images ) ) {
 				$this->handle_product_images( $post_id, $images );
-			} else {
-				// No fallback needed since we're now always using the images array
-				// The old $img_url variable is no longer used
 			}
 
+		// Set category
 			if ( ! $this->new_category ) {
 				$this->set_product_category( $post_id, $category );
 			}
@@ -297,17 +519,561 @@ class XML_Parser {
 				wp_set_object_terms( $post_id, 'Новинки', 'product_cat', true );
 			}
 
-			++$imported;
+		return true;
+	}
+
+	/**
+	 * Import a variable product with variations.
+	 *
+	 * @param string $group_id Group ID for the variable product.
+	 * @param array  $variations_data Array of variation data.
+	 * @return bool True if imported, false if skipped.
+	 */
+	private function import_variable_product( string $group_id, array $variations_data ): bool {
+		if ( empty( $variations_data ) ) {
+			return false;
 		}
 
-		$reader->close();
+		// Apply SKU prefix to group_id
+		$parent_sku = ! empty( $this->sku_prefix ) ? $this->sku_prefix . $group_id : $group_id;
 
-		return array(
-			'imported' => $imported,
-			'skipped'  => $skipped,
-			'total'    => $total_products,
-			'finished' => $offset + $imported >= $total_products,
+		// Check if parent product already exists
+		$existing_parent = $this->get_product_ids_by_skus( array( $parent_sku ) );
+		if ( $existing_parent ) {
+			return false; // Skip if already exists
+		}
+
+		// Use first variation as base for parent product
+		$base_data = $variations_data[0];
+
+		// Extract base product name (without size/color)
+		$parent_name = $this->extract_base_product_name( array_column( $variations_data, 'title' ) );
+
+		// Create parent variable product
+		$parent_id = wp_insert_post(
+			array(
+				'post_title'   => $parent_name,
+				'post_content' => $base_data['desc'],
+				'post_status'  => 'publish',
+				'post_type'    => 'product',
+			)
 		);
+
+		if ( is_wp_error( $parent_id ) || ! $parent_id ) {
+			return false;
+		}
+
+		// Set parent product as variable type
+		wp_set_object_terms( $parent_id, 'variable', 'product_type' );
+		update_post_meta( $parent_id, '_sku', $parent_sku );
+		update_post_meta( $parent_id, '_stock_status', 'instock' );
+		update_post_meta( $parent_id, '_manage_stock', 'no' );
+
+		// Set category
+		if ( ! $this->new_category ) {
+			$this->set_product_category( $parent_id, $base_data['category'] );
+		}
+
+		if ( $this->new_category ) {
+			if ( term_exists( 'Новинки', 'product_cat' ) === 0 ) {
+				wp_insert_term( 'Новинки', 'product_cat' );
+			}
+			wp_set_object_terms( $parent_id, 'Новинки', 'product_cat', true );
+		}
+
+		// Handle parent product images (from first variation)
+		if ( ! empty( $base_data['images'] ) ) {
+			$this->handle_product_images( $parent_id, $base_data['images'] );
+		}
+
+		// Determine variation attributes
+		$variation_attributes = $this->determine_variation_attributes( $variations_data, $group_id );
+
+		if ( empty( $variation_attributes ) ) {
+			prom_log( "Cannot determine variation attributes for group_id={$group_id}, skipping variable product" );
+			// Delete parent product since we can't create variations
+			wp_delete_post( $parent_id, true );
+			return false;
+		}
+		
+		$attributes_info = array();
+		foreach ( $variation_attributes as $attr_name => $attr_values ) {
+			$attributes_info[] = $attr_name . ' (' . count( $attr_values ) . ' values)';
+		}
+		
+		prom_log( 
+			sprintf( 
+				'Creating variable product: group_id=%s, parent_name="%s", variations_count=%d, attributes=%s',
+				$group_id,
+				$parent_name,
+				count( $variations_data ),
+				implode( ', ', $attributes_info )
+			)
+		);
+
+		// Set product attributes for variations
+		$this->set_variation_attributes_for_product( $parent_id, $variation_attributes, $variations_data );
+
+		// Create variations
+		$this->create_product_variations( $parent_id, $variations_data, $variation_attributes );
+
+		return true;
+	}
+
+	/**
+	 * Extract base product name without size/color specifications.
+	 *
+	 * @param array $variation_names Array of variation names.
+	 * @return string Base product name.
+	 */
+	private function extract_base_product_name( array $variation_names ): string {
+		if ( empty( $variation_names ) ) {
+			return '';
+		}
+
+		// Take the first name as base
+		$base_name = $variation_names[0];
+
+		// Remove common size patterns
+		$patterns = array(
+			'/\s+розмір\s+[SMLX0-9]+/ui',
+			'/\s+size\s+[SMLX0-9]+/i',
+			'/\s+[SMLX]{1,4}$/i',
+			'/\s+\d+[X]{0,3}L$/i',
+			'/\s+[0-9]+-[0-9]+$/i', // Remove size ranges like 48-50
+			'/\s+(Чорний|Білий|Синій|Червоний|Зелений|Жовтий|Сірий|Коричневий|Оливковий|Койот)$/ui',
+		);
+
+		foreach ( $patterns as $pattern ) {
+			$base_name = preg_replace( $pattern, '', $base_name );
+		}
+
+		return trim( $base_name );
+	}
+
+	/**
+	 * Determine variation attributes from variations data.
+	 *
+	 * @param array  $variations_data Array of variation data.
+	 * @param string $group_id Group ID for manual attribute selection.
+	 * @return array Array of variation attributes [name => [values]].
+	 */
+	private function determine_variation_attributes( array $variations_data, string $group_id = '' ): array {
+		$all_attributes = array();
+
+		// Collect all attributes from all variations
+		foreach ( $variations_data as $variation ) {
+			if ( ! empty( $variation['attributes'] ) ) {
+				foreach ( $variation['attributes'] as $attr_name => $attr_value ) {
+					if ( ! isset( $all_attributes[ $attr_name ] ) ) {
+						$all_attributes[ $attr_name ] = array();
+					}
+					if ( ! in_array( $attr_value, $all_attributes[ $attr_name ], true ) ) {
+						$all_attributes[ $attr_name ][] = $attr_value;
+					}
+				}
+			}
+		}
+
+		// Check for manually selected attributes
+		$selected_attributes_map = get_transient( 'prom_xml_selected_attributes_temp' );
+		if ( ! empty( $selected_attributes_map ) && isset( $selected_attributes_map[ $group_id ] ) ) {
+			$selected_attrs = $selected_attributes_map[ $group_id ];
+			
+			// Підтримка масиву атрибутів (новий формат) або одного атрибута (старий формат)
+			if ( ! is_array( $selected_attrs ) ) {
+				$selected_attrs = array( $selected_attrs );
+			}
+			
+			$variation_attributes = array();
+			foreach ( $selected_attrs as $selected_attr ) {
+				// Check if this attribute exists and has multiple values
+				if ( isset( $all_attributes[ $selected_attr ] ) && count( $all_attributes[ $selected_attr ] ) > 1 ) {
+					$variation_attributes[ $selected_attr ] = $all_attributes[ $selected_attr ];
+				}
+			}
+			
+			if ( ! empty( $variation_attributes ) ) {
+				prom_log( 
+					sprintf(
+						"Using manually selected attributes for group_id=%s: %s",
+						$group_id,
+						implode( ', ', array_keys( $variation_attributes ) )
+					)
+				);
+				return $variation_attributes;
+			} else {
+				prom_log( "No manually selected attributes found or none vary for group_id={$group_id}" );
+			}
+		}
+
+		// Filter to find attributes that vary between products
+		$variation_attributes = array();
+
+		// Priority attributes for variations (в порядку пріоритету)
+		$priority_attrs = array(
+			// Розмірні атрибути (вищий пріоритет)
+			'Міжнародний розмір',
+			'Международный размер',
+			'Розмір',
+			'Розміри',
+			'Розмір чоловічого одягу (UA)',
+			'Розмір взуття',
+			'Розмір одягу',
+			// Кольорові атрибути (нижчий пріоритет)
+			'Колір',
+		);
+
+		// First check priority attributes - беремо ТІЛЬКИ перший знайдений атрибут
+		foreach ( $priority_attrs as $priority_attr ) {
+			if ( isset( $all_attributes[ $priority_attr ] ) && count( $all_attributes[ $priority_attr ] ) > 1 ) {
+				$variation_attributes[ $priority_attr ] = $all_attributes[ $priority_attr ];
+				
+				// Логуємо який атрибут обрано
+				prom_log( "Auto-selected variation attribute: {$priority_attr} with " . count( $all_attributes[ $priority_attr ] ) . ' values' );
+				
+				break; // Беремо тільки ОДИН атрибут!
+			}
+		}
+
+		// If no priority attributes found, use any attribute that varies
+		if ( empty( $variation_attributes ) ) {
+			prom_log( 'No priority variation attributes found, searching for any varying attribute' );
+			
+			foreach ( $all_attributes as $attr_name => $attr_values ) {
+				if ( count( $attr_values ) > 1 ) {
+					$variation_attributes[ $attr_name ] = $attr_values;
+					prom_log( "Using non-priority variation attribute: {$attr_name}" );
+					break; // Беремо тільки ОДИН атрибут!
+				}
+			}
+		}
+
+		return $variation_attributes;
+	}
+
+	/**
+	 * Set variation attributes for parent product.
+	 *
+	 * @param int   $parent_id Parent product ID.
+	 * @param array $variation_attributes Variation attributes.
+	 * @param array $variations_data All variations data.
+	 * @return void
+	 */
+	private function set_variation_attributes_for_product( int $parent_id, array $variation_attributes, array $variations_data ): void {
+		$product_attributes = array();
+		$position           = 0;
+
+		foreach ( $variation_attributes as $attr_name => $attr_values ) {
+			// Skip if no values
+			if ( empty( $attr_values ) ) {
+				prom_log( "Skipping empty variation attribute: {$attr_name}" );
+				continue;
+			}
+
+			// Create sanitized taxonomy name
+			$taxonomy_name = $this->sanitize_for_taxonomy( $attr_name );
+			$taxonomy      = 'pa_' . $taxonomy_name;
+
+			// Ensure taxonomy length doesn't exceed 32 characters
+			if ( strlen( $taxonomy ) > 32 ) {
+				$taxonomy = substr( $taxonomy, 0, 32 );
+			}
+
+			// Register taxonomy if not exists
+			if ( ! taxonomy_exists( $taxonomy ) ) {
+				$this->ensure_global_attribute( $attr_name, $taxonomy_name );
+				register_taxonomy(
+					$taxonomy,
+					array( 'product' ),
+					array(
+						'labels'       => array( 'name' => $attr_name ),
+						'hierarchical' => false,
+						'show_ui'      => true,
+						'query_var'    => true,
+						'rewrite'      => false,
+					)
+				);
+			}
+
+			// Create terms and assign to product
+			$term_ids = array();
+			foreach ( $attr_values as $value ) {
+				if ( empty( $value ) ) {
+					continue;
+				}
+				
+				$term = get_term_by( 'name', $value, $taxonomy );
+				if ( ! $term ) {
+					$term_info = wp_insert_term( $value, $taxonomy );
+					if ( ! is_wp_error( $term_info ) ) {
+						$term_ids[] = $term_info['term_id'];
+					}
+				} else {
+					$term_ids[] = $term->term_id;
+				}
+			}
+
+			if ( ! empty( $term_ids ) ) {
+				wp_set_object_terms( $parent_id, $term_ids, $taxonomy );
+
+				$product_attributes[ $taxonomy ] = array(
+					'name'         => $taxonomy,
+					'value'        => '',
+					'position'     => $position++,
+					'is_visible'   => 1,
+					'is_variation' => 1,
+					'is_taxonomy'  => 1,
+				);
+				
+				prom_log( sprintf( 'Added variation attribute "%s" with %d values', $attr_name, count( $term_ids ) ) );
+			}
+		}
+
+		// Collect all non-variation attributes from ALL variations
+		$non_variation_attributes = array();
+		
+		foreach ( $variations_data as $variation ) {
+			if ( ! empty( $variation['attributes'] ) ) {
+				foreach ( $variation['attributes'] as $attr_name => $attr_value ) {
+					// Skip empty values
+					if ( empty( $attr_value ) ) {
+						continue;
+					}
+
+					$taxonomy_name = $this->sanitize_for_taxonomy( $attr_name );
+					$taxonomy      = 'pa_' . $taxonomy_name;
+
+					// Skip if already added as variation attribute
+					if ( isset( $product_attributes[ $taxonomy ] ) ) {
+						continue;
+					}
+
+					if ( ! isset( $non_variation_attributes[ $attr_name ] ) ) {
+						$non_variation_attributes[ $attr_name ] = array();
+					}
+					
+					if ( ! in_array( $attr_value, $non_variation_attributes[ $attr_name ], true ) ) {
+						$non_variation_attributes[ $attr_name ][] = $attr_value;
+					}
+				}
+			}
+		}
+		
+		prom_log( sprintf( 'Collected %d non-variation attributes for parent product', count( $non_variation_attributes ) ) );
+
+		// Add collected non-variation attributes to product
+		foreach ( $non_variation_attributes as $attr_name => $attr_values ) {
+			$taxonomy_name = $this->sanitize_for_taxonomy( $attr_name );
+			$taxonomy      = 'pa_' . $taxonomy_name;
+
+			// Register taxonomy if not exists
+			if ( ! taxonomy_exists( $taxonomy ) ) {
+				register_taxonomy(
+					$taxonomy,
+					array( 'product' ),
+					array(
+						'labels'       => array( 'name' => $attr_name ),
+						'hierarchical' => false,
+						'show_ui'      => true,
+						'query_var'    => true,
+						'rewrite'      => false,
+					)
+				);
+			}
+
+			// Create all terms
+			$term_ids = array();
+			foreach ( $attr_values as $attr_value ) {
+				if ( empty( $attr_value ) ) {
+					continue;
+				}
+				
+				$term = get_term_by( 'name', $attr_value, $taxonomy );
+				if ( ! $term ) {
+					$term_info = wp_insert_term( $attr_value, $taxonomy );
+					if ( ! is_wp_error( $term_info ) ) {
+						$term_ids[] = $term_info['term_id'];
+					} else {
+						prom_log( sprintf( 'Error creating term "%s" in taxonomy "%s": %s', $attr_value, $taxonomy, $term_info->get_error_message() ) );
+					}
+				} else {
+					$term_ids[] = $term->term_id;
+				}
+			}
+
+			if ( ! empty( $term_ids ) ) {
+				wp_set_object_terms( $parent_id, $term_ids, $taxonomy );
+
+				$product_attributes[ $taxonomy ] = array(
+					'name'         => $taxonomy,
+					'value'        => '',
+					'position'     => $position++,
+					'is_visible'   => 1,
+					'is_variation' => 0,
+					'is_taxonomy'  => 1,
+				);
+				
+				prom_log( sprintf( 'Added non-variation attribute "%s" with %d values', $attr_name, count( $term_ids ) ) );
+			} else {
+				prom_log( sprintf( 'Skipped attribute "%s" - no term IDs created', $attr_name ) );
+			}
+		}
+
+			// Save attributes to product
+			if ( ! empty( $product_attributes ) ) {
+				update_post_meta( $parent_id, '_product_attributes', $product_attributes );
+				// Clear product transients so attributes are visible in UI immediately
+				wc_delete_product_transients( $parent_id );
+			
+			$variation_count = 0;
+			$non_variation_count = 0;
+			foreach ( $product_attributes as $attr ) {
+				if ( $attr['is_variation'] ) {
+					$variation_count++;
+				} else {
+					$non_variation_count++;
+				}
+			}
+			
+			prom_log( sprintf( 
+				'Set %d total attributes for variable product ID %d (variation: %d, non-variation: %d)', 
+				count( $product_attributes ), 
+				$parent_id,
+				$variation_count,
+				$non_variation_count
+			) );
+		} else {
+			prom_log( sprintf( 'No attributes to set for variable product ID %d', $parent_id ) );
+		}
+	}
+
+	/**
+	 * Create product variations.
+	 *
+	 * @param int   $parent_id Parent product ID.
+	 * @param array $variations_data Variations data.
+	 * @param array $variation_attributes Variation attributes.
+	 * @return void
+	 */
+	private function create_product_variations( int $parent_id, array $variations_data, array $variation_attributes ): void {
+		foreach ( $variations_data as $variation_data ) {
+			$variation_sku = $variation_data['sku'];
+
+			// Apply SKU prefix
+			if ( ! empty( $this->sku_prefix ) ) {
+				$variation_sku = $this->sku_prefix . $variation_sku;
+			}
+
+			// Check if variation already exists
+			$existing_variation = $this->get_product_ids_by_skus( array( $variation_sku ) );
+			if ( $existing_variation ) {
+				continue; // Skip if exists
+			}
+
+			// Create variation
+			$variation_id = wp_insert_post(
+				array(
+					'post_title'  => $variation_data['title'],
+					'post_status' => 'publish',
+					'post_parent' => $parent_id,
+					'post_type'   => 'product_variation',
+				)
+			);
+
+			if ( is_wp_error( $variation_id ) || ! $variation_id ) {
+				continue;
+			}
+
+			// Set variation SKU
+			update_post_meta( $variation_id, '_sku', $variation_sku );
+
+			// Set prices
+			$price     = $variation_data['price'];
+			$old_price = $variation_data['old_price'];
+
+			if ( $old_price > 0 && $old_price > $price ) {
+				update_post_meta( $variation_id, '_regular_price', number_format( $old_price, 2, '.', '' ) );
+				update_post_meta( $variation_id, '_sale_price', number_format( $price, 2, '.', '' ) );
+				update_post_meta( $variation_id, '_price', number_format( $price, 2, '.', '' ) );
+			} else {
+				update_post_meta( $variation_id, '_regular_price', number_format( $price, 2, '.', '' ) );
+				update_post_meta( $variation_id, '_price', number_format( $price, 2, '.', '' ) );
+			}
+
+			// Set stock status
+			update_post_meta( $variation_id, '_stock_status', $variation_data['available'] );
+			update_post_meta( $variation_id, '_manage_stock', 'no' );
+
+			// Set variation attributes
+			foreach ( $variation_attributes as $attr_name => $attr_values ) {
+				$taxonomy_name = $this->sanitize_for_taxonomy( $attr_name );
+				$taxonomy      = 'pa_' . $taxonomy_name;
+
+				if ( strlen( $taxonomy ) > 32 ) {
+					$taxonomy = substr( $taxonomy, 0, 32 );
+				}
+
+				// Get the value for this variation
+				if ( isset( $variation_data['attributes'][ $attr_name ] ) ) {
+					$attr_value = $variation_data['attributes'][ $attr_name ];
+
+					// Get or create term
+					$term = get_term_by( 'name', $attr_value, $taxonomy );
+					if ( $term ) {
+						update_post_meta( $variation_id, 'attribute_' . $taxonomy, $term->slug );
+					}
+				}
+			}
+
+			// Handle variation images if they differ
+			if ( ! empty( $variation_data['images'] ) ) {
+				// Set first image as variation image
+				$this->set_variation_image( $variation_id, $variation_data['images'][0] );
+			}
+
+			// Clear product cache
+			wc_delete_product_transients( $parent_id );
+			wc_delete_product_transients( $variation_id );
+		}
+
+		// Sync parent product after all variations created
+		WC_Product_Variable::sync( $parent_id );
+	}
+
+	/**
+	 * Set variation image.
+	 *
+	 * @param int    $variation_id Variation ID.
+	 * @param string $image_url Image URL.
+	 * @return void
+	 */
+	private function set_variation_image( int $variation_id, string $image_url ): void {
+		if ( empty( $image_url ) || ! filter_var( $image_url, FILTER_VALIDATE_URL ) ) {
+			return;
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+
+		$tmp = download_url( $image_url );
+		if ( is_wp_error( $tmp ) ) {
+			return;
+		}
+
+		$file_array = array(
+			'name'     => basename( $image_url ),
+			'tmp_name' => $tmp,
+		);
+
+		$attachment_id = media_handle_sideload( $file_array, $variation_id );
+		if ( is_wp_error( $attachment_id ) ) {
+			@unlink( $tmp );
+			return;
+		}
+
+		update_post_meta( $variation_id, '_thumbnail_id', $attachment_id );
 	}
 
 	/**
@@ -491,45 +1257,31 @@ class XML_Parser {
 
 		$product_attributes = array();
 
+		$position = 0;
 		foreach ( $attributes as $name => $value ) {
-			// Ensure the attribute name is not too long
-			$attr_name = substr( $name, 0, 28 ); // 28 to allow for "pa_" prefix
+			// Skip empty values
+			if ( empty( $value ) ) {
+				continue;
+			}
 
-			// Create a sanitized version of the name for the attribute taxonomy
-			$taxonomy_name = wc_sanitize_taxonomy_name( $attr_name ); // Use WooCommerce's method
-			$taxonomy      = 'pa_' . $taxonomy_name; // Add standard WooCommerce prefix
+			// Sanitize and create taxonomy name
+			$taxonomy_name = $this->sanitize_for_taxonomy( $name );
+			$taxonomy      = 'pa_' . $taxonomy_name;
 
 			if ( strlen( $taxonomy ) > 32 ) {
-				// If still too long, truncate further
 				$taxonomy = substr( $taxonomy, 0, 32 );
 			}
 
-			// Check if this attribute taxonomy exists
-			$attribute_id = wc_attribute_taxonomy_id_by_name( $taxonomy_name );
-
-			if ( ! $attribute_id ) {
-				// Create the attribute if it doesn't exist
-				wc_create_attribute(
-					array(
-						'name'         => $attr_name,
-						'slug'         => $taxonomy_name,
-						'type'         => 'select',
-						'order_by'     => 'menu_order',
-						'has_archives' => false,
-					)
-				);
-
-				// Register the taxonomy
-				$taxonomy_register_name = wc_attribute_taxonomy_name( $taxonomy_name );
-
-				// Make sure we're not exceeding length limit
-				if ( strlen( $taxonomy_register_name ) <= 32 ) {
+			// Register taxonomy if not exists
+			if ( ! taxonomy_exists( $taxonomy ) ) {
+				// Ensure global attribute exists so taxonomy is properly registered by WC
+				$this->ensure_global_attribute( $name, $taxonomy_name );
 					register_taxonomy(
-						$taxonomy_register_name,
+					$taxonomy,
 						array( 'product' ),
 						array(
 							'labels'       => array(
-								'name' => $attr_name,
+							'name' => $name,
 							),
 							'hierarchical' => false,
 							'show_ui'      => true,
@@ -537,10 +1289,10 @@ class XML_Parser {
 							'rewrite'      => false,
 						)
 					);
-				}
 			}
 
 			// Either get or create the term
+		$term_id = null;
 			$term = get_term_by( 'name', $value, $taxonomy );
 			if ( ! $term ) {
 				$term_info = wp_insert_term( $value, $taxonomy );
@@ -552,12 +1304,12 @@ class XML_Parser {
 			}
 
 			// Set the product attribute
-			if ( isset( $term_id ) ) {
+		if ( $term_id ) {
 				wp_set_object_terms( $post_id, array( $term_id ), $taxonomy );
 				$product_attributes[ $taxonomy ] = array(
 					'name'         => $taxonomy,
 					'value'        => '',
-					'position'     => 0,
+				'position'     => $position++,
 					'is_visible'   => 1,
 					'is_variation' => 0,
 					'is_taxonomy'  => 1,
@@ -568,6 +1320,9 @@ class XML_Parser {
 		// Save the product attributes
 		if ( ! empty( $product_attributes ) ) {
 			update_post_meta( $post_id, '_product_attributes', $product_attributes );
+			// Clear product transients to reflect attributes in UI
+			wc_delete_product_transients( $post_id );
+			prom_log( sprintf( 'Set %d attributes for product ID %d', count( $product_attributes ), $post_id ) );
 		}
 	}
 

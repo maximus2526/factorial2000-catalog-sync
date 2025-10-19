@@ -230,6 +230,7 @@ class XML_Stock_Updater {
 				if ( $reader->nodeType == XMLReader::ELEMENT && $reader->localName == 'offer' ) {
 					$sku       = (string) $reader->getAttribute( 'id' );
 					$available = (string) $reader->getAttribute( 'available' );
+					$group_id  = (string) $reader->getAttribute( 'group_id' );
 
 					// Get the offer node as SimpleXML to extract pricing
 					$offer_xml = simplexml_load_string( $reader->readOuterXML() );
@@ -245,6 +246,7 @@ class XML_Stock_Updater {
 							'stock_status' => $stock_status,
 							'price'        => $price,
 							'old_price'    => $old_price,
+							'group_id'     => $group_id,
 						);
 					}
 
@@ -522,10 +524,8 @@ class XML_Stock_Updater {
 			// Clear necessary transients only
 			wc_delete_product_transients( $product_id );
 
-			// For variable products, update variations
-			if ( 'variable' === $product->get_type() ) {
-				$this->update_variation_stock_statuses( $product, $stock_status );
-			}
+			// Note: We do NOT automatically update all variations for variable products
+			// Each variation should be updated individually based on its own SKU in the XML
 		} else {
 			// Fallback to standard WooCommerce API if needed
 			$product->set_stock_status( $stock_status );
@@ -672,10 +672,8 @@ class XML_Stock_Updater {
 			}
 		}
 
-		// If product is variable, update variation prices
-		if ( $changed && 'variable' === $product->get_type() ) {
-			$this->update_variation_prices( $product, $price, $old_price );
-		}
+		// Note: We do NOT automatically update all variations for variable products
+		// Each variation should be updated individually based on its own SKU in the XML
 
 		// Clear product cache if prices were changed
 		if ( $changed ) {
