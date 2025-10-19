@@ -872,6 +872,15 @@ class XML_Stock_Updater {
 
 		foreach ( $missing_products as $product ) {
 			try {
+				// Skip variable products (parent) and variations entirely
+				$product_obj = wc_get_product( $product->ID );
+				if ( $product_obj ) {
+					$type = $product_obj->get_type();
+					if ( $type === 'variable' || $type === 'variation' ) {
+						continue;
+					}
+				}
+
 				// Update post status to draft
 				$result = wp_update_post(
 					array(
