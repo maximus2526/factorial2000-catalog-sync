@@ -52,16 +52,24 @@ class XML_Stock_Updater {
 	private $sku_prefix = '';
 
 	/**
+	 * Whether to skip price updates for this XML source.
+	 *
+	 * @var bool
+	 */
+	private $skip_price_updates = false;
+
+	/**
 	 * XML_Stock_Updater constructor.
 	 *
 	 * @param string $xml_url URL for fetching XML data.
 	 * @param string $sku_prefix Prefix to add to SKU values.
 	 */
-	public function __construct( $xml_url, $sku_prefix = '' ) {
+	public function __construct( $xml_url, $sku_prefix = '', $skip_price_updates = false ) {
 		$this->xml_url           = $xml_url;
 		$this->telegram_token_id = get_option( 'telegram_token_id', '' );
 		$this->telegram_user_ids = array_map( 'trim', explode( ',', get_option( 'telegram_user_ids', '' ) ) );
 		$this->sku_prefix        = $sku_prefix;
+		$this->skip_price_updates = (bool) $skip_price_updates;
 
 		// Get the current PHP max execution time and set our limit slightly below it
 		$current_limit            = ini_get( 'max_execution_time' );
@@ -122,7 +130,7 @@ class XML_Stock_Updater {
 		$this->increase_memory_limit();
 
 		prom_log( 'Starting stock and price update process', 'info' );
-		$this->send_telegram_message( 'Starting stock and price update process for XML: ' . $this->xml_url );
+		$this->send_telegram_message( 'Starting stock and price update process for XML: ' . $this->xml_url . ( $this->skip_price_updates ? ' (ціни не оновлюються)' : '' ) );
 
 		try {
 			// Process XML in chunks to extract stock and price data
@@ -346,8 +354,8 @@ class XML_Stock_Updater {
 						$changes_made = true;
 					}
 
-					// Update prices if needed
-					if ( $product_data['price'] > 0 ) {
+					// Update prices if not skipped and needed
+					if ( ! $this->skip_price_updates && $product_data['price'] > 0 ) {
 						$price_changed = $this->update_product_price( $product, $product_data['price'], $product_data['old_price'] );
 						if ( $price_changed ) {
 							++$updated_price;

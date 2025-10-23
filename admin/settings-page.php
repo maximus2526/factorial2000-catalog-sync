@@ -561,10 +561,15 @@ function prom_xml_importer_settings_init() {
 	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_4' );
 	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_5' );
 	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_1' );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_1' );
 	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_2' );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_2' );
 	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_3' );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_3' );
 	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_4' );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_4' );
 	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_5' );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_5' );
 	register_setting( 'prom_xml_importer_settings', 'prom_xml_update_interval' );
 	register_setting( 'prom_xml_importer_settings', 'telegram_user_ids' );
 	register_setting( 'prom_xml_importer_settings', 'telegram_token_id' );
@@ -573,14 +578,19 @@ function prom_xml_importer_settings_init() {
 
 	add_settings_field( 'prom_xml_url', __( 'URL XML файлу 1', 'xml-prom' ), 'prom_xml_importer_url_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'prom_xml_sku_prefix_1', __( 'SKU Prefix 1', 'xml-prom' ), 'prom_xml_importer_sku_prefix_1_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_skip_price_1', __( 'Не оновлювати ціну 1', 'xml-prom' ), 'prom_xml_importer_skip_price_1_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'prom_xml_url_2', __( 'URL XML файлу 2', 'xml-prom' ), 'prom_xml_importer_url_2_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'prom_xml_sku_prefix_2', __( 'SKU Prefix 2', 'xml-prom' ), 'prom_xml_importer_sku_prefix_2_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_skip_price_2', __( 'Не оновлювати ціну 2', 'xml-prom' ), 'prom_xml_importer_skip_price_2_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'prom_xml_url_3', __( 'URL XML файлу 3', 'xml-prom' ), 'prom_xml_importer_url_3_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'prom_xml_sku_prefix_3', __( 'SKU Prefix 3', 'xml-prom' ), 'prom_xml_importer_sku_prefix_3_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_skip_price_3', __( 'Не оновлювати ціну 3', 'xml-prom' ), 'prom_xml_importer_skip_price_3_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'prom_xml_url_4', __( 'URL XML файлу 4', 'xml-prom' ), 'prom_xml_importer_url_4_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'prom_xml_sku_prefix_4', __( 'SKU Prefix 4', 'xml-prom' ), 'prom_xml_importer_sku_prefix_4_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_skip_price_4', __( 'Не оновлювати ціну 4', 'xml-prom' ), 'prom_xml_importer_skip_price_4_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'prom_xml_url_5', __( 'URL XML файлу 5', 'xml-prom' ), 'prom_xml_importer_url_5_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'prom_xml_sku_prefix_5', __( 'SKU Prefix 5', 'xml-prom' ), 'prom_xml_importer_sku_prefix_5_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_skip_price_5', __( 'Не оновлювати ціну 5', 'xml-prom' ), 'prom_xml_importer_skip_price_5_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'prom_xml_update_interval', __( 'Інтервал оновлення', 'xml-prom' ), 'prom_xml_importer_interval_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'telegram_user_ids', __( 'Telegram User IDs', 'xml-prom' ), 'prom_xml_importer_telegram_user_ids_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'telegram_token_id', __( 'Telegram Token ID', 'xml-prom' ), 'prom_xml_importer_telegram_token_id_render', 'prom-xml-importer', 'prom_xml_importer_section' );
@@ -602,6 +612,16 @@ function prom_xml_importer_sku_prefix_1_render() {
 	<?php
 }
 
+function prom_xml_importer_skip_price_1_render() {
+	$val = get_option( 'prom_xml_skip_price_1', '0' );
+	?>
+	<label>
+		<input type="checkbox" name="prom_xml_skip_price_1" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'xml-prom' ); ?>
+	</label>
+	<?php
+}
+
 function prom_xml_importer_url_2_render() {
 	$url = get_option( 'prom_xml_url_2', '' );
 	?>
@@ -614,6 +634,16 @@ function prom_xml_importer_sku_prefix_2_render() {
 	?>
 	<input type="text" name="prom_xml_sku_prefix_2" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML2_', 'xml-prom' ); ?>" style="width: 100%;">
 	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'xml-prom' ); ?></p>
+	<?php
+}
+
+function prom_xml_importer_skip_price_2_render() {
+	$val = get_option( 'prom_xml_skip_price_2', '0' );
+	?>
+	<label>
+		<input type="checkbox" name="prom_xml_skip_price_2" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'xml-prom' ); ?>
+	</label>
 	<?php
 }
 
@@ -632,6 +662,16 @@ function prom_xml_importer_sku_prefix_3_render() {
 	<?php
 }
 
+function prom_xml_importer_skip_price_3_render() {
+	$val = get_option( 'prom_xml_skip_price_3', '0' );
+	?>
+	<label>
+		<input type="checkbox" name="prom_xml_skip_price_3" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'xml-prom' ); ?>
+	</label>
+	<?php
+}
+
 function prom_xml_importer_url_4_render() {
 	$url = get_option( 'prom_xml_url_4', '' );
 	?>
@@ -647,6 +687,16 @@ function prom_xml_importer_sku_prefix_4_render() {
 	<?php
 }
 
+function prom_xml_importer_skip_price_4_render() {
+	$val = get_option( 'prom_xml_skip_price_4', '0' );
+	?>
+	<label>
+		<input type="checkbox" name="prom_xml_skip_price_4" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'xml-prom' ); ?>
+	</label>
+	<?php
+}
+
 function prom_xml_importer_url_5_render() {
 	$url = get_option( 'prom_xml_url_5', '' );
 	?>
@@ -659,6 +709,16 @@ function prom_xml_importer_sku_prefix_5_render() {
 	?>
 	<input type="text" name="prom_xml_sku_prefix_5" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML5_', 'xml-prom' ); ?>" style="width: 100%;">
 	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'xml-prom' ); ?></p>
+	<?php
+}
+
+function prom_xml_importer_skip_price_5_render() {
+	$val = get_option( 'prom_xml_skip_price_5', '0' );
+	?>
+	<label>
+		<input type="checkbox" name="prom_xml_skip_price_5" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'xml-prom' ); ?>
+	</label>
 	<?php
 }
 
@@ -937,7 +997,8 @@ function prom_xml_importer_handle_action() {
 					foreach ( $xml_urls as $index => $xml_url ) {
 						try {
 							$sku_prefix = get_option( 'prom_xml_sku_prefix_' . $index, '' );
-							$updater    = new XML_Stock_Updater( $xml_url, $sku_prefix );
+							$skip_price = get_option( 'prom_xml_skip_price_' . $index, '0' );
+							$updater    = new XML_Stock_Updater( $xml_url, $sku_prefix, ( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' ) );
 							$updater->update_products_stock_status();
 							++$success_count;
 						} catch ( Exception $e ) {

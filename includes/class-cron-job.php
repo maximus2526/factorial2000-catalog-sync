@@ -97,7 +97,8 @@ class Cron_Job {
 			foreach ( $xml_urls as $index => $xml_url ) {
 				try {
 					$sku_prefix = get_option( 'prom_xml_sku_prefix_' . $index, '' );
-					$updater    = new XML_Stock_Updater( $xml_url, $sku_prefix );
+					$skip_price = get_option( 'prom_xml_skip_price_' . $index, '0' );
+					$updater    = new XML_Stock_Updater( $xml_url, $sku_prefix, ( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' ) );
 					$updater->update_products_stock_status();
 				} catch ( Exception $e ) {
 					prom_log( "Error updating stock for XML URL $index: " . $e->getMessage(), 'error' );

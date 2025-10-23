@@ -207,7 +207,18 @@ add_action(
 	function ( $xml_url, $sku_prefix = '' ) {
 		if ( ! empty( $xml_url ) ) {
 			prom_cleanup_wc_transients();
-			$updater = new XML_Stock_Updater( $xml_url, $sku_prefix );
+			// Try to detect which slot this URL belongs to, to read the skip-price flag.
+			$skip_price_flag = false;
+			for ( $i = 1; $i <= 5; $i++ ) {
+				$cfg_url = get_option( 'prom_xml_url' . ( $i === 1 ? '' : '_' . $i ), '' );
+				if ( $cfg_url === $xml_url ) {
+					$skip_price = get_option( 'prom_xml_skip_price_' . $i, '0' );
+					$skip_price_flag = ( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' );
+					break;
+				}
+			}
+
+			$updater = new XML_Stock_Updater( $xml_url, $sku_prefix, $skip_price_flag );
 			$updater->update_products_stock_status();
 			prom_cleanup_wc_transients( true );
 		}
