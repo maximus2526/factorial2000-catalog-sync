@@ -291,7 +291,7 @@ class XML_Parser {
 			$has_group_id = ! empty( $offer_data['group_id'] );
 
 			if ( $import_variations ) {
-				// Режим варіативних: імпортуємо ТІЛЬКИ товари З group_id
+				// Режим варіативних: імпортуємо товари З group_id
 				if ( $has_group_id ) {
 					$grouped_products[ $offer_data['group_id'] ][] = $offer_data;
 					++$offers_with_group_id;
@@ -299,29 +299,53 @@ class XML_Parser {
 					++$offers_without_group_id; // Пропускаємо
 				}
 			} else {
-				// Режим простих: імпортуємо ТІЛЬКИ товари БЕЗ group_id
+				// Режим простих: імпортуємо товари БЕЗ group_id + товари з group_id але з 1 варіацією
 				if ( ! $has_group_id ) {
 					$simple_products[] = $offer_data;
 					++$offers_without_group_id;
 				} else {
-					++$offers_with_group_id; // Пропускаємо
+					// Товари з group_id зберігаємо для подальшої перевірки
+					$grouped_products[ $offer_data['group_id'] ][] = $offer_data;
+					++$offers_with_group_id;
 				}
 			}
 		}
 
 		$reader->close();
 
+		// Для режиму простих товарів: перевіряємо групи і переносимо одиночні товари
+		if ( ! $import_variations ) {
+			$single_variation_groups = 0;
+			foreach ( $grouped_products as $group_id => $variations ) {
+				if ( count( $variations ) === 1 ) {
+					// Товар з group_id але тільки 1 варіація - імпортуємо як простий
+					$simple_products[] = $variations[0];
+					unset( $grouped_products[ $group_id ] );
+					++$single_variation_groups;
+				}
+			}
+			
+			prom_log( sprintf( 'Moved %d single-variation groups to simple products', $single_variation_groups ) );
+		}
+
+		// Підраховуємо скільки товарів буде оброблено
+		$simple_count = count( $simple_products );
+		$variable_count = 0;
+		foreach ( $grouped_products as $variations ) {
+			if ( count( $variations ) >= 2 ) {
+				$variable_count += count( $variations );
+			}
+		}
+		
 		// Логуємо статистику групування
 		$mode = $import_variations ? 'VARIABLE' : 'SIMPLE';
 		prom_log( 
 			sprintf( 
-				'XML parsed in %s mode: total_offers=%d, with_group_id=%d (processed: %d), without_group_id=%d (processed: %d), unique_groups=%d',
+				'XML parsed in %s mode: total_offers=%d, simple_products=%d, variable_products_in_groups=%d, unique_groups_2+=%d',
 				$mode,
 				$total_offers,
-				$offers_with_group_id,
-				$import_variations ? $offers_with_group_id : 0,
-				$offers_without_group_id,
-				$import_variations ? 0 : $offers_without_group_id,
+				$simple_count,
+				$variable_count,
 				count( $grouped_products )
 			)
 		);
@@ -330,7 +354,22 @@ class XML_Parser {
 		$imported       = 0;
 		$skipped        = 0;
 		$current_offset = 0;
-		$total_products = count( $simple_products ) + count( $grouped_products );
+		
+		// Підраховуємо загальну кількість товарів для імпорту залежно від режиму
+		if ( $import_variations ) {
+			// В режимі варіативних - рахуємо тільки групи з 2+ варіаціями
+			$total_products = 0;
+			foreach ( $grouped_products as $variations ) {
+				if ( count( $variations ) >= 2 ) {
+					$total_products++;
+				}
+			}
+			prom_log( sprintf( 'Variable mode: Will import %d variable products (groups with 2+ variations)', $total_products ) );
+		} else {
+			// В режимі простих - рахуємо тільки прості товари
+			$total_products = count( $simple_products );
+			prom_log( sprintf( 'Simple mode: Will import %d simple products', $total_products ) );
+		}
 
 		// Import simple products
 		foreach ( $simple_products as $offer_data ) {
@@ -362,6 +401,14 @@ class XML_Parser {
 
 			if ( $imported >= $limit ) {
 				break;
+			}
+
+			// Пропускаємо групи з тільки 1 варіацією в режимі варіативних товарів
+			if ( count( $variations_data ) === 1 ) {
+				prom_log( sprintf( 'Skipping group %s with only 1 variation in variable mode', $group_id ) );
+				++$skipped;
+				++$current_offset;
+				continue;
 			}
 
 			$result = $this->import_variable_product( $group_id, $variations_data );
@@ -869,6 +916,9 @@ class XML_Parser {
 
 			// Register taxonomy if not exists
 			if ( ! taxonomy_exists( $taxonomy ) ) {
+				// Ensure global attribute exists so it appears in admin UI
+				$this->ensure_global_attribute( $attr_name, $taxonomy_name );
+				
 				register_taxonomy(
 					$taxonomy,
 					array( 'product' ),
@@ -925,6 +975,8 @@ class XML_Parser {
 				update_post_meta( $parent_id, '_product_attributes', $product_attributes );
 				// Clear product transients so attributes are visible in UI immediately
 				wc_delete_product_transients( $parent_id );
+				// Clear WooCommerce attribute taxonomies cache to ensure new attributes are visible
+				delete_transient( 'wc_attribute_taxonomies' );
 			
 			$variation_count = 0;
 			$non_variation_count = 0;

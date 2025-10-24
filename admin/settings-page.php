@@ -343,7 +343,9 @@ function prom_xml_importer_import_page() {
 								'cursor': 'pointer'
 							});
 
-							$label.text(attr.name + ' (' + attr.values.join(', ') + ')');
+							// Показуємо чи варіюється атрибут
+							const varyingText = attr.is_varying ? ' (варіюється)' : ' (не варіюється)';
+							$label.text(attr.name + varyingText + ' (' + attr.values.join(', ') + ')');
 
 							$checkboxWrapper.append($checkbox).append($label);
 							$groupBox.append($checkboxWrapper);
@@ -367,27 +369,31 @@ function prom_xml_importer_import_page() {
 					return;
 				}
 
-				// Розраховуємо добуток кількості значень всіх вибраних атрибутів
+				// Розраховуємо добуток кількості значень тільки ВАРІАЦІЙНИХ атрибутів
 				let totalVariations = 1;
 				const selectedAttrNames = group.selected_attributes;
 				const attrInfo = [];
 
 				group.attributes.forEach(function(attr) {
-					if (selectedAttrNames.includes(attr.name)) {
+					if (selectedAttrNames.includes(attr.name) && attr.is_varying) {
 						totalVariations *= attr.values.length;
 						attrInfo.push(attr.name + ': ' + attr.values.length);
 					}
 				});
 
 				// Показуємо розрахунок
-				if (selectedAttrNames.length > 1) {
+				if (attrInfo.length > 1) {
 					$('#calculated_count_' + groupId).html(
 						'<strong><?php esc_html_e( 'Буде створено варіацій:', 'xml-prom' ); ?></strong> ' + 
 						totalVariations + ' (' + attrInfo.join(' × ') + ')'
 					);
-				} else {
+				} else if (attrInfo.length === 1) {
 					$('#calculated_count_' + groupId).html(
 						'<strong><?php esc_html_e( 'Буде створено варіацій:', 'xml-prom' ); ?></strong> ' + totalVariations
+					);
+				} else {
+					$('#calculated_count_' + groupId).html(
+						'<strong style="color: orange;"><?php esc_html_e( 'Увага: вибрані атрибути не варіюються - буде створено 1 варіацію', 'xml-prom' ); ?></strong>'
 					);
 				}
 			}
@@ -918,21 +924,38 @@ function prom_xml_analyze_variable_groups( string $file_path ): array {
 		$varying_attributes = array();
 
 		foreach ( $group['all_attributes'] as $attr_name => $attr_values ) {
+			// Показуємо ВСІ атрибути, а не тільки ті що варіюються
 			// Атрибут варіюється якщо має більше 1 значення
-			if ( count( $attr_values ) > 1 ) {
-				$varying_attributes[] = array(
-					'name'   => $attr_name,
-					'values' => $attr_values,
-				);
-			}
+			$is_varying = count( $attr_values ) > 1;
+			
+			$varying_attributes[] = array(
+				'name'       => $attr_name,
+				'values'     => $attr_values,
+				'is_varying' => $is_varying,
+			);
 		}
+
+		// Debug: log final varying attributes
+		prom_log( sprintf( 'Group %s: %d varying attributes found', $group_id, count( $varying_attributes ) ) );
 
 		$group['attributes'] = $varying_attributes;
 		unset( $group['all_attributes'] ); // Видаляємо тимчасові дані
 		unset( $group['variations'] ); // Не передаємо всі варіації на фронтенд
 	}
 
-	return $groups;
+	// Фільтруємо групи - показуємо тільки ті що мають 2+ варіації
+	$filtered_groups = array();
+	foreach ( $groups as $group_id => $group ) {
+		if ( $group['variations_count'] >= 2 ) {
+			$filtered_groups[ $group_id ] = $group;
+		} else {
+			prom_log( sprintf( 'Skipping group %s with only %d variation(s)', $group_id, $group['variations_count'] ) );
+		}
+	}
+	
+	prom_log( sprintf( 'Filtered groups: %d groups with 2+ variations out of %d total', count( $filtered_groups ), count( $groups ) ) );
+
+	return $filtered_groups;
 }
 
 /**
