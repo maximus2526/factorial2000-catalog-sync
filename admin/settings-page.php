@@ -311,21 +311,32 @@ function prom_xml_importer_import_page() {
 					if (group.attributes && group.attributes.length > 0) {
 						const $attrLabel = $('<p>').html('<strong><?php esc_html_e( 'Виберіть варіаційні атрибути:', 'xml-prom' ); ?></strong>').css('margin', '10px 0 5px 0');
 						$groupBox.append($attrLabel);
+						
+						// Підказка
+						const $hint = $('<p>').html('<em style="color: #666; font-size: 12px;"><?php esc_html_e( 'Примітка: Можна вибрати тільки атрибути що варіюються (мають різні значення між варіаціями)', 'xml-prom' ); ?></em>').css('margin', '5px 0 10px 0');
+						$groupBox.append($hint);
 
-						// Ініціалізуємо масив вибраних атрибутів
+						// Ініціалізуємо масив вибраних атрибутів - вибираємо тільки варіаційні
 						if (!groupsData[groupId].selected_attributes) {
-							groupsData[groupId].selected_attributes = [group.attributes[0].name]; // Перший за замовчуванням
+							// Знаходимо перший варіаційний атрибут
+							const firstVaryingAttr = group.attributes.find(function(a) { return a.is_varying; });
+							groupsData[groupId].selected_attributes = firstVaryingAttr ? [firstVaryingAttr.name] : [];
 						}
 
 						group.attributes.forEach(function(attr, index) {
 							const checkboxId = 'attr_' + groupId + '_' + index;
 							const $checkboxWrapper = $('<div>').css('margin', '5px 0 5px 20px');
+							
+							// Вибираємо за замовчуванням тільки якщо це перший варіаційний атрибут
+							const isDefaultSelected = attr.is_varying && groupsData[groupId].selected_attributes.includes(attr.name);
+							
 							const $checkbox = $('<input>').attr({
 								'type': 'checkbox',
 								'name': 'group_attr_' + groupId + '[]',
 								'id': checkboxId,
 								'value': attr.name,
-								'checked': index === 0 // Перший вибраний за замовчуванням
+								'checked': isDefaultSelected,
+								'disabled': !attr.is_varying // Вимикаємо чекбокси для не-варіаційних атрибутів
 							}).on('change', function() {
 								// Оновлюємо масив вибраних атрибутів
 								const selected = [];
@@ -340,11 +351,13 @@ function prom_xml_importer_import_page() {
 
 							const $label = $('<label>').attr('for', checkboxId).css({
 								'margin-left': '5px',
-								'cursor': 'pointer'
+								'cursor': attr.is_varying ? 'pointer' : 'not-allowed',
+								'color': attr.is_varying ? 'inherit' : '#999',
+								'opacity': attr.is_varying ? '1' : '0.6'
 							});
 
 							// Показуємо чи варіюється атрибут
-							const varyingText = attr.is_varying ? ' (варіюється)' : ' (не варіюється)';
+							const varyingText = attr.is_varying ? ' ✓ (варіюється)' : ' ✗ (не варіюється)';
 							$label.text(attr.name + varyingText + ' (' + attr.values.join(', ') + ')');
 
 							$checkboxWrapper.append($checkbox).append($label);

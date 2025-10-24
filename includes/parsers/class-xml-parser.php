@@ -733,24 +733,36 @@ class XML_Parser {
 			}
 			
 			$variation_attributes = array();
+			$skipped_attrs = array();
+			
 			foreach ( $selected_attrs as $selected_attr ) {
 				// Check if this attribute exists and has multiple values
-				if ( isset( $all_attributes[ $selected_attr ] ) && count( $all_attributes[ $selected_attr ] ) > 1 ) {
-					$variation_attributes[ $selected_attr ] = $all_attributes[ $selected_attr ];
+				if ( isset( $all_attributes[ $selected_attr ] ) ) {
+					if ( count( $all_attributes[ $selected_attr ] ) > 1 ) {
+						$variation_attributes[ $selected_attr ] = $all_attributes[ $selected_attr ];
+					} else {
+						$skipped_attrs[] = $selected_attr . ' (тільки 1 значення)';
+					}
+				} else {
+					$skipped_attrs[] = $selected_attr . ' (не знайдено)';
 				}
+			}
+			
+			if ( ! empty( $skipped_attrs ) ) {
+				prom_log( sprintf( 'Skipped non-varying attributes: %s', implode( ', ', $skipped_attrs ) ) );
 			}
 			
 			if ( ! empty( $variation_attributes ) ) {
 				prom_log( 
 					sprintf(
-						"Using manually selected attributes for group_id=%s: %s",
+						"✓ Using manually selected attributes for group_id=%s: %s",
 						$group_id,
 						implode( ', ', array_keys( $variation_attributes ) )
 					)
 				);
 				return $variation_attributes;
 			} else {
-				prom_log( "No manually selected attributes found or none vary for group_id={$group_id}" );
+				prom_log( "✗ None of the manually selected attributes vary for group_id={$group_id} - will use auto-selection" );
 			}
 		}
 
