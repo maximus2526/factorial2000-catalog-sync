@@ -501,70 +501,72 @@ class XML_Parser {
 		$images    = $offer_data['images'];
 		$attributes = $offer_data['attributes'];
 
-		// Apply SKU prefix if set
+		if ( empty( $sku ) || empty( $title ) || $price <= 0 ) {
+			return false;
+		}
+
+		// Check if product already exists (передаємо SKU без префіксу)
+		$existing_product = $this->get_product_ids_by_skus( array( $sku ) );
+		if ( ! empty( $existing_product ) && isset( $existing_product[ $sku ] ) ) {
+			prom_log( sprintf( 'Skipping simple product with SKU %s - already exists (ID: %d)', $sku, $existing_product[ $sku ] ) );
+			return false;
+		}
+		
+		// Apply SKU prefix для створення
+		$original_sku = $sku;
 		if ( ! empty( $this->sku_prefix ) ) {
 			$sku = $this->sku_prefix . $sku;
-			}
+		}
 
-			if ( empty( $sku ) || empty( $title ) || $price <= 0 ) {
+		$post_id = wp_insert_post(
+			array(
+				'post_title'   => $title,
+				'post_content' => $desc,
+				'post_status'  => 'publish',
+				'post_type'    => 'product',
+			)
+		);
+
+		if ( is_wp_error( $post_id ) ) {
 			return false;
-			}
+		}
 
-			$is_new_product = ! $this->get_product_ids_by_skus( array( $sku ) );
-
-			if ( ! $is_new_product ) {
-			return false;
-			}
-
-			$post_id = wp_insert_post(
-				array(
-					'post_title'   => $title,
-					'post_content' => $desc,
-					'post_status'  => 'publish',
-					'post_type'    => 'product',
-				)
-			);
-
-			if ( is_wp_error( $post_id ) ) {
-			return false;
-			}
-
-			update_post_meta( $post_id, '_sku', $sku );
+		update_post_meta( $post_id, '_sku', $sku );
 
 		// Set prices
-			if ( $old_price > 0 && $old_price > $price ) {
-				update_post_meta( $post_id, '_regular_price', number_format( $old_price, 2, '.', '' ) );
-				update_post_meta( $post_id, '_sale_price', number_format( $price, 2, '.', '' ) );
-				update_post_meta( $post_id, '_price', number_format( $price, 2, '.', '' ) );
-			} else {
-				update_post_meta( $post_id, '_regular_price', number_format( $price, 2, '.', '' ) );
-				update_post_meta( $post_id, '_price', number_format( $price, 2, '.', '' ) );
-			}
+		if ( $old_price > 0 && $old_price > $price ) {
+			update_post_meta( $post_id, '_regular_price', number_format( $old_price, 2, '.', '' ) );
+			update_post_meta( $post_id, '_sale_price', number_format( $price, 2, '.', '' ) );
+			update_post_meta( $post_id, '_price', number_format( $price, 2, '.', '' ) );
+		} else {
+			update_post_meta( $post_id, '_regular_price', number_format( $price, 2, '.', '' ) );
+			update_post_meta( $post_id, '_price', number_format( $price, 2, '.', '' ) );
+		}
 
-			update_post_meta( $post_id, '_stock_status', $available );
-			update_post_meta( $post_id, '_manage_stock', 'no' );
+		update_post_meta( $post_id, '_stock_status', $available );
+		update_post_meta( $post_id, '_manage_stock', 'no' );
 
-			// Handle product attributes
-			if ( ! empty( $attributes ) ) {
-				$this->set_product_attributes( $post_id, $attributes );
-			}
+		// Handle product attributes
+		if ( ! empty( $attributes ) ) {
+			$this->set_product_attributes( $post_id, $attributes );
+		}
 
 		// Handle product images
-			if ( ! empty( $images ) ) {
-				$this->handle_product_images( $post_id, $images );
-			}
+		if ( ! empty( $images ) ) {
+			$this->handle_product_images( $post_id, $images );
+		}
 
 		// Set category
-			if ( ! $this->new_category ) {
-				$this->set_product_category( $post_id, $category );
-			}
+		if ( ! $this->new_category ) {
+			$this->set_product_category( $post_id, $category );
+		}
 
-			if ( $this->new_category && $is_new_product ) {
-				if ( term_exists( 'Новинки', 'product_cat' ) === 0 ) {
-					wp_insert_term( 'Новинки', 'product_cat' );
-				}
-				wp_set_object_terms( $post_id, 'Новинки', 'product_cat', true );
+		if ( $this->new_category ) {
+			if ( term_exists( 'Новинки', 'product_cat' ) === 0 ) {
+				wp_insert_term( 'Новинки', 'product_cat' );
 			}
+			wp_set_object_terms( $post_id, 'Новинки', 'product_cat', true );
+		}
 
 		return true;
 	}
@@ -581,14 +583,15 @@ class XML_Parser {
 			return false;
 		}
 
-		// Apply SKU prefix to group_id
-		$parent_sku = ! empty( $this->sku_prefix ) ? $this->sku_prefix . $group_id : $group_id;
-
-		// Check if parent product already exists
-		$existing_parent = $this->get_product_ids_by_skus( array( $parent_sku ) );
-		if ( $existing_parent ) {
+		// Check if parent product already exists (передаємо group_id без префіксу, функція поверне з ключем без префіксу)
+		$existing_parent = $this->get_product_ids_by_skus( array( $group_id ) );
+		if ( ! empty( $existing_parent ) && isset( $existing_parent[ $group_id ] ) ) {
+			prom_log( sprintf( 'Skipping group %s - parent product already exists (ID: %d)', $group_id, $existing_parent[ $group_id ] ) );
 			return false; // Skip if already exists
 		}
+		
+		// Apply SKU prefix to group_id для створення
+		$parent_sku = ! empty( $this->sku_prefix ) ? $this->sku_prefix . $group_id : $group_id;
 
 		// Use first variation as base for parent product
 		$base_data = $variations_data[0];
@@ -1022,17 +1025,19 @@ class XML_Parser {
 	 */
 	private function create_product_variations( int $parent_id, array $variations_data, array $variation_attributes ): void {
 		foreach ( $variations_data as $variation_data ) {
-			$variation_sku = $variation_data['sku'];
+			$original_sku = $variation_data['sku'];
 
-			// Apply SKU prefix
+			// Check if variation already exists (передаємо SKU без префіксу)
+			$existing_variation = $this->get_product_ids_by_skus( array( $original_sku ) );
+			if ( ! empty( $existing_variation ) && isset( $existing_variation[ $original_sku ] ) ) {
+				prom_log( sprintf( 'Skipping variation with SKU %s - already exists (ID: %d)', $original_sku, $existing_variation[ $original_sku ] ) );
+				continue; // Skip if exists
+			}
+			
+			// Apply SKU prefix для створення
+			$variation_sku = $original_sku;
 			if ( ! empty( $this->sku_prefix ) ) {
 				$variation_sku = $this->sku_prefix . $variation_sku;
-			}
-
-			// Check if variation already exists
-			$existing_variation = $this->get_product_ids_by_skus( array( $variation_sku ) );
-			if ( $existing_variation ) {
-				continue; // Skip if exists
 			}
 
 			// Create variation
