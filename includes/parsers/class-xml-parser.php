@@ -167,7 +167,6 @@ class XML_Parser {
 			$products->close();
 			$products->open( $this->xml_url );
 		} catch ( Exception $e ) {
-			prom_log( 'XML parsing error: ' . $e->getMessage(), 'error' );
 			return $this->send_telegram_message( 'XML parsing error: ' . $e->getMessage() );
 		}
 
@@ -232,15 +231,7 @@ class XML_Parser {
 			$stock_status === 'instock' ? ++$updated_in_stock : ++$updated_out_of_stock;
 		}
 
-		prom_log(
-			sprintf(
-				'Batch processed: In stock: %d, Out of stock: %d, Not found: %d',
-				$updated_in_stock,
-				$updated_out_of_stock,
-				$not_found
-			),
-			'info'
-		);
+		// Batch processing completed
 	}
 
 	/**
@@ -262,8 +253,7 @@ class XML_Parser {
 		$import_variations_transient = get_transient( 'prom_xml_import_variations_temp' );
 		$import_variations           = $import_variations_transient === '1';
 
-		// Debug log
-		prom_log( 'Import variations setting: transient=' . var_export( $import_variations_transient, true ) . ', enabled=' . var_export( $import_variations, true ) );
+		// Import variations setting loaded
 
 		$reader = new XMLReader();
 
@@ -325,7 +315,7 @@ class XML_Parser {
 				}
 			}
 			
-			prom_log( sprintf( 'Moved %d single-variation groups to simple products', $single_variation_groups ) );
+			// Moved single-variation groups to simple products
 		}
 
 		// Підраховуємо скільки товарів буде оброблено
@@ -337,18 +327,7 @@ class XML_Parser {
 			}
 		}
 		
-		// Логуємо статистику групування
-		$mode = $import_variations ? 'VARIABLE' : 'SIMPLE';
-		prom_log( 
-			sprintf( 
-				'XML parsed in %s mode: total_offers=%d, simple_products=%d, variable_products_in_groups=%d, unique_groups_2+=%d',
-				$mode,
-				$total_offers,
-				$simple_count,
-				$variable_count,
-				count( $grouped_products )
-			)
-		);
+		// XML parsed and grouped
 
 		// Second pass: Create products
 		$imported       = 0;
@@ -364,11 +343,11 @@ class XML_Parser {
 					$total_products++;
 				}
 			}
-			prom_log( sprintf( 'Variable mode: Will import %d variable products (groups with 2+ variations)', $total_products ) );
+			// Variable mode: importing variable products
 		} else {
 			// В режимі простих - рахуємо тільки прості товари
 			$total_products = count( $simple_products );
-			prom_log( sprintf( 'Simple mode: Will import %d simple products', $total_products ) );
+			// Simple mode: importing simple products
 		}
 
 		// Import simple products
@@ -405,7 +384,7 @@ class XML_Parser {
 
 			// Пропускаємо групи з тільки 1 варіацією в режимі варіативних товарів
 			if ( count( $variations_data ) === 1 ) {
-				prom_log( sprintf( 'Skipping group %s with only 1 variation in variable mode', $group_id ) );
+				// Skipping group with only 1 variation in variable mode
 				++$skipped;
 				++$current_offset;
 				continue;
@@ -508,7 +487,7 @@ class XML_Parser {
 		// Check if product already exists (передаємо SKU без префіксу)
 		$existing_product = $this->get_product_ids_by_skus( array( $sku ) );
 		if ( ! empty( $existing_product ) && isset( $existing_product[ $sku ] ) ) {
-			prom_log( sprintf( 'Skipping simple product with SKU %s - already exists (ID: %d)', $sku, $existing_product[ $sku ] ) );
+			// Skipping simple product - already exists
 			return false;
 		}
 		
@@ -586,7 +565,7 @@ class XML_Parser {
 		// Check if parent product already exists (передаємо group_id без префіксу, функція поверне з ключем без префіксу)
 		$existing_parent = $this->get_product_ids_by_skus( array( $group_id ) );
 		if ( ! empty( $existing_parent ) && isset( $existing_parent[ $group_id ] ) ) {
-			prom_log( sprintf( 'Skipping group %s - parent product already exists (ID: %d)', $group_id, $existing_parent[ $group_id ] ) );
+			// Skipping group - parent product already exists
 			return false; // Skip if already exists
 		}
 		
@@ -640,7 +619,7 @@ class XML_Parser {
 		$variation_attributes = $this->determine_variation_attributes( $variations_data, $group_id );
 
 		if ( empty( $variation_attributes ) ) {
-			prom_log( "Cannot determine variation attributes for group_id={$group_id}, skipping variable product" );
+			// Cannot determine variation attributes, skipping variable product
 			// Delete parent product since we can't create variations
 			wp_delete_post( $parent_id, true );
 			return false;
@@ -752,20 +731,14 @@ class XML_Parser {
 			}
 			
 			if ( ! empty( $skipped_attrs ) ) {
-				prom_log( sprintf( 'Skipped non-varying attributes: %s', implode( ', ', $skipped_attrs ) ) );
+				// Skipped non-varying attributes
 			}
 			
 			if ( ! empty( $variation_attributes ) ) {
-				prom_log( 
-					sprintf(
-						"✓ Using manually selected attributes for group_id=%s: %s",
-						$group_id,
-						implode( ', ', array_keys( $variation_attributes ) )
-					)
-				);
+				// Using manually selected attributes
 				return $variation_attributes;
 			} else {
-				prom_log( "✗ None of the manually selected attributes vary for group_id={$group_id} - will use auto-selection" );
+				// None of the manually selected attributes vary - will use auto-selection
 			}
 		}
 
@@ -792,7 +765,7 @@ class XML_Parser {
 				$variation_attributes[ $priority_attr ] = $all_attributes[ $priority_attr ];
 				
 				// Логуємо який атрибут обрано
-				prom_log( "Auto-selected variation attribute: {$priority_attr} with " . count( $all_attributes[ $priority_attr ] ) . ' values' );
+				// Auto-selected variation attribute
 				
 				break; // Беремо тільки ОДИН атрибут!
 			}
@@ -800,12 +773,12 @@ class XML_Parser {
 
 		// If no priority attributes found, use any attribute that varies
 		if ( empty( $variation_attributes ) ) {
-			prom_log( 'No priority variation attributes found, searching for any varying attribute' );
+			// No priority variation attributes found, searching for any varying attribute
 			
 			foreach ( $all_attributes as $attr_name => $attr_values ) {
 				if ( count( $attr_values ) > 1 ) {
 					$variation_attributes[ $attr_name ] = $attr_values;
-					prom_log( "Using non-priority variation attribute: {$attr_name}" );
+					// Using non-priority variation attribute
 					break; // Беремо тільки ОДИН атрибут!
 				}
 			}
@@ -829,7 +802,7 @@ class XML_Parser {
 		foreach ( $variation_attributes as $attr_name => $attr_values ) {
 			// Skip if no values
 			if ( empty( $attr_values ) ) {
-				prom_log( "Skipping empty variation attribute: {$attr_name}" );
+				// Skipping empty variation attribute
 				continue;
 			}
 
@@ -888,7 +861,7 @@ class XML_Parser {
 					'is_taxonomy'  => 1,
 				);
 				
-				prom_log( sprintf( 'Added variation attribute "%s" with %d values', $attr_name, count( $term_ids ) ) );
+				// Added variation attribute
 			}
 		}
 
@@ -922,7 +895,7 @@ class XML_Parser {
 			}
 		}
 		
-		prom_log( sprintf( 'Collected %d non-variation attributes for parent product', count( $non_variation_attributes ) ) );
+		// Collected non-variation attributes for parent product
 
 		// Add collected non-variation attributes to product
 		foreach ( $non_variation_attributes as $attr_name => $attr_values ) {
@@ -960,7 +933,7 @@ class XML_Parser {
 					if ( ! is_wp_error( $term_info ) ) {
 						$term_ids[] = $term_info['term_id'];
 					} else {
-						prom_log( sprintf( 'Error creating term "%s" in taxonomy "%s": %s', $attr_value, $taxonomy, $term_info->get_error_message() ) );
+						// Error creating term
 					}
 				} else {
 					$term_ids[] = $term->term_id;
@@ -979,9 +952,9 @@ class XML_Parser {
 					'is_taxonomy'  => 1,
 				);
 				
-				prom_log( sprintf( 'Added non-variation attribute "%s" with %d values', $attr_name, count( $term_ids ) ) );
+				// Added non-variation attribute
 			} else {
-				prom_log( sprintf( 'Skipped attribute "%s" - no term IDs created', $attr_name ) );
+				// Skipped attribute - no term IDs created
 			}
 		}
 

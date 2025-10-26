@@ -62,7 +62,6 @@ function prom_send_telegram_notification( $message, $retry_count = 2 ) {
 
 		if ( ! $request_success ) {
 			$success = false;
-			prom_log( "Failed to send Telegram notification to chat_id: $user_id", 'error' );
 		}
 	}
 
@@ -194,7 +193,6 @@ function prom_trigger_background_sync( $xml_url, $sku_prefix = '' ) {
 	// Schedule the update to happen in the background in 30 seconds
 	if ( ! wp_next_scheduled( 'prom_single_update_event', array( $xml_url, $sku_prefix ) ) ) {
 		wp_schedule_single_event( time() + 30, 'prom_single_update_event', array( $xml_url, $sku_prefix ) );
-		prom_log( "Scheduled background sync for XML: $xml_url with SKU prefix: $sku_prefix", 'info' );
 		return true;
 	}
 

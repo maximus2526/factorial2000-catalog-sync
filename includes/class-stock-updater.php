@@ -119,7 +119,6 @@ class XML_Stock_Updater {
 
 		// Check if we can proceed with the update
 		if ( ! $this->xml_url ) {
-			prom_log( 'No XML URL provided', 'error' );
 			return;
 		}
 
@@ -129,7 +128,6 @@ class XML_Stock_Updater {
 		// Increase memory limit if possible
 		$this->increase_memory_limit();
 
-		prom_log( 'Starting stock and price update process', 'info' );
 		$this->send_telegram_message( 'Starting stock and price update process for XML: ' . $this->xml_url . ( $this->skip_price_updates ? ' (ціни не оновлюються)' : '' ) );
 
 		try {
@@ -138,12 +136,10 @@ class XML_Stock_Updater {
 
 			if ( empty( $updates ) ) {
 				$this->send_telegram_message( 'No product data found in XML or XML could not be parsed' );
-				prom_log( 'No product data found in XML', 'warning' );
 				return;
 			}
 
 			$total_products = count( $updates );
-			prom_log( "Found $total_products products in XML", 'info' );
 			$this->send_telegram_message( "Found $total_products products to process" );
 
 			// Process updates in batches
@@ -156,7 +152,6 @@ class XML_Stock_Updater {
 
 		} catch ( Exception $e ) {
 			$error_message = 'Error updating products: ' . $e->getMessage();
-			prom_log( $error_message, 'error' );
 			$this->send_telegram_message( $error_message );
 		} finally {
 			// Clean up any resources
@@ -268,7 +263,6 @@ class XML_Stock_Updater {
 				}
 			}
 		} catch ( Exception $e ) {
-			prom_log( 'XML parsing error: ' . $e->getMessage(), 'error' );
 			$this->send_telegram_message( 'XML parsing error: ' . $e->getMessage() );
 		} finally {
 			// Always close the reader to free resources
@@ -314,14 +308,12 @@ class XML_Stock_Updater {
 			// Add timing checks to avoid timeouts
 			if ( connection_aborted() ) {
 				$this->send_telegram_message( "Connection aborted. Processed $processed/$total products." );
-				prom_log( "Connection aborted after processing $processed products", 'warning' );
 				break;
 			}
 
 			// Check if we're approaching the max execution time
 			if ( $this->max_execution_time > 0 && ( microtime( true ) - $process_start_time ) > $this->max_execution_time ) {
 				$this->send_telegram_message( "Execution time limit approaching. Processed $processed/$total products. Continuing in next run." );
-				prom_log( "Execution time limit reached after processing $processed products", 'warning' );
 				break;
 			}
 
@@ -367,7 +359,7 @@ class XML_Stock_Updater {
 						++$skipped_unchanged;
 					}
 				} catch ( Exception $e ) {
-					prom_log( "Error updating product $sku: " . $e->getMessage(), 'error' );
+					// Silent error handling
 				}
 
 				++$processed;
@@ -407,18 +399,20 @@ class XML_Stock_Updater {
 			)
 		);
 
-		// Log only important info to system log
-		prom_log(
-			sprintf(
-				'Update completed. Total: %d, Stock changed: %d, Price changed: %d, Unchanged: %d, Not found: %d',
-				$total,
-				$updated_in_stock + $updated_out_of_stock,
-				$updated_price,
-				$skipped_unchanged,
-				$not_found
-			),
-			'info'
-		);
+		// Log only important info to system log (only if there were changes)
+		if ( ($updated_in_stock + $updated_out_of_stock) > 0 || $updated_price > 0 ) {
+			prom_log(
+				sprintf(
+					'Update completed. Total: %d, Stock changed: %d, Price changed: %d, Unchanged: %d, Not found: %d',
+					$total,
+					$updated_in_stock + $updated_out_of_stock,
+					$updated_price,
+					$skipped_unchanged,
+					$not_found
+				),
+				'info'
+			);
+		}
 
 		if ( function_exists( 'rocket_clean_domain' ) ) {
 			rocket_clean_domain();
@@ -607,19 +601,7 @@ class XML_Stock_Updater {
 		// Send log to Telegram
 		$this->send_telegram_message( $log_message );
 
-		// Only log detailed memory usage in debug mode
-		if ( WP_DEBUG ) {
-			prom_log(
-				sprintf(
-					'%s | Execution time: %.2f sec | Memory usage: %.2f MB | Peak memory: %.2f MB',
-					$message,
-					$execution_time,
-					$memory_usage,
-					$peak_memory
-				),
-				'info'
-			);
-		}
+		// Only log detailed memory usage in debug mode (removed to reduce spam)
 	}
 
 	/**
@@ -904,16 +886,15 @@ class XML_Stock_Updater {
 					// Clear product cache
 					wc_delete_product_transients( $product->ID );
 				} else {
-					prom_log( "Failed to convert product {$product->sku} to draft: " . $result->get_error_message(), 'error' );
+					// Silent error handling
 				}
 			} catch ( Exception $e ) {
-				prom_log( "Error converting product {$product->sku} to draft: " . $e->getMessage(), 'error' );
+				// Silent error handling
 			}
 		}
 
 		if ( $converted_count > 0 ) {
 			$this->send_telegram_message( "✅ Переведено в статус 'Чернетка': $converted_count товарів" );
-			prom_log( "Converted $converted_count missing products to draft status", 'info' );
 		}
 	}
 }

@@ -803,11 +803,7 @@ function prom_xml_importer_handle_import_action() {
 			}
 		}
 
-		// Debug log
-		prom_log( 'Setting import_variations transient: POST=' . var_export( $_POST['import_variations'] ?? 'NOT SET', true ) . ', value=' . ( $import_variations ? '1' : '0' ) );
-		if ( ! empty( $selected_attributes ) ) {
-			prom_log( 'Manual attribute selection enabled, groups: ' . count( $selected_attributes ) );
-		}
+		// Setting import variations and attributes
 
 		// Set temporary options for this import session
 		set_transient( 'prom_xml_import_variations_temp', $import_variations ? '1' : '0', HOUR_IN_SECONDS );
@@ -957,8 +953,7 @@ function prom_xml_analyze_variable_groups( string $file_path ): array {
 			);
 		}
 
-		// Debug: log final varying attributes
-		prom_log( sprintf( 'Group %s: %d varying attributes found', $group_id, count( $varying_attributes ) ) );
+		// Group attributes processed
 
 		$group['attributes'] = $varying_attributes;
 		unset( $group['all_attributes'] ); // Видаляємо тимчасові дані
@@ -971,11 +966,11 @@ function prom_xml_analyze_variable_groups( string $file_path ): array {
 		if ( $group['variations_count'] >= 2 ) {
 			$filtered_groups[ $group_id ] = $group;
 		} else {
-			prom_log( sprintf( 'Skipping group %s with only %d variation(s)', $group_id, $group['variations_count'] ) );
+			// Skipping group with only 1 variation
 		}
 	}
 	
-	prom_log( sprintf( 'Filtered groups: %d groups with 2+ variations out of %d total', count( $filtered_groups ), count( $groups ) ) );
+	// Filtered groups with 2+ variations
 
 	return $filtered_groups;
 }
@@ -1047,7 +1042,7 @@ function prom_xml_importer_handle_action() {
 							$updater->update_products_stock_status();
 							++$success_count;
 						} catch ( Exception $e ) {
-							prom_log( "Error updating stock for XML URL $index: " . $e->getMessage(), 'error' );
+							// Silent error handling
 						}
 					}
 

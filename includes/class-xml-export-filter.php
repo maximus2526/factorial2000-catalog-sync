@@ -260,16 +260,9 @@ class XML_Export_Filter {
 		unset( $xml->shop->offers->offer );
 
 		// Process each offer
-		$debug_count = 0;
 		foreach ( $offers_to_process as $offer_data ) {
 			$offer_id = $offer_data['id'];
 			$group_id = $offer_data['group_id'];
-
-			// Debug: Log first few offers for comparison
-			if ( $debug_count < 3 ) {
-				prom_log( sprintf( 'XML Export Filter Debug: Processing offer ID %s, group_id: %s', $offer_id, $group_id ) );
-				$debug_count++;
-			}
 
 			// Check if this offer should be removed
 			$should_remove = false;
@@ -277,13 +270,11 @@ class XML_Export_Filter {
 			// Check by offer ID
 			if ( in_array( $offer_id, $this->site_skus, true ) ) {
 				$should_remove = true;
-				prom_log( sprintf( 'XML Export Filter: Removing offer ID %s (found in site SKUs)', $offer_id ) );
 			}
 
 			// Check by group_id for variable products (only if group_id exists and is not empty)
 			if ( ! empty( $group_id ) && in_array( $group_id, $this->site_skus, true ) ) {
 				$should_remove = true;
-				prom_log( sprintf( 'XML Export Filter: Removing offer ID %s (group_id %s found in site SKUs)', $offer_id, $group_id ) );
 			}
 
 			// Add offer to new container only if it should NOT be removed
@@ -309,32 +300,8 @@ class XML_Export_Filter {
 
 		$this->removed_count = $removed_count;
 
-		// Log statistics
+		// Log basic statistics only
 		$remaining_count = $total_offers - $removed_count;
-		prom_log( sprintf( 
-			'XML Export Filter: Total offers: %d, Removed: %d, Remaining: %d', 
-			$total_offers, 
-			$removed_count, 
-			$remaining_count 
-		) );
-
-		// Additional debugging
-		prom_log( sprintf( 
-			'XML Export Filter Debug: Site SKUs count: %d, First 5 SKUs: %s', 
-			count( $this->site_skus ),
-			implode( ', ', array_slice( $this->site_skus, 0, 5 ) )
-		) );
-
-		// Debug: Log some offer IDs from XML for comparison
-		$xml_offer_ids = array();
-		foreach ( $offers_to_process as $offer_data ) {
-			$xml_offer_ids[] = $offer_data['id'];
-			if ( count( $xml_offer_ids ) >= 5 ) break;
-		}
-		prom_log( sprintf( 
-			'XML Export Filter Debug: First 5 XML offer IDs: %s', 
-			implode( ', ', $xml_offer_ids )
-		) );
 
 		return $xml->asXML();
 	}
@@ -429,16 +396,13 @@ class XML_Export_Filter {
 	 * @return void
 	 */
 	private function log_export_process(): void {
+		$remaining_count = count( $this->site_skus ) - $this->removed_count;
+		
 		$message = sprintf(
-			'🔍 XML Export Filter завершено:\n\n' .
-			'📊 Статистика:\n' .
-			'• Товарів на сайті: %d\n' .
-			'• Видалено з XML: %d\n' .
-			'• Залишилось в XML: %d\n\n' .
+			'🔍 XML фільтрація завершена\n' .
+			'📊 Видалено: %d товарів\n' .
 			'📁 Файл: %s',
-			count( $this->site_skus ),
 			$this->removed_count,
-			$this->removed_count > 0 ? 'Розрахунок після фільтрації' : 'Всі товари нові',
 			basename( $this->filtered_xml_path )
 		);
 
@@ -459,7 +423,9 @@ class XML_Export_Filter {
 			}
 		}
 
-		// Log to WordPress
-		prom_log( $message );
+		// Log to WordPress (only if there were items removed)
+		if ( $this->removed_count > 0 ) {
+			prom_log( $message );
+		}
 	}
 }

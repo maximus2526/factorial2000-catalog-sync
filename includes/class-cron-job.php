@@ -101,14 +101,14 @@ class Cron_Job {
 					$updater    = new XML_Stock_Updater( $xml_url, $sku_prefix, ( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' ) );
 					$updater->update_products_stock_status();
 				} catch ( Exception $e ) {
-					prom_log( "Error updating stock for XML URL $index: " . $e->getMessage(), 'error' );
+					// Silent error handling
 				}
 			}
 
 			// Clean up again after the process completes
 			prom_cleanup_wc_transients();
 		} else {
-			prom_log( 'Cannot update stock - no XML URLs configured', 'error' );
+			// No XML URLs configured - silent
 		}
 	}
 }
