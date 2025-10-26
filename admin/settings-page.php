@@ -329,7 +329,10 @@ function prom_xml_importer_import_page() {
 						if (!groupsData[groupId].selected_attributes) {
 							// Знаходимо перший варіаційний атрибут
 							const firstVaryingAttr = group.attributes.find(function(a) { return a.is_varying; });
-							groupsData[groupId].selected_attributes = firstVaryingAttr ? [firstVaryingAttr.name] : [];
+							// Встановлюємо початкове значення тільки якщо є варіаційні атрибути
+							if (firstVaryingAttr) {
+								groupsData[groupId].selected_attributes = [firstVaryingAttr.name];
+							}
 						}
 
 						group.attributes.forEach(function(attr, index) {
@@ -504,8 +507,11 @@ function prom_xml_importer_import_page() {
 					const selected = groupsData[groupId].selected_attributes || [];
 					selectedAttributes[groupId] = selected;
 					
-					if (selected.length === 0) {
-						hasEmptySelection = true;
+					// Перевіряємо тільки ті групи, які мають варіаційні атрибути
+					if (selected.length > 0 || groupsData[groupId].attributes.some(attr => attr.is_varying)) {
+						if (selected.length === 0) {
+							hasEmptySelection = true;
+						}
 					}
 				});
 
