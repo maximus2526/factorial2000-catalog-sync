@@ -21,6 +21,15 @@ function prom_xml_importer_add_admin_menu() {
 		'prom-xml-importer-import',
 		'prom_xml_importer_import_page'
 	);
+
+	add_submenu_page(
+		'prom-xml-importer-update',
+		'Налаштування вигрузки',
+		'Налаштування вигрузки',
+		'manage_options',
+		'prom-xml-importer-export',
+		'prom_xml_importer_export_page'
+	);
 }
 add_action( 'admin_menu', 'prom_xml_importer_add_admin_menu' );
 
@@ -1096,5 +1105,162 @@ function prom_xml_importer_handle_action() {
 }
 
 add_action( 'admin_post_prom_xml_importer_action', 'prom_xml_importer_handle_action' );
+
+/**
+ * Export settings page
+ */
+function prom_xml_importer_export_page() {
+	// Handle form submission
+	if ( isset( $_POST['create_filtered_xml'] ) && wp_verify_nonce( $_POST['prom_xml_export_nonce'], 'prom_xml_export_filter' ) ) {
+		$sku_prefix = sanitize_text_field( $_POST['sku_prefix'] );
+		
+		// Check if file was uploaded
+		if ( isset( $_FILES['xml_file'] ) && $_FILES['xml_file']['error'] === UPLOAD_ERR_OK ) {
+			$uploaded_file = $_FILES['xml_file'];
+			
+			// Validate file type
+			$file_type = wp_check_filetype( $uploaded_file['name'] );
+			$file_extension = strtolower( pathinfo( $uploaded_file['name'], PATHINFO_EXTENSION ) );
+			
+			// Debug info for troubleshooting
+			$debug_info = sprintf( 
+				'Debug: wp_check_filetype ext="%s", pathinfo ext="%s", filename="%s"', 
+				$file_type['ext'] ?? 'null', 
+				$file_extension, 
+				$uploaded_file['name'] 
+			);
+			
+			// More flexible validation - check both methods
+			$is_xml_file = ( $file_type['ext'] === 'xml' ) || ( $file_extension === 'xml' );
+			
+			if ( ! $is_xml_file ) {
+				add_settings_error(
+					'prom_xml_export',
+					'export_error',
+					'❌ Помилка: Файл повинен мати розширення .xml. ' . $debug_info,
+					'error'
+				);
+			} else {
+				// Create filtered XML
+				require_once plugin_dir_path( __FILE__ ) . '../includes/class-xml-export-filter.php';
+				$export_filter = new XML_Export_Filter( $uploaded_file['tmp_name'], $sku_prefix );
+				$result = $export_filter->create_filtered_xml();
+				
+				if ( $result['success'] ) {
+					add_settings_error(
+						'prom_xml_export',
+						'export_success',
+						sprintf( '✅ Очищений XML створено! Видалено %d товарів. <a href="%s" class="button button-primary">Завантажити XML</a>', 
+							$result['removed_count'], 
+							$result['download_url'] 
+						),
+						'updated'
+					);
+				} else {
+					add_settings_error(
+						'prom_xml_export',
+						'export_error',
+						'❌ Помилка: ' . $result['error'],
+						'error'
+					);
+				}
+			}
+		} else {
+			add_settings_error(
+				'prom_xml_export',
+				'export_error',
+				'❌ Помилка: Будь ласка, виберіть XML файл для завантаження',
+				'error'
+			);
+		}
+	}
+	
+	// Get current settings
+	$current_xml_url = get_option( 'prom_xml_url', '' );
+	$current_sku_prefix = get_option( 'prom_sku_prefix', 'NEW_' );
+	?>
+	
+	<div class="wrap">
+		<h1><?php esc_html_e( 'Налаштування вигрузки', 'xml-prom' ); ?></h1>
+		
+		<?php settings_errors( 'prom_xml_export' ); ?>
+		
+		<div class="card">
+			<h2>🔍 Фільтр XML вигрузки</h2>
+			<p>Створити новий XML файл без товарів, які вже є на сайті. Це дозволить імпортувати тільки нові товари.</p>
+			
+			<form method="post" action="" enctype="multipart/form-data">
+				<?php wp_nonce_field( 'prom_xml_export_filter', 'prom_xml_export_nonce' ); ?>
+				
+				<table class="form-table">
+					<tr>
+						<th scope="row">
+							<label for="xml_file"><?php esc_html_e( 'XML файл', 'xml-prom' ); ?></label>
+						</th>
+						<td>
+							<input type="file" 
+								   id="xml_file" 
+								   name="xml_file" 
+								   accept=".xml" 
+								   required />
+							<p class="description"><?php esc_html_e( 'Завантажте XML файл з товарами', 'xml-prom' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="sku_prefix"><?php esc_html_e( 'SKU префікс', 'xml-prom' ); ?></label>
+						</th>
+						<td>
+							<input type="text" 
+								   id="sku_prefix" 
+								   name="sku_prefix" 
+								   value="<?php echo esc_attr( $current_sku_prefix ); ?>" 
+								   class="regular-text" 
+								   placeholder="NEW_" />
+							<p class="description"><?php esc_html_e( 'Префікс SKU товарів на сайті (наприклад: NEW_)', 'xml-prom' ); ?></p>
+						</td>
+					</tr>
+				</table>
+				
+				<p class="submit">
+					<input type="submit" 
+						   name="create_filtered_xml" 
+						   class="button button-primary" 
+						   value="<?php esc_attr_e( 'Створити очищений XML', 'xml-prom' ); ?>" />
+				</p>
+			</form>
+		</div>
+		
+		<div class="card">
+			<h3>ℹ️ Як це працює</h3>
+			<ol>
+				<li><strong>Завантаження файлу:</strong> Ви завантажуєте XML файл з товарами</li>
+				<li><strong>Аналіз сайту:</strong> Система знаходить всі товари на сайті з вказаним SKU префіксом</li>
+				<li><strong>Порівняння з XML:</strong> Порівнює SKU товарів з сайту з SKU в завантаженому XML файлі</li>
+				<li><strong>Фільтрація:</strong> Видаляє з XML всі товари, які вже є на сайті</li>
+				<li><strong>Створення файлу:</strong> Генерує новий XML файл тільки з новими товарами</li>
+			</ol>
+			
+			<h4>📊 Статистика</h4>
+			<?php
+			// Show current site statistics
+			global $wpdb;
+			$site_products_count = $wpdb->get_var( $wpdb->prepare(
+				"SELECT COUNT(DISTINCT pm.meta_value) 
+				FROM {$wpdb->posts} p
+				INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+				WHERE p.post_type IN ('product', 'product_variation')
+				AND p.post_status IN ('publish', 'draft', 'private')
+				AND pm.meta_key = '_sku'
+				AND pm.meta_value LIKE %s",
+				$current_sku_prefix . '%'
+			) );
+			?>
+			<p><strong>Товарів на сайті з префіксом "<?php echo esc_html( $current_sku_prefix ); ?>":</strong> <?php echo intval( $site_products_count ); ?></p>
+		</div>
+	</div>
+	
+	<?php
+}
 
 ?>

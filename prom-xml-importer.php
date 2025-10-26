@@ -22,6 +22,7 @@ define( 'PROM_XML_IMPORTER_BASENAME', plugin_basename( __FILE__ ) );
 require_once PROM_XML_IMPORTER_PATH . 'includes/class-cron-job.php';
 require_once PROM_XML_IMPORTER_PATH . 'includes/class-stock-updater.php';
 require_once PROM_XML_IMPORTER_PATH . 'includes/parsers/class-xml-parser.php';
+require_once PROM_XML_IMPORTER_PATH . 'includes/class-xml-export-filter.php';
 require_once PROM_XML_IMPORTER_PATH . 'includes/functions.php';
 require_once PROM_XML_IMPORTER_PATH . 'admin/settings-page.php';
 
