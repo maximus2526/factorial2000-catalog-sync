@@ -1142,19 +1142,25 @@ function prom_xml_importer_export_page() {
 					'error'
 				);
 			} else {
+				// Get minimum price
+				$min_price = isset( $_POST['min_price'] ) ? floatval( $_POST['min_price'] ) : 0;
+				
 				// Create filtered XML
 				require_once plugin_dir_path( __FILE__ ) . '../includes/class-xml-export-filter.php';
-				$export_filter = new XML_Export_Filter( $uploaded_file['tmp_name'], $sku_prefix );
+				$export_filter = new XML_Export_Filter( $uploaded_file['tmp_name'], $sku_prefix, $min_price );
 				$result = $export_filter->create_filtered_xml();
 				
 				if ( $result['success'] ) {
+					$message = '✅ Очищений XML створено! Видалено ' . $result['removed_count'] . ' товарів';
+					if ( $min_price > 0 ) {
+						$message .= ' (включаючи товари дешевше ' . number_format( $min_price, 2 ) . ' грн)';
+					}
+					$message .= '. <a href="' . $result['download_url'] . '" class="button button-primary">Завантажити XML</a>';
+					
 					add_settings_error(
 						'prom_xml_export',
 						'export_success',
-						sprintf( '✅ Очищений XML створено! Видалено %d товарів. <a href="%s" class="button button-primary">Завантажити XML</a>', 
-							$result['removed_count'], 
-							$result['download_url'] 
-						),
+						$message,
 						'updated'
 					);
 				} else {
@@ -1219,6 +1225,22 @@ function prom_xml_importer_export_page() {
 								   class="regular-text" 
 								   placeholder="NEW_" />
 							<p class="description"><?php esc_html_e( 'Префікс SKU товарів на сайті (наприклад: NEW_)', 'xml-prom' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="min_price"><?php esc_html_e( 'Мінімальна ціна', 'xml-prom' ); ?></label>
+						</th>
+						<td>
+							<input type="number" 
+								   id="min_price" 
+								   name="min_price" 
+								   value="<?php echo esc_attr( isset( $_POST['min_price'] ) ? $_POST['min_price'] : '' ); ?>" 
+								   class="regular-text" 
+								   step="0.01" 
+								   min="0" 
+								   placeholder="0.00" />
+							<p class="description"><?php esc_html_e( 'Мінімальна ціна товару для включення в вигрузку (залиште порожнім, щоб не фільтрувати за ціною)', 'xml-prom' ); ?></p>
 						</td>
 					</tr>
 				</table>

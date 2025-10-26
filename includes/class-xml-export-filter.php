@@ -10,6 +10,7 @@ defined( 'ABSPATH' ) || exit;
 class XML_Export_Filter {
 	private string $xml_url;
 	private string $sku_prefix;
+	private float $min_price;
 	private array $site_skus = array();
 	private int $removed_count = 0;
 	private string $filtered_xml_path = '';
@@ -19,10 +20,12 @@ class XML_Export_Filter {
 	 *
 	 * @param string $xml_path Path to the XML file (URL or local file path).
 	 * @param string $sku_prefix SKU prefix for site products.
+	 * @param float $min_price Minimum price for filtering products.
 	 */
-	public function __construct( string $xml_path, string $sku_prefix = 'NEW_' ) {
+	public function __construct( string $xml_path, string $sku_prefix = 'NEW_', float $min_price = 0 ) {
 		$this->xml_url = $xml_path;
 		$this->sku_prefix = $sku_prefix;
+		$this->min_price = $min_price;
 	}
 
 	/**
@@ -277,6 +280,14 @@ class XML_Export_Filter {
 				$should_remove = true;
 			}
 
+			// Check by minimum price (only if min_price > 0)
+			if ( ! $should_remove && $this->min_price > 0 ) {
+				$offer_price = $this->get_offer_price( $offer_data );
+				if ( $offer_price < $this->min_price ) {
+					$should_remove = true;
+				}
+			}
+
 			// Add offer to new container only if it should NOT be removed
 			if ( ! $should_remove ) {
 				// Clone the offer to the new container
@@ -304,6 +315,22 @@ class XML_Export_Filter {
 		$remaining_count = $total_offers - $removed_count;
 
 		return $xml->asXML();
+	}
+
+	/**
+	 * Get offer price from offer data.
+	 *
+	 * @param array $offer_data Offer data array.
+	 * @return float Offer price or 0 if not found.
+	 */
+	private function get_offer_price( array $offer_data ): float {
+		// Look for price in children data
+		foreach ( $offer_data['children'] as $child_data ) {
+			if ( $child_data['name'] === 'price' ) {
+				return floatval( $child_data['value'] );
+			}
+		}
+		return 0.0;
 	}
 
 	/**
