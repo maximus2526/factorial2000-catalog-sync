@@ -42,19 +42,80 @@ class XML_Parser {
 	private function sanitize_for_taxonomy( $text ) {
 		// Транслітерація кирилиці в латиницю
 		$translit = array(
-			'а' => 'a', 'б' => 'b', 'в' => 'v', 'г' => 'g', 'ґ' => 'g', 'д' => 'd', 'е' => 'e',
-			'є' => 'ie', 'ж' => 'zh', 'з' => 'z', 'и' => 'y', 'і' => 'i', 'ї' => 'i', 'й' => 'i',
-			'к' => 'k', 'л' => 'l', 'м' => 'm', 'н' => 'n', 'о' => 'o', 'п' => 'p', 'р' => 'r',
-			'с' => 's', 'т' => 't', 'у' => 'u', 'ф' => 'f', 'х' => 'h', 'ц' => 'ts', 'ч' => 'ch',
-			'ш' => 'sh', 'щ' => 'shch', 'ь' => '', 'ю' => 'iu', 'я' => 'ia',
-			'А' => 'A', 'Б' => 'B', 'В' => 'V', 'Г' => 'G', 'Ґ' => 'G', 'Д' => 'D', 'Е' => 'E',
-			'Є' => 'Ie', 'Ж' => 'Zh', 'З' => 'Z', 'И' => 'Y', 'І' => 'I', 'Ї' => 'I', 'Й' => 'I',
-			'К' => 'K', 'Л' => 'L', 'М' => 'M', 'Н' => 'N', 'О' => 'O', 'П' => 'P', 'Р' => 'R',
-			'С' => 'S', 'Т' => 'T', 'У' => 'U', 'Ф' => 'F', 'Х' => 'H', 'Ц' => 'Ts', 'Ч' => 'Ch',
-			'Ш' => 'Sh', 'Щ' => 'Shch', 'Ь' => '', 'Ю' => 'Iu', 'Я' => 'Ia',
-			'ы' => 'y', 'э' => 'e', 'ъ' => '', 'Ы' => 'Y', 'Э' => 'E', 'Ъ' => '',
+			'а' => 'a',
+			'б' => 'b',
+			'в' => 'v',
+			'г' => 'g',
+			'ґ' => 'g',
+			'д' => 'd',
+			'е' => 'e',
+			'є' => 'ie',
+			'ж' => 'zh',
+			'з' => 'z',
+			'и' => 'y',
+			'і' => 'i',
+			'ї' => 'i',
+			'й' => 'i',
+			'к' => 'k',
+			'л' => 'l',
+			'м' => 'm',
+			'н' => 'n',
+			'о' => 'o',
+			'п' => 'p',
+			'р' => 'r',
+			'с' => 's',
+			'т' => 't',
+			'у' => 'u',
+			'ф' => 'f',
+			'х' => 'h',
+			'ц' => 'ts',
+			'ч' => 'ch',
+			'ш' => 'sh',
+			'щ' => 'shch',
+			'ь' => '',
+			'ю' => 'iu',
+			'я' => 'ia',
+			'А' => 'A',
+			'Б' => 'B',
+			'В' => 'V',
+			'Г' => 'G',
+			'Ґ' => 'G',
+			'Д' => 'D',
+			'Е' => 'E',
+			'Є' => 'Ie',
+			'Ж' => 'Zh',
+			'З' => 'Z',
+			'И' => 'Y',
+			'І' => 'I',
+			'Ї' => 'I',
+			'Й' => 'I',
+			'К' => 'K',
+			'Л' => 'L',
+			'М' => 'M',
+			'Н' => 'N',
+			'О' => 'O',
+			'П' => 'P',
+			'Р' => 'R',
+			'С' => 'S',
+			'Т' => 'T',
+			'У' => 'U',
+			'Ф' => 'F',
+			'Х' => 'H',
+			'Ц' => 'Ts',
+			'Ч' => 'Ch',
+			'Ш' => 'Sh',
+			'Щ' => 'Shch',
+			'Ь' => '',
+			'Ю' => 'Iu',
+			'Я' => 'Ia',
+			'ы' => 'y',
+			'э' => 'e',
+			'ъ' => '',
+			'Ы' => 'Y',
+			'Э' => 'E',
+			'Ъ' => '',
 		);
-		
+
 		$text = strtr( $text, $translit );
 		$text = strtolower( $text );
 		$text = preg_replace( '/[^a-z0-9_\-]/', '_', $text );
@@ -102,33 +163,42 @@ class XML_Parser {
 				$attr_id = wc_create_attribute( $args );
 				if ( is_wp_error( $attr_id ) ) {
 					// Fallback to direct insert
-					$wpdb->insert( $attr_tax_table, array(
-						'attribute_label'    => $attribute_label,
-						'attribute_name'     => $attribute_slug,
-						'attribute_type'     => 'select',
-						'attribute_orderby'  => 'menu_order',
-						'attribute_public'   => 0,
-					) );
+					$wpdb->insert(
+						$attr_tax_table,
+						array(
+							'attribute_label'   => $attribute_label,
+							'attribute_name'    => $attribute_slug,
+							'attribute_type'    => 'select',
+							'attribute_orderby' => 'menu_order',
+							'attribute_public'  => 0,
+						)
+					);
 				}
 			} catch ( Exception $e ) {
 				// Fallback to direct insert on any exception
-				$wpdb->insert( $attr_tax_table, array(
-					'attribute_label'    => $attribute_label,
-					'attribute_name'     => $attribute_slug,
-					'attribute_type'     => 'select',
-					'attribute_orderby'  => 'menu_order',
-					'attribute_public'   => 0,
-				) );
+				$wpdb->insert(
+					$attr_tax_table,
+					array(
+						'attribute_label'   => $attribute_label,
+						'attribute_name'    => $attribute_slug,
+						'attribute_type'    => 'select',
+						'attribute_orderby' => 'menu_order',
+						'attribute_public'  => 0,
+					)
+				);
 			}
 		} else {
 			// No Woo helper: direct insert
-			$wpdb->insert( $attr_tax_table, array(
-				'attribute_label'    => $attribute_label,
-				'attribute_name'     => $attribute_slug,
-				'attribute_type'     => 'select',
-				'attribute_orderby'  => 'menu_order',
-				'attribute_public'   => 0,
-			) );
+			$wpdb->insert(
+				$attr_tax_table,
+				array(
+					'attribute_label'   => $attribute_label,
+					'attribute_name'    => $attribute_slug,
+					'attribute_type'    => 'select',
+					'attribute_orderby' => 'menu_order',
+					'attribute_public'  => 0,
+				)
+			);
 		}
 
 		// Clear cached attribute taxonomies so WC registers taxonomy on next init
@@ -262,10 +332,10 @@ class XML_Parser {
 		}
 
 		// First pass: Group products by group_id
-		$simple_products  = array();
-		$grouped_products = array();
-		$total_offers     = 0;
-		$offers_with_group_id = 0;
+		$simple_products         = array();
+		$grouped_products        = array();
+		$total_offers            = 0;
+		$offers_with_group_id    = 0;
 		$offers_without_group_id = 0;
 
 		while ( $reader->read() ) {
@@ -314,33 +384,33 @@ class XML_Parser {
 					++$single_variation_groups;
 				}
 			}
-			
+
 			// Moved single-variation groups to simple products
 		}
 
 		// Підраховуємо скільки товарів буде оброблено
-		$simple_count = count( $simple_products );
+		$simple_count   = count( $simple_products );
 		$variable_count = 0;
 		foreach ( $grouped_products as $variations ) {
 			if ( count( $variations ) >= 2 ) {
 				$variable_count += count( $variations );
 			}
 		}
-		
+
 		// XML parsed and grouped
 
 		// Second pass: Create products
 		$imported       = 0;
 		$skipped        = 0;
 		$current_offset = 0;
-		
+
 		// Підраховуємо загальну кількість товарів для імпорту залежно від режиму
 		if ( $import_variations ) {
 			// В режимі варіативних - рахуємо тільки групи з 2+ варіаціями
 			$total_products = 0;
 			foreach ( $grouped_products as $variations ) {
 				if ( count( $variations ) >= 2 ) {
-					$total_products++;
+					++$total_products;
 				}
 			}
 			// Variable mode: importing variable products
@@ -415,33 +485,43 @@ class XML_Parser {
 	 * @return array Offer data.
 	 */
 	private function extract_offer_data( $offer ): array {
-			$sku       = (string) $offer['id'];
-		$group_id  = isset( $offer['group_id'] ) ? (string) $offer['group_id'] : '';
-			$title     = (string) $offer->name;
-			$price     = (float) $offer->price;
-			$old_price = isset( $offer->oldprice ) ? (float) $offer->oldprice : 0;
-			$desc      = (string) $offer->description;
-			$category  = (string) $offer->categoryId;
-			$available = (string) $offer['available'] === 'true' ? 'instock' : 'outofstock';
-			$vendor    = isset( $offer->vendor ) ? (string) $offer->vendor : '';
+		$sku      = (string) $offer['id'];
+		$group_id = isset( $offer['group_id'] ) ? (string) $offer['group_id'] : '';
+		$title    = (string) $offer->name;
 
-			// Get all product images
-			$images = array();
-			foreach ( $offer->picture as $picture ) {
-				$images[] = (string) $picture;
-			}
+		if ( ! empty( $offer->name_ua ) ) {
+			$title = (string) $offer->name_ua;
+		}
 
-			// Get all product attributes
-			$attributes = array();
-			if ( isset( $offer->param ) ) {
-				foreach ( $offer->param as $param ) {
-					$name  = (string) $param['name'];
-					$value = (string) $param;
-					if ( ! empty( $name ) && ! empty( $value ) ) {
-						$attributes[ $name ] = $value;
-					}
+		$price     = (float) $offer->price;
+		$old_price = isset( $offer->oldprice ) ? (float) $offer->oldprice : 0;
+		$desc      = (string) $offer->description;
+
+		if ( ! empty( $offer->description_ua ) ) {
+			$desc = (string) $offer->description_ua;
+		}
+
+		$category  = (string) $offer->categoryId;
+		$available = (string) $offer['available'] === 'true' ? 'instock' : 'outofstock';
+		$vendor    = isset( $offer->vendor ) ? (string) $offer->vendor : '';
+
+		// Get all product images
+		$images = array();
+		foreach ( $offer->picture as $picture ) {
+			$images[] = (string) $picture;
+		}
+
+		// Get all product attributes
+		$attributes = array();
+		if ( isset( $offer->param ) ) {
+			foreach ( $offer->param as $param ) {
+				$name  = (string) $param['name'];
+				$value = (string) $param;
+				if ( ! empty( $name ) && ! empty( $value ) ) {
+					$attributes[ $name ] = $value;
 				}
 			}
+		}
 
 		// Add vendor to attributes if available
 		if ( ! empty( $vendor ) && ! isset( $attributes['Виробник'] ) ) {
@@ -449,16 +529,16 @@ class XML_Parser {
 		}
 
 		return array(
-			'sku'       => $sku,
-			'group_id'  => $group_id,
-			'title'     => $title,
-			'price'     => $price,
-			'old_price' => $old_price,
-			'desc'      => $desc,
-			'category'  => $category,
-			'available' => $available,
-			'vendor'    => $vendor,
-			'images'    => $images,
+			'sku'        => $sku,
+			'group_id'   => $group_id,
+			'title'      => $title,
+			'price'      => $price,
+			'old_price'  => $old_price,
+			'desc'       => $desc,
+			'category'   => $category,
+			'available'  => $available,
+			'vendor'     => $vendor,
+			'images'     => $images,
 			'attributes' => $attributes,
 		);
 	}
@@ -470,14 +550,14 @@ class XML_Parser {
 	 * @return bool True if imported, false if skipped.
 	 */
 	private function import_simple_product( array $offer_data ): bool {
-		$sku       = $offer_data['sku'];
-		$title     = $offer_data['title'];
-		$price     = $offer_data['price'];
-		$old_price = $offer_data['old_price'];
-		$desc      = $offer_data['desc'];
-		$category  = $offer_data['category'];
-		$available = $offer_data['available'];
-		$images    = $offer_data['images'];
+		$sku        = $offer_data['sku'];
+		$title      = $offer_data['title'];
+		$price      = $offer_data['price'];
+		$old_price  = $offer_data['old_price'];
+		$desc       = $offer_data['desc'];
+		$category   = $offer_data['category'];
+		$available  = $offer_data['available'];
+		$images     = $offer_data['images'];
 		$attributes = $offer_data['attributes'];
 
 		if ( empty( $sku ) || empty( $title ) || $price <= 0 ) {
@@ -490,7 +570,7 @@ class XML_Parser {
 			// Skipping simple product - already exists
 			return false;
 		}
-		
+
 		// Apply SKU prefix для створення
 		$original_sku = $sku;
 		if ( ! empty( $this->sku_prefix ) ) {
@@ -568,7 +648,7 @@ class XML_Parser {
 			// Skipping group - parent product already exists
 			return false; // Skip if already exists
 		}
-		
+
 		// Apply SKU prefix to group_id для створення
 		$parent_sku = ! empty( $this->sku_prefix ) ? $this->sku_prefix . $group_id : $group_id;
 
@@ -624,14 +704,14 @@ class XML_Parser {
 			wp_delete_post( $parent_id, true );
 			return false;
 		}
-		
+
 		$attributes_info = array();
 		foreach ( $variation_attributes as $attr_name => $attr_values ) {
 			$attributes_info[] = $attr_name . ' (' . count( $attr_values ) . ' values)';
 		}
-		
-		prom_log( 
-			sprintf( 
+
+		prom_log(
+			sprintf(
 				'Creating variable product: group_id=%s, parent_name="%s", variations_count=%d, attributes=%s',
 				$group_id,
 				$parent_name,
@@ -708,15 +788,15 @@ class XML_Parser {
 		$selected_attributes_map = get_transient( 'prom_xml_selected_attributes_temp' );
 		if ( ! empty( $selected_attributes_map ) && isset( $selected_attributes_map[ $group_id ] ) ) {
 			$selected_attrs = $selected_attributes_map[ $group_id ];
-			
+
 			// Підтримка масиву атрибутів (новий формат) або одного атрибута (старий формат)
 			if ( ! is_array( $selected_attrs ) ) {
 				$selected_attrs = array( $selected_attrs );
 			}
-			
+
 			$variation_attributes = array();
-			$skipped_attrs = array();
-			
+			$skipped_attrs        = array();
+
 			foreach ( $selected_attrs as $selected_attr ) {
 				// Check if this attribute exists and has multiple values
 				if ( isset( $all_attributes[ $selected_attr ] ) ) {
@@ -729,11 +809,11 @@ class XML_Parser {
 					$skipped_attrs[] = $selected_attr . ' (не знайдено)';
 				}
 			}
-			
+
 			if ( ! empty( $skipped_attrs ) ) {
 				// Skipped non-varying attributes
 			}
-			
+
 			if ( ! empty( $variation_attributes ) ) {
 				// Using manually selected attributes
 				return $variation_attributes;
@@ -763,10 +843,10 @@ class XML_Parser {
 		foreach ( $priority_attrs as $priority_attr ) {
 			if ( isset( $all_attributes[ $priority_attr ] ) && count( $all_attributes[ $priority_attr ] ) > 1 ) {
 				$variation_attributes[ $priority_attr ] = $all_attributes[ $priority_attr ];
-				
+
 				// Логуємо який атрибут обрано
 				// Auto-selected variation attribute
-				
+
 				break; // Беремо тільки ОДИН атрибут!
 			}
 		}
@@ -774,7 +854,7 @@ class XML_Parser {
 		// If no priority attributes found, use any attribute that varies
 		if ( empty( $variation_attributes ) ) {
 			// No priority variation attributes found, searching for any varying attribute
-			
+
 			foreach ( $all_attributes as $attr_name => $attr_values ) {
 				if ( count( $attr_values ) > 1 ) {
 					$variation_attributes[ $attr_name ] = $attr_values;
@@ -837,7 +917,7 @@ class XML_Parser {
 				if ( empty( $value ) ) {
 					continue;
 				}
-				
+
 				$term = get_term_by( 'name', $value, $taxonomy );
 				if ( ! $term ) {
 					$term_info = wp_insert_term( $value, $taxonomy );
@@ -860,14 +940,14 @@ class XML_Parser {
 					'is_variation' => 1,
 					'is_taxonomy'  => 1,
 				);
-				
+
 				// Added variation attribute
 			}
 		}
 
 		// Collect all non-variation attributes from ALL variations
 		$non_variation_attributes = array();
-		
+
 		foreach ( $variations_data as $variation ) {
 			if ( ! empty( $variation['attributes'] ) ) {
 				foreach ( $variation['attributes'] as $attr_name => $attr_value ) {
@@ -887,14 +967,14 @@ class XML_Parser {
 					if ( ! isset( $non_variation_attributes[ $attr_name ] ) ) {
 						$non_variation_attributes[ $attr_name ] = array();
 					}
-					
+
 					if ( ! in_array( $attr_value, $non_variation_attributes[ $attr_name ], true ) ) {
 						$non_variation_attributes[ $attr_name ][] = $attr_value;
 					}
 				}
 			}
 		}
-		
+
 		// Collected non-variation attributes for parent product
 
 		// Add collected non-variation attributes to product
@@ -906,7 +986,7 @@ class XML_Parser {
 			if ( ! taxonomy_exists( $taxonomy ) ) {
 				// Ensure global attribute exists so it appears in admin UI
 				$this->ensure_global_attribute( $attr_name, $taxonomy_name );
-				
+
 				register_taxonomy(
 					$taxonomy,
 					array( 'product' ),
@@ -926,7 +1006,7 @@ class XML_Parser {
 				if ( empty( $attr_value ) ) {
 					continue;
 				}
-				
+
 				$term = get_term_by( 'name', $attr_value, $taxonomy );
 				if ( ! $term ) {
 					$term_info = wp_insert_term( $attr_value, $taxonomy );
@@ -951,7 +1031,7 @@ class XML_Parser {
 					'is_variation' => 0,
 					'is_taxonomy'  => 1,
 				);
-				
+
 				// Added non-variation attribute
 			} else {
 				// Skipped attribute - no term IDs created
@@ -959,30 +1039,32 @@ class XML_Parser {
 		}
 
 			// Save attributes to product
-			if ( ! empty( $product_attributes ) ) {
-				update_post_meta( $parent_id, '_product_attributes', $product_attributes );
-				// Clear product transients so attributes are visible in UI immediately
-				wc_delete_product_transients( $parent_id );
-				// Clear WooCommerce attribute taxonomies cache to ensure new attributes are visible
-				delete_transient( 'wc_attribute_taxonomies' );
-			
-			$variation_count = 0;
+		if ( ! empty( $product_attributes ) ) {
+			update_post_meta( $parent_id, '_product_attributes', $product_attributes );
+			// Clear product transients so attributes are visible in UI immediately
+			wc_delete_product_transients( $parent_id );
+			// Clear WooCommerce attribute taxonomies cache to ensure new attributes are visible
+			delete_transient( 'wc_attribute_taxonomies' );
+
+			$variation_count     = 0;
 			$non_variation_count = 0;
 			foreach ( $product_attributes as $attr ) {
 				if ( $attr['is_variation'] ) {
-					$variation_count++;
+					++$variation_count;
 				} else {
-					$non_variation_count++;
+					++$non_variation_count;
 				}
 			}
-			
-			prom_log( sprintf( 
-				'Set %d total attributes for variable product ID %d (variation: %d, non-variation: %d)', 
-				count( $product_attributes ), 
-				$parent_id,
-				$variation_count,
-				$non_variation_count
-			) );
+
+			prom_log(
+				sprintf(
+					'Set %d total attributes for variable product ID %d (variation: %d, non-variation: %d)',
+					count( $product_attributes ),
+					$parent_id,
+					$variation_count,
+					$non_variation_count
+				)
+			);
 		} else {
 			prom_log( sprintf( 'No attributes to set for variable product ID %d', $parent_id ) );
 		}
@@ -1006,7 +1088,7 @@ class XML_Parser {
 				prom_log( sprintf( 'Skipping variation with SKU %s - already exists (ID: %d)', $original_sku, $existing_variation[ $original_sku ] ) );
 				continue; // Skip if exists
 			}
-			
+
 			// Apply SKU prefix для створення
 			$variation_sku = $original_sku;
 			if ( ! empty( $this->sku_prefix ) ) {
@@ -1319,11 +1401,11 @@ class XML_Parser {
 				// Ensure global attribute exists so taxonomy is properly registered by WC
 				$this->ensure_global_attribute( $name, $taxonomy_name );
 					register_taxonomy(
-					$taxonomy,
+						$taxonomy,
 						array( 'product' ),
 						array(
 							'labels'       => array(
-							'name' => $name,
+								'name' => $name,
 							),
 							'hierarchical' => false,
 							'show_ui'      => true,
@@ -1334,8 +1416,8 @@ class XML_Parser {
 			}
 
 			// Either get or create the term
-		$term_id = null;
-			$term = get_term_by( 'name', $value, $taxonomy );
+			$term_id = null;
+			$term    = get_term_by( 'name', $value, $taxonomy );
 			if ( ! $term ) {
 				$term_info = wp_insert_term( $value, $taxonomy );
 				if ( ! is_wp_error( $term_info ) ) {
@@ -1346,12 +1428,12 @@ class XML_Parser {
 			}
 
 			// Set the product attribute
-		if ( $term_id ) {
+			if ( $term_id ) {
 				wp_set_object_terms( $post_id, array( $term_id ), $taxonomy );
 				$product_attributes[ $taxonomy ] = array(
 					'name'         => $taxonomy,
 					'value'        => '',
-				'position'     => $position++,
+					'position'     => $position++,
 					'is_visible'   => 1,
 					'is_variation' => 0,
 					'is_taxonomy'  => 1,
