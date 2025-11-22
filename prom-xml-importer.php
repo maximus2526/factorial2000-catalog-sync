@@ -24,6 +24,7 @@ require_once PROM_XML_IMPORTER_PATH . 'includes/class-stock-updater.php';
 require_once PROM_XML_IMPORTER_PATH . 'includes/parsers/class-xml-parser.php';
 require_once PROM_XML_IMPORTER_PATH . 'includes/class-xml-export-filter.php';
 require_once PROM_XML_IMPORTER_PATH . 'includes/functions.php';
+require_once PROM_XML_IMPORTER_PATH . 'includes/class-frontend-display.php';
 require_once PROM_XML_IMPORTER_PATH . 'admin/settings-page.php';
 
 // Hook activation, deactivation and uninstall
@@ -42,6 +43,11 @@ function prom_xml_importer_init() {
 
 	// Ensure cron job runs
 	add_action( Cron_Job::CRON_HOOK, array( 'Cron_Job', 'update_stock' ) );
+
+	// Initialize frontend display for vendor code
+	if ( class_exists( 'Frontend_Display' ) ) {
+		Frontend_Display::init();
+	}
 
 	// Add admin notices
 	add_action( 'admin_notices', 'prom_xml_importer_check_resources' );

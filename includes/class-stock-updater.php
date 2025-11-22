@@ -242,6 +242,9 @@ class XML_Stock_Updater {
 					$price     = isset( $offer_xml->price ) ? (float) $offer_xml->price : 0;
 					$old_price = isset( $offer_xml->oldprice ) ? (float) $offer_xml->oldprice : 0;
 
+					// Extract vendor code (if available)
+					$vendor_code = isset( $offer_xml->vendorCode ) ? (string) $offer_xml->vendorCode : '';
+
 					$stock_status = 'true' === $available ? 'instock' : 'outofstock';
 
 					if ( ! empty( $sku ) ) {
@@ -250,6 +253,7 @@ class XML_Stock_Updater {
 							'price'        => $price,
 							'old_price'    => $old_price,
 							'group_id'     => $group_id,
+							'vendor_code'  => $vendor_code,
 						);
 					}
 
@@ -292,9 +296,9 @@ class XML_Stock_Updater {
 		$updated_out_of_stock = 0;
 		$updated_price        = 0;
 		$not_found            = 0;
-		$skipped_unchanged    = 0; // Count of products where nothing changed
+		$skipped_unchanged    = 0; // Count of products where nothing changed.
 
-		// Process in batches to avoid memory issues
+		// Process in batches to avoid memory issues.
 		$batches     = array_chunk( $updates, $this->batch_size, true );
 		$batch_count = count( $batches );
 
@@ -305,23 +309,23 @@ class XML_Stock_Updater {
 		$process_start_time = microtime( true );
 
 		foreach ( $batches as $batch_index => $batch ) {
-			// Add timing checks to avoid timeouts
+			// Add timing checks to avoid timeouts.
 			if ( connection_aborted() ) {
 				$this->send_telegram_message( "Connection aborted. Processed $processed/$total products." );
 				break;
 			}
 
-			// Check if we're approaching the max execution time
+			// Check if we're approaching the max execution time.
 			if ( $this->max_execution_time > 0 && ( microtime( true ) - $process_start_time ) > $this->max_execution_time ) {
 				$this->send_telegram_message( "Execution time limit approaching. Processed $processed/$total products. Continuing in next run." );
 				break;
 			}
 
-			// Get product IDs for this batch
+			// Get product IDs for this batch.
 			$skus        = array_keys( $batch );
 			$product_ids = $this->get_product_ids_by_skus( $skus );
 
-			// Update each product in the batch
+			// Update each product in the batch.
 			foreach ( $batch as $sku => $product_data ) {
 				$product_id = $product_ids[ $sku ] ?? false;
 
@@ -339,19 +343,27 @@ class XML_Stock_Updater {
 
 					$changes_made = false;
 
-					// Update stock status if needed
+					// Update stock status if needed.
 					$stock_status_changed = $this->update_product_stock( $product, $product_data['stock_status'] );
 					if ( $stock_status_changed ) {
 						$product_data['stock_status'] === 'instock' ? ++$updated_in_stock : ++$updated_out_of_stock;
 						$changes_made = true;
 					}
 
-					// Update prices if not skipped and needed
+					// Update prices if not skipped and needed.
 					if ( ! $this->skip_price_updates && $product_data['price'] > 0 ) {
 						$price_changed = $this->update_product_price( $product, $product_data['price'], $product_data['old_price'] );
 						if ( $price_changed ) {
 							++$updated_price;
 							$changes_made = true;
+						}
+					}
+
+					// Update vendorCode if provided and not already set.
+					if ( ! empty( $product_data['vendor_code'] ) ) {
+						$current_vendor = get_post_meta( $product_id, 'prom-xml-updater-vendor', true );
+						if ( empty( $current_vendor ) ) {
+							update_post_meta( $product_id, 'prom-xml-updater-vendor', $product_data['vendor_code'] );
 						}
 					}
 
