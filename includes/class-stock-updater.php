@@ -35,7 +35,7 @@ class XML_Stock_Updater {
 	 *
 	 * @var int
 	 */
-	private $batch_size = 200;
+	private $batch_size = 100;
 
 	/**
 	 * Maximum execution time in seconds.
