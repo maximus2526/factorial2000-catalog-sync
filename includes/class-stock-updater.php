@@ -65,10 +65,10 @@ class XML_Stock_Updater {
 	 * @param string $sku_prefix Prefix to add to SKU values.
 	 */
 	public function __construct( $xml_url, $sku_prefix = '', $skip_price_updates = false ) {
-		$this->xml_url           = $xml_url;
-		$this->telegram_token_id = get_option( 'telegram_token_id', '' );
-		$this->telegram_user_ids = array_map( 'trim', explode( ',', get_option( 'telegram_user_ids', '' ) ) );
-		$this->sku_prefix        = $sku_prefix;
+		$this->xml_url            = $xml_url;
+		$this->telegram_token_id  = get_option( 'telegram_token_id', '' );
+		$this->telegram_user_ids  = array_map( 'trim', explode( ',', get_option( 'telegram_user_ids', '' ) ) );
+		$this->sku_prefix         = $sku_prefix;
 		$this->skip_price_updates = (bool) $skip_price_updates;
 
 		// Get the current PHP max execution time and set our limit slightly below it
@@ -273,6 +273,29 @@ class XML_Stock_Updater {
 		return $updates;
 	}
 
+	private function sync_parent_stock_status( $parent_id ) {
+		global $wpdb;
+
+		$instock_count = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) 
+					FROM {$wpdb->posts} p
+					INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+					WHERE p.post_parent = %d
+					  AND p.post_type = 'product_variation'
+					  AND p.post_status IN ('publish','private')
+					  AND pm.meta_key = '_stock_status'
+					  AND pm.meta_value = 'instock'",
+				$parent_id
+			)
+		);
+
+		$parent_status = $instock_count > 0 ? 'instock' : 'outofstock';
+
+		update_post_meta( $parent_id, '_stock_status', $parent_status );
+		wc_delete_product_transients( $parent_id );
+	}
+
 	/**
 	 * Process product updates in batches.
 	 *
@@ -395,7 +418,7 @@ class XML_Stock_Updater {
 		);
 
 		// Log only important info to system log (only if there were changes)
-		if ( ($updated_in_stock + $updated_out_of_stock) > 0 || $updated_price > 0 ) {
+		if ( ( $updated_in_stock + $updated_out_of_stock ) > 0 || $updated_price > 0 ) {
 			prom_log(
 				sprintf(
 					'Update completed. Total: %d, Stock changed: %d, Price changed: %d, Unchanged: %d, Not found: %d',
@@ -512,11 +535,20 @@ class XML_Stock_Updater {
 
 		// Update directly via database if possible for better performance
 		if ( method_exists( $product, 'get_id' ) ) {
-			$product_id = $product->get_id();
+			$product_id   = $product->get_id();
+			$product_type = $product->get_type();
+
 			update_post_meta( $product_id, '_stock_status', $stock_status );
 
 			// Clear necessary transients only
 			wc_delete_product_transients( $product_id );
+
+			if ( $product_type === 'variation' ) {
+				$parent_id = $product->get_parent_id();
+				if ( $parent_id ) {
+					$this->sync_parent_stock_status( $parent_id );
+				}
+			}
 
 			// Note: We do NOT automatically update all variations for variable products
 			// Each variation should be updated individually based on its own SKU in the XML
@@ -527,43 +559,6 @@ class XML_Stock_Updater {
 		}
 
 		return true; // Stock status was changed
-	}
-
-	/**
-	 * Update stock status for product variations directly via database.
-	 *
-	 * @param WC_Product_Variable $product Variable product object.
-	 * @param string              $stock_status Stock status.
-	 * @return void
-	 */
-	private function update_variation_stock_statuses( $product, $stock_status ) {
-		global $wpdb;
-
-		// Get variation IDs directly from database for better performance
-		$variation_ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT ID FROM {$wpdb->posts} 
-			WHERE post_parent = %d 
-			AND post_type = 'product_variation' 
-			AND post_status = 'publish'",
-				$product->get_id()
-			)
-		);
-
-		if ( empty( $variation_ids ) ) {
-			return;
-		}
-
-		// Update only variations where status actually needs to change
-		foreach ( $variation_ids as $variation_id ) {
-			$current_status = get_post_meta( $variation_id, '_stock_status', true );
-
-			// Only update if different
-			if ( $current_status !== $stock_status ) {
-				update_post_meta( $variation_id, '_stock_status', $stock_status );
-				wc_delete_product_transients( $variation_id );
-			}
-		}
 	}
 
 	/**
@@ -666,49 +661,6 @@ class XML_Stock_Updater {
 	}
 
 	/**
-	 * Update prices for product variations
-	 *
-	 * @param WC_Product_Variable $product Variable product object
-	 * @param float               $price New price
-	 * @param float               $old_price Old price for sales
-	 */
-	private function update_variation_prices( $product, $price, $old_price = 0 ) {
-		global $wpdb;
-
-		// Get variation IDs directly from database for better performance
-		$variation_ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT ID FROM {$wpdb->posts} 
-				WHERE post_parent = %d 
-				AND post_type = 'product_variation' 
-				AND post_status = 'publish'",
-				$product->get_id()
-			)
-		);
-
-		if ( empty( $variation_ids ) ) {
-			return;
-		}
-
-		// Update all variations with the same pricing as parent
-		foreach ( $variation_ids as $variation_id ) {
-			if ( $old_price > 0 && $old_price > $price ) {
-				// Apply sale pricing
-				update_post_meta( $variation_id, '_regular_price', number_format( (float) $old_price, 2, '.', '' ) );
-				update_post_meta( $variation_id, '_sale_price', number_format( (float) $price, 2, '.', '' ) );
-				update_post_meta( $variation_id, '_price', number_format( (float) $price, 2, '.', '' ) );
-			} else {
-				// Regular pricing only
-				update_post_meta( $variation_id, '_regular_price', number_format( (float) $price, 2, '.', '' ) );
-				update_post_meta( $variation_id, '_price', number_format( (float) $price, 2, '.', '' ) );
-				delete_post_meta( $variation_id, '_sale_price' );
-			}
-
-			wc_delete_product_transients( $variation_id );
-		}
-	}
-
-	/**
 	 * Find products that exist in database but are missing from XML feed.
 	 *
 	 * @param array $xml_skus Array of SKUs from XML feed.
@@ -753,6 +705,38 @@ class XML_Stock_Updater {
 			return;
 		}
 
+		$placeholders = implode( ',', array_fill( 0, count( $missing_skus ), '%s' ) );
+
+		$missing_variation_ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT p.ID
+					FROM {$wpdb->posts} p
+					INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+					WHERE p.post_type = 'product_variation'
+					  AND p.post_status IN ('publish','draft','private')
+					  AND pm.meta_key = '_sku'
+					  AND pm.meta_value IN ($placeholders)",
+				$missing_skus
+			)
+		);
+
+		foreach ( $missing_variation_ids as $vid ) {
+			update_post_meta( $vid, '_stock_status', 'outofstock' );
+			wc_delete_product_transients( $vid );
+
+			$parent_id = (int) get_post_field( 'post_parent', $vid );
+			if ( $parent_id ) {
+				$this->sync_parent_stock_status( $parent_id );
+			}
+		}
+
+		$variations_out_count = count( $missing_variation_ids );
+		if ( $variations_out_count > 0 ) {
+			$this->send_telegram_message(
+				"🔻 Варіацій переведено в 'Немає в наявності': {$variations_out_count}"
+			);
+		}
+
 		// Get product details for missing SKUs
 		$missing_products = $this->get_missing_products_details( $missing_skus );
 
@@ -794,12 +778,12 @@ class XML_Stock_Updater {
 	 * @return void
 	 */
 	private function send_missing_products_report( $missing_products, $total_missing ) {
-		$message = "⚠️ Товари, яких немає у вигрузці XML:\n\n";
+		$message  = "⚠️ Товари, яких немає у вигрузці XML:\n\n";
 		$message .= "📊 Всього відсутніх товарів: $total_missing\n";
 		$message .= "🔗 URL вигрузки: $this->xml_url\n\n";
 
 		// Group products by type (product vs variation)
-		$products = array();
+		$products   = array();
 		$variations = array();
 
 		foreach ( $missing_products as $product ) {
@@ -813,29 +797,29 @@ class XML_Stock_Updater {
 
 		// Add main products
 		if ( ! empty( $products ) ) {
-			$message .= "📦 Основні товари (" . count( $products ) . "):\n";
+			$message .= '📦 Основні товари (' . count( $products ) . "):\n";
 			foreach ( array_slice( $products, 0, 20 ) as $product ) { // Limit to first 20
 				$message .= "• {$product->post_title} (SKU: {$product->sku})\n";
 			}
 			if ( count( $products ) > 20 ) {
-				$message .= "... та ще " . ( count( $products ) - 20 ) . " товарів\n";
+				$message .= '... та ще ' . ( count( $products ) - 20 ) . " товарів\n";
 			}
 			$message .= "\n";
 		}
 
 		// Add variations
 		if ( ! empty( $variations ) ) {
-			$message .= "🔄 Варіації товарів (" . count( $variations ) . "):\n";
+			$message .= '🔄 Варіації товарів (' . count( $variations ) . "):\n";
 			foreach ( array_slice( $variations, 0, 20 ) as $variation ) { // Limit to first 20
 				$message .= "• {$variation->post_title} (SKU: {$variation->sku})\n";
 			}
 			if ( count( $variations ) > 20 ) {
-				$message .= "... та ще " . ( count( $variations ) - 20 ) . " варіацій\n";
+				$message .= '... та ще ' . ( count( $variations ) - 20 ) . " варіацій\n";
 			}
 			$message .= "\n";
 		}
 
-		$message .= "💡 Рекомендація: Перевірте, чи ці товари дійсно відсутні у постачальника, або це помилка у вигрузці.";
+		$message .= '💡 Рекомендація: Перевірте, чи ці товари дійсно відсутні у постачальника, або це помилка у вигрузці.';
 
 		$this->send_telegram_message( $message );
 
@@ -874,7 +858,7 @@ class XML_Stock_Updater {
 
 				if ( ! is_wp_error( $result ) ) {
 					++$converted_count;
-					
+
 					// Clear product cache
 					wc_delete_product_transients( $product->ID );
 				} else {
