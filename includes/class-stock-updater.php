@@ -35,7 +35,7 @@ class XML_Stock_Updater {
 	 *
 	 * @var int
 	 */
-	private $batch_size = 50;
+	private $batch_size = 200;
 
 	/**
 	 * Maximum execution time in seconds.
@@ -74,16 +74,6 @@ class XML_Stock_Updater {
 		// Get the current PHP max execution time and set our limit slightly below it
 		$current_limit            = ini_get( 'max_execution_time' );
 		$this->max_execution_time = ( $current_limit > 0 ) ? $current_limit - 5 : 0;
-
-		// Set batch size based on available memory
-		$memory_limit = $this->get_memory_limit_in_bytes();
-		if ( $memory_limit < 64 * 1024 * 1024 ) { // Less than 64MB
-			$this->batch_size = 20;
-		} elseif ( $memory_limit < 128 * 1024 * 1024 ) { // Less than 128MB
-			$this->batch_size = 50;
-		} else {
-			$this->batch_size = 100;
-		}
 	}
 
 	/**
@@ -258,7 +248,7 @@ class XML_Stock_Updater {
 					}
 
 					// Free memory to avoid memory leaks
-					$reader->next();
+					// $reader->next();
 				}
 
 				// Free memory periodically
@@ -303,8 +293,6 @@ class XML_Stock_Updater {
 		$batch_count = count( $batches );
 
 		$this->send_telegram_message( "Processing $total products in $batch_count batches" );
-
-
 
 		$process_start_time = microtime( true );
 
@@ -377,15 +365,10 @@ class XML_Stock_Updater {
 				++$processed;
 			}
 
-
-
 			// Free up memory more aggressively for production
-			if ( $batch_index % 2 === 0 ) {
+			if ( $batch_index % 10 === 0 ) {
 				wp_cache_flush();
 				gc_collect_cycles();
-
-				// Sleep briefly to prevent server overload
-				usleep( 100000 ); // 100ms
 			}
 		}
 
@@ -490,9 +473,6 @@ class XML_Stock_Updater {
 			foreach ( $chunks as $chunk ) {
 				$chunk_results = $this->get_product_ids_by_skus( $chunk );
 				$results       = array_merge( $results, $chunk_results );
-
-				// Brief pause to prevent database overload
-				usleep( 50000 ); // 50ms
 			}
 
 			return $results;
