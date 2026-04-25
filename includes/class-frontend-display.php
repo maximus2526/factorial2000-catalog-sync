@@ -71,6 +71,14 @@ class Frontend_Display {
 			}
 
 			if ( empty( $variations_with_vendor ) ) {
+				$variations_with_vendor[] = array(
+					'id'          => $product_id,
+					'attributes'  => 'Only parent product without variations',
+					'vendor_code' => get_post_meta( $product_id, 'prom-xml-updater-vendor', true ),
+				);
+			}
+
+			if ( empty( $variations_with_vendor ) ) {
 				return;
 			}
 
