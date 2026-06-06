@@ -175,6 +175,243 @@ function prom_check_server_resources() {
 }
 
 /**
+ * Bulk-update stock_status in wc_product_meta_lookup (fast path, no full product save).
+ *
+ * @param array  $product_ids  Product or variation IDs.
+ * @param string $stock_status Stock status value.
+ * @return void
+ */
+function prom_bulk_sync_lookup_stock_status( array $product_ids, $stock_status = 'outofstock' ) {
+	global $wpdb;
+
+	if ( empty( $product_ids ) || empty( $wpdb->wc_product_meta_lookup ) ) {
+		return;
+	}
+
+	$product_ids = array_values( array_unique( array_filter( array_map( 'absint', $product_ids ) ) ) );
+
+	if ( empty( $product_ids ) ) {
+		return;
+	}
+
+	$stock_status = wc_clean( $stock_status );
+	$table        = $wpdb->wc_product_meta_lookup;
+
+	foreach ( array_chunk( $product_ids, 500 ) as $chunk ) {
+		$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
+
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table}
+				SET stock_status = %s
+				WHERE product_id IN ($placeholders)
+				  AND stock_status != %s",
+				array_merge( array( $stock_status ), $chunk, array( $stock_status ) )
+			)
+		);
+	}
+}
+
+/**
+ * Get the configured max in-stock variations threshold for variable parent products.
+ *
+ * @return int
+ */
+function prom_get_variable_low_instock_threshold() {
+	$max = absint( get_option( 'prom_xml_variable_low_instock_max', 2 ) );
+
+	return $max;
+}
+
+/**
+ * Mark variable parent products as out of stock when they have too few in-stock variations.
+ *
+ * @return array{updated: int, examples: array<int, array{id: int, title: string, sku: string, instock_count: int}>}
+ */
+function prom_apply_variable_low_instock_rule() {
+	if ( get_option( 'prom_xml_hide_variable_low_instock', '0' ) !== '1' ) {
+		return array(
+			'updated'  => 0,
+			'examples' => array(),
+		);
+	}
+
+	global $wpdb;
+
+	$max_instock = prom_get_variable_low_instock_threshold();
+
+	$parent_ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT v.post_parent
+			FROM {$wpdb->posts} v
+			INNER JOIN {$wpdb->postmeta} pm ON v.ID = pm.post_id AND pm.meta_key = '_stock_status'
+			WHERE v.post_type = 'product_variation'
+			  AND v.post_status IN ('publish', 'private')
+			GROUP BY v.post_parent
+			HAVING SUM(pm.meta_value = 'instock') <= %d",
+			$max_instock
+		)
+	);
+
+	if ( empty( $parent_ids ) ) {
+		return array(
+			'updated'  => 0,
+			'examples' => array(),
+		);
+	}
+
+	$updated         = 0;
+	$lookup_sync_ids = array();
+	$transient_ids   = array();
+	$examples        = array();
+
+	foreach ( $parent_ids as $parent_id ) {
+		$parent_id = (int) $parent_id;
+
+		if ( $parent_id <= 0 ) {
+			continue;
+		}
+
+		$changed       = false;
+		$instock_count = 0;
+
+		$variation_ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT ID
+				FROM {$wpdb->posts}
+				WHERE post_parent = %d
+				  AND post_type = 'product_variation'
+				  AND post_status IN ('publish', 'private')",
+				$parent_id
+			)
+		);
+
+		foreach ( $variation_ids as $variation_id ) {
+			$variation_id = (int) $variation_id;
+
+			if ( get_post_meta( $variation_id, '_stock_status', true ) === 'instock' ) {
+				++$instock_count;
+			}
+		}
+
+		foreach ( $variation_ids as $variation_id ) {
+			$variation_id = (int) $variation_id;
+
+			if ( get_post_meta( $variation_id, '_stock_status', true ) === 'outofstock' ) {
+				continue;
+			}
+
+			update_post_meta( $variation_id, '_stock_status', 'outofstock' );
+			$lookup_sync_ids[] = $variation_id;
+			$changed           = true;
+		}
+
+		if ( get_post_meta( $parent_id, '_stock_status', true ) !== 'outofstock' ) {
+			update_post_meta( $parent_id, '_stock_status', 'outofstock' );
+			$lookup_sync_ids[] = $parent_id;
+			$changed           = true;
+		}
+
+		if ( $changed ) {
+			$transient_ids[] = $parent_id;
+			++$updated;
+			$examples[]      = array(
+				'id'            => $parent_id,
+				'title'         => get_the_title( $parent_id ),
+				'sku'           => (string) get_post_meta( $parent_id, '_sku', true ),
+				'instock_count' => $instock_count,
+			);
+		}
+	}
+
+	prom_bulk_sync_lookup_stock_status( $lookup_sync_ids, 'outofstock' );
+
+	foreach ( array_unique( $transient_ids ) as $product_id ) {
+		wc_delete_product_transients( $product_id );
+	}
+
+	return array(
+		'updated'  => $updated,
+		'examples' => $examples,
+	);
+}
+
+/**
+ * Format sample products changed by the low-instock rule for logs and notifications.
+ *
+ * @param array $examples Product examples from prom_apply_variable_low_instock_rule().
+ * @param int   $total    Total number of changed products.
+ * @param int   $limit    Maximum examples to include.
+ * @return string
+ */
+function prom_format_variable_low_instock_examples( array $examples, $total, $limit = 15 ) {
+	if ( empty( $examples ) ) {
+		return '';
+	}
+
+	$lines   = array();
+	$shown   = array_slice( $examples, 0, $limit );
+
+	foreach ( $shown as $product ) {
+		$sku_part = ! empty( $product['sku'] ) ? ', SKU: ' . $product['sku'] : '';
+		$lines[]  = sprintf(
+			'• %s%s (варіацій в наявності: %d)',
+			$product['title'],
+			$sku_part,
+			$product['instock_count']
+		);
+	}
+
+	$message = implode( "\n", $lines );
+
+	if ( $total > count( $shown ) ) {
+		$message .= "\n... та ще " . ( $total - count( $shown ) ) . ' товарів';
+	}
+
+	return $message;
+}
+
+/**
+ * Run post-processing steps after a stock update cycle completes.
+ *
+ * @return void
+ */
+function prom_after_stock_update_complete() {
+	$result  = prom_apply_variable_low_instock_rule();
+	$updated = (int) ( $result['updated'] ?? 0 );
+
+	if ( $updated > 0 ) {
+		$max_instock = prom_get_variable_low_instock_threshold();
+		$examples    = $result['examples'] ?? array();
+		$sample_text = prom_format_variable_low_instock_examples( $examples, $updated );
+
+		$telegram_message = sprintf(
+			"Variable-товарів переведено в «Немає в наявності» (≤ %d варіацій в наявності): %d",
+			$max_instock,
+			$updated
+		);
+
+		if ( $sample_text !== '' ) {
+			$telegram_message .= "\n\nПриклади:\n" . $sample_text;
+		}
+
+		prom_send_telegram_notification( $telegram_message );
+
+		$log_message = sprintf(
+			"Variable low-instock rule applied: threshold=%d, updated=%d",
+			$max_instock,
+			$updated
+		);
+
+		if ( $sample_text !== '' ) {
+			$log_message .= "\nExamples:\n" . $sample_text;
+		}
+
+		prom_log( $log_message, 'info' );
+	}
+}
+
+/**
  * Run product synchronization via a background process
  *
  * @param string $xml_url URL of the XML file
@@ -218,6 +455,7 @@ add_action(
 
 			$updater = new XML_Stock_Updater( $xml_url, $sku_prefix, $skip_price_flag );
 			$updater->update_products_stock_status();
+			prom_after_stock_update_complete();
 			prom_cleanup_wc_transients( true );
 		}
 	}

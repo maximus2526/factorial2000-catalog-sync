@@ -105,6 +105,8 @@ class Cron_Job {
 				}
 			}
 
+			prom_after_stock_update_complete();
+
 			// Clean up again after the process completes
 			prom_cleanup_wc_transients();
 		} else {

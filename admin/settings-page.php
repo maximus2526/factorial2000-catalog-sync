@@ -605,6 +605,24 @@ function prom_xml_importer_settings_init() {
 	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_5' );
 	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_5' );
 	register_setting( 'prom_xml_importer_settings', 'prom_xml_update_interval' );
+	register_setting(
+		'prom_xml_importer_settings',
+		'prom_xml_hide_variable_low_instock',
+		array(
+			'sanitize_callback' => function ( $value ) {
+				return ( $value === '1' || $value === 'yes' || $value === 'on' ) ? '1' : '0';
+			},
+		)
+	);
+	register_setting(
+		'prom_xml_importer_settings',
+		'prom_xml_variable_low_instock_max',
+		array(
+			'sanitize_callback' => function ( $value ) {
+				return (string) max( 0, absint( $value ) );
+			},
+		)
+	);
 	register_setting( 'prom_xml_importer_settings', 'telegram_user_ids' );
 	register_setting( 'prom_xml_importer_settings', 'telegram_token_id' );
 
@@ -626,6 +644,8 @@ function prom_xml_importer_settings_init() {
 	add_settings_field( 'prom_xml_sku_prefix_5', __( 'SKU Prefix 5', 'xml-prom' ), 'prom_xml_importer_sku_prefix_5_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'prom_xml_skip_price_5', __( 'Не оновлювати ціну 5', 'xml-prom' ), 'prom_xml_importer_skip_price_5_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'prom_xml_update_interval', __( 'Інтервал оновлення', 'xml-prom' ), 'prom_xml_importer_interval_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_hide_variable_low_instock', __( 'Variable-товари з малою наявністю', 'xml-prom' ), 'prom_xml_importer_hide_variable_low_instock_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_variable_low_instock_max', __( 'Поріг варіацій в наявності', 'xml-prom' ), 'prom_xml_importer_variable_low_instock_max_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'telegram_user_ids', __( 'Telegram User IDs', 'xml-prom' ), 'prom_xml_importer_telegram_user_ids_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 	add_settings_field( 'telegram_token_id', __( 'Telegram Token ID', 'xml-prom' ), 'prom_xml_importer_telegram_token_id_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 }
@@ -765,6 +785,26 @@ function prom_xml_importer_interval_render() {
 		<option value="twicedaily" <?php selected( $interval, 'twicedaily' ); ?>><?php esc_html_e( 'Двічі на день', 'xml-prom' ); ?></option>
 		<option value="daily" <?php selected( $interval, 'daily' ); ?>><?php esc_html_e( 'Щодня', 'xml-prom' ); ?></option>
 	</select>
+	<?php
+}
+
+function prom_xml_importer_hide_variable_low_instock_render() {
+	$val = get_option( 'prom_xml_hide_variable_low_instock', '0' );
+	?>
+	<input type="hidden" name="prom_xml_hide_variable_low_instock" value="0">
+	<label>
+		<input type="checkbox" name="prom_xml_hide_variable_low_instock" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Після оновлення ставити variable-товари в «немає в наявності», якщо варіацій в наявності недостатньо', 'xml-prom' ); ?>
+	</label>
+	<p class="description"><?php esc_html_e( 'Застосовується після завершення stock update. Варіації не змінюються — лише статус батьківського товару.', 'xml-prom' ); ?></p>
+	<?php
+}
+
+function prom_xml_importer_variable_low_instock_max_render() {
+	$max = get_option( 'prom_xml_variable_low_instock_max', 2 );
+	?>
+	<input type="number" name="prom_xml_variable_low_instock_max" value="<?php echo esc_attr( $max ); ?>" min="0" step="1" style="width: 80px;">
+	<p class="description"><?php esc_html_e( 'Максимальна кількість варіацій «в наявності» (включно), при якій батьківський товар буде позначено як «немає в наявності». За замовчуванням: 2.', 'xml-prom' ); ?></p>
 	<?php
 }
 
@@ -1051,6 +1091,8 @@ function prom_xml_importer_handle_action() {
 							// Silent error handling
 						}
 					}
+
+					prom_after_stock_update_complete();
 
 					if ( $success_count > 0 ) {
 						add_settings_error(
