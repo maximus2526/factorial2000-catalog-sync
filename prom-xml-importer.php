@@ -1,13 +1,16 @@
 <?php
 /**
- * Plugin Name: Prom XML Importer
- * Description: Плагін для імпорту XML даних та оновлення статусу запасів.
- * Version: 1.2
- * Author: KMax
- * Text Domain: xml-prom
- * Domain Path: /languages
- * Requires at least: 5.0
- * Requires PHP: 7.4
+ * Plugin Name:       Prom XML Importer
+ * Description:       Плагін для імпорту XML даних та оновлення статусу запасів із платформи Prom.ua.
+ * Version:           1.2.0
+ * Requires at least: 5.8
+ * Requires PHP:      7.4
+ * Author:            KMax (Maxim Kliakhin)
+ * Author URI:        https://github.com/maximus2526
+ * License:           MIT
+ * License URI:       https://opensource.org/licenses/MIT
+ * Text Domain:       prom-xml-importer
+ * Domain Path:       /languages
  */
 
 defined( 'ABSPATH' ) || exit;
