@@ -3,49 +3,6 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Check whether current admin screen belongs to this plugin.
- */
-function prom_xml_importer_is_plugin_admin_screen() {
-	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-
-	return $screen && strpos( $screen->id, 'prom-xml-importer' ) !== false;
-}
-
-/**
- * Enqueue support widget assets on plugin admin pages.
- */
-function prom_xml_importer_enqueue_support_widget( $_hook_suffix ) {
-	if ( ! prom_xml_importer_is_plugin_admin_screen() ) {
-		return;
-	}
-
-	wp_enqueue_style(
-		'prom-xml-admin-support',
-		PROM_XML_IMPORTER_URL . 'assets/css/admin-support.css',
-		array(),
-		PROM_XML_IMPORTER_VERSION
-	);
-
-	wp_enqueue_script(
-		'prom-xml-admin-support',
-		PROM_XML_IMPORTER_URL . 'assets/js/admin-support.js',
-		array(),
-		PROM_XML_IMPORTER_VERSION,
-		true
-	);
-
-	wp_localize_script(
-		'prom-xml-admin-support',
-		'promXmlSupport',
-		array(
-			'cardNumber'  => '4874100038712884',
-			'copiedLabel' => __( 'Скопійовано', 'xml-prom' ),
-		)
-	);
-}
-add_action( 'admin_enqueue_scripts', 'prom_xml_importer_enqueue_support_widget' );
-
-/**
  * Render floating support widget markup.
  */
 function prom_xml_importer_render_support_widget() {

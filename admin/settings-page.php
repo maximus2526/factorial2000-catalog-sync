@@ -98,30 +98,6 @@ function prom_xml_importer_update_page() {
 
 		echo '</div>';
 		?>
-		<style>
-			.prom-xml-status {
-				margin-top: 20px;
-				background: #fff;
-				padding: 15px;
-				border: 1px solid #ccd0d4;
-				box-shadow: 0 1px 1px rgba(0,0,0,.04);
-			}
-			.prom-xml-status h3 {
-				margin-top: 0;
-			}
-			.prom-xml-status .active {
-				color: green;
-				font-weight: bold;
-			}
-			.prom-xml-status .inactive {
-				color: red;
-				font-weight: bold;
-			}
-			.prom-xml-status .pending {
-				color: orange;
-				font-weight: bold;
-			}
-		</style>
 	</div>
 	<?php
 }
@@ -142,444 +118,58 @@ function prom_xml_importer_import_page() {
 				<td><input type="text" name="import_sku_prefix" id="import_sku_prefix" placeholder="<?php esc_attr_e( 'Наприклад: NEW_', 'xml-prom' ); ?>" required></td>
 			</tr>
 		</table>
-		<div style="margin-bottom: 15px;">
+		<div class="prom-xml-import-field">
 			<label for="new_category">
 				<input type="checkbox" name="new_category" id="new_category" value="1">
 				<?php esc_html_e( 'Додавати неіснуючі товари в категорію New', 'xml-prom' ); ?>
 			</label>
 		</div>
-		
-		<div style="margin-bottom: 20px;">
-			<label style="font-weight: bold; display: block; margin-bottom: 10px;">
+
+		<div class="prom-xml-import-mode">
+			<label class="prom-xml-import-mode__title">
 				<?php esc_html_e( 'Режим імпорту:', 'xml-prom' ); ?>
 			</label>
-			<div style="margin-left: 20px;">
-				<label style="display: block; margin-bottom: 8px;">
+			<div class="prom-xml-import-mode__options">
+				<label class="prom-xml-import-mode__option">
 					<input type="radio" name="import_mode" value="simple" checked>
 					<?php esc_html_e( 'Прості продукти (тільки товари БЕЗ group_id)', 'xml-prom' ); ?>
 				</label>
-				<label style="display: block;">
+				<label class="prom-xml-import-mode__option">
 					<input type="radio" name="import_mode" value="variable">
 					<?php esc_html_e( 'Варіативні продукти (тільки товари З group_id, з вибором атрибутів)', 'xml-prom' ); ?>
 				</label>
 			</div>
 		</div>
 
-		<div style="margin-bottom: 20px;">
-			<button type="button" id="analyze-xml" class="button button-secondary" style="display: none;">
+		<div class="prom-xml-import-actions">
+			<button type="button" id="analyze-xml" class="button button-secondary is-hidden">
 				<?php esc_html_e( 'Проаналізувати XML', 'xml-prom' ); ?>
 			</button>
 			<button type="button" id="start-import" class="button button-primary">
 				<?php esc_html_e( 'Імпортувати', 'xml-prom' ); ?>
 			</button>
-			<button type="button" id="stop-import" class="button button-secondary" style="display: none;">
+			<button type="button" id="stop-import" class="button button-secondary is-hidden">
 				<?php esc_html_e( 'Зупинити', 'xml-prom' ); ?>
 			</button>
 		</div>
 		</form>
 
-		<!-- Контейнер для аналізу груп -->
-		<div id="groups-analysis-container" style="display: none; margin-top: 30px; border: 1px solid #ccc; padding: 20px; background: #f9f9f9;">
+		<div id="groups-analysis-container" class="prom-xml-analysis">
 			<h3><?php esc_html_e( 'Вибір варіаційних атрибутів', 'xml-prom' ); ?></h3>
 			<p class="description"><?php esc_html_e( 'Для кожної групи товарів виберіть атрибут який буде використовуватись для створення варіацій:', 'xml-prom' ); ?></p>
-			<div id="analysis-status" style="margin: 15px 0;"></div>
-			<div id="groups-list" style="margin-top: 20px; max-height: 600px; overflow-y: auto;"></div>
-			<button type="button" id="start-import-with-selection" class="button button-primary" style="margin-top: 20px; display: none;">
+			<div id="analysis-status" class="prom-xml-analysis__status"></div>
+			<div id="groups-list" class="prom-xml-analysis__list"></div>
+			<button type="button" id="start-import-with-selection" class="button button-primary prom-xml-analysis__submit is-hidden">
 				<?php esc_html_e( 'Імпортувати з вибраними атрибутами', 'xml-prom' ); ?>
 			</button>
 		</div>
 
-		<div id="import-progress-container" style="display: none;">
+		<div id="import-progress-container" class="prom-xml-import-progress">
 			<h3><?php esc_html_e( 'Прогрес імпорту', 'xml-prom' ); ?></h3>
-			<progress id="import-progress" value="0" max="100" style="width: 100%;"></progress>
+			<progress id="import-progress" class="prom-xml-import-progress__bar" value="0" max="100"></progress>
 			<div id="import-status"></div>
 		</div>
 	</div>
-
-	<script type="text/javascript">
-		jQuery(document).ready(function($) {
-			let stopImport = false;
-			let groupsData = {}; // Зберігаємо дані груп та вибрані атрибути
-
-			// Перемикач режиму імпорту
-			$('input[name="import_mode"]').on('change', function() {
-				const mode = $(this).val();
-				if (mode === 'variable') {
-					$('#analyze-xml').show();
-					$('#start-import').hide();
-					$('#groups-analysis-container').hide();
-				} else {
-					$('#analyze-xml').hide();
-					$('#start-import').show();
-					$('#groups-analysis-container').hide();
-				}
-			});
-
-			// Аналіз XML для варіативних продуктів
-			$('#analyze-xml').on('click', function() {
-				const fileInput = $('#import_xml_file')[0];
-				const skuPrefix = $('#import_sku_prefix').val().trim();
-
-				if (!fileInput.files.length) {
-					alert('<?php esc_html_e( 'Будь ласка, виберіть XML файл.', 'xml-prom' ); ?>');
-					return;
-				}
-
-				if (!skuPrefix) {
-					alert('<?php esc_html_e( 'Будь ласка, введіть SKU Prefix.', 'xml-prom' ); ?>');
-					$('#import_sku_prefix').focus();
-					return;
-				}
-
-				const formData = new FormData($('#xml-import-form')[0]);
-				formData.append('action', 'prom_xml_analyze_groups');
-				formData.append('sku_prefix', skuPrefix);
-
-				$('#analysis-status').html('<p><?php esc_html_e( 'Аналіз XML файлу...', 'xml-prom' ); ?></p>');
-				$('#groups-analysis-container').show();
-				$('#groups-list').empty();
-				$(this).prop('disabled', true);
-
-				$.ajax({
-					url: ajaxurl,
-					type: 'POST',
-					data: formData,
-					processData: false,
-					contentType: false,
-					success: function(response) {
-						if (response.success) {
-							groupsData = response.data.groups;
-							displayGroups(response.data.groups);
-							$('#analysis-status').html('<p style="color: green;"><?php esc_html_e( 'Аналіз завершено! Знайдено груп:', 'xml-prom' ); ?> ' + Object.keys(groupsData).length + '</p>');
-							$('#start-import-with-selection').show();
-						} else {
-							$('#analysis-status').html('<p style="color: red;">' + response.data.message + '</p>');
-						}
-						$('#analyze-xml').prop('disabled', false);
-					},
-					error: function() {
-						$('#analysis-status').html('<p style="color: red;"><?php esc_html_e( 'Помилка при аналізі XML.', 'xml-prom' ); ?></p>');
-						$('#analyze-xml').prop('disabled', false);
-					}
-				});
-			});
-
-			// Відображення груп з атрибутами
-			function displayGroups(groups) {
-				const $container = $('#groups-list');
-				$container.empty();
-
-				Object.keys(groups).forEach(function(groupId) {
-					const group = groups[groupId];
-					const $groupBox = $('<div>').css({
-						'border': '1px solid #ddd',
-						'padding': '15px',
-						'margin-bottom': '15px',
-						'background': 'white'
-					});
-
-					// Заголовок з фото
-					const $header = $('<div>').css({
-						'display': 'flex',
-						'align-items': 'flex-start',
-						'margin-bottom': '10px'
-					});
-
-					if (group.image) {
-						const $img = $('<img>').attr('src', group.image).css({
-							'width': '80px',
-							'height': '80px',
-							'object-fit': 'cover',
-							'margin-right': '15px',
-							'border': '1px solid #ddd'
-						});
-						$header.append($img);
-					}
-
-					const $info = $('<div>');
-					$info.append($('<h4>').text(group.name).css('margin', '0 0 5px 0'));
-					$info.append($('<p>').html('<strong><?php esc_html_e( 'Group ID:', 'xml-prom' ); ?></strong> ' + groupId).css('margin', '0 0 5px 0'));
-					
-					// Елемент для динамічного відображення кількості варіацій
-					const $variationsInfo = $('<p>').attr('id', 'variations_count_' + groupId).css('margin', '0');
-					$variationsInfo.html('<strong><?php esc_html_e( 'Варіацій в XML:', 'xml-prom' ); ?></strong> ' + group.variations_count);
-					$info.append($variationsInfo);
-					
-					// Додамо інфо про розраховану кількість варіацій
-					const $calculatedInfo = $('<p>').attr('id', 'calculated_count_' + groupId).css({'margin': '5px 0 0 0', 'color': '#2271b1', 'font-weight': 'bold'});
-					$info.append($calculatedInfo);
-					
-					$header.append($info);
-
-					$groupBox.append($header);
-
-					// Атрибути для вибору
-					if (group.attributes && group.attributes.length > 0) {
-						const $attrLabel = $('<p>').html('<strong><?php esc_html_e( 'Виберіть варіаційні атрибути:', 'xml-prom' ); ?></strong>').css('margin', '10px 0 5px 0');
-						$groupBox.append($attrLabel);
-						
-						// Підказка
-						const $hint = $('<p>').html('<em style="color: #666; font-size: 12px;"><?php esc_html_e( 'Примітка: Можна вибрати тільки атрибути що варіюються (мають різні значення між варіаціями)', 'xml-prom' ); ?></em>').css('margin', '5px 0 10px 0');
-						$groupBox.append($hint);
-
-						// Ініціалізуємо масив вибраних атрибутів - вибираємо тільки варіаційні
-						if (!groupsData[groupId].selected_attributes) {
-							// Знаходимо перший варіаційний атрибут
-							const firstVaryingAttr = group.attributes.find(function(a) { return a.is_varying; });
-							// Встановлюємо початкове значення тільки якщо є варіаційні атрибути
-							if (firstVaryingAttr) {
-								groupsData[groupId].selected_attributes = [firstVaryingAttr.name];
-							}
-						}
-
-						group.attributes.forEach(function(attr, index) {
-							const checkboxId = 'attr_' + groupId + '_' + index;
-							const $checkboxWrapper = $('<div>').css('margin', '5px 0 5px 20px');
-							
-							// Вибираємо за замовчуванням тільки якщо це перший варіаційний атрибут
-							const isDefaultSelected = attr.is_varying && groupsData[groupId].selected_attributes.includes(attr.name);
-							
-							const $checkbox = $('<input>').attr({
-								'type': 'checkbox',
-								'name': 'group_attr_' + groupId + '[]',
-								'id': checkboxId,
-								'value': attr.name,
-								'checked': isDefaultSelected,
-								'disabled': !attr.is_varying // Вимикаємо чекбокси для не-варіаційних атрибутів
-							}).on('change', function() {
-								// Оновлюємо масив вибраних атрибутів
-								const selected = [];
-								$('input[name="group_attr_' + groupId + '[]"]:checked').each(function() {
-									selected.push($(this).val());
-								});
-								groupsData[groupId].selected_attributes = selected;
-								
-								// Оновлюємо розрахунок варіацій
-								updateVariationsCount(groupId);
-							});
-
-							const $label = $('<label>').attr('for', checkboxId).css({
-								'margin-left': '5px',
-								'cursor': attr.is_varying ? 'pointer' : 'not-allowed',
-								'color': attr.is_varying ? 'inherit' : '#999',
-								'opacity': attr.is_varying ? '1' : '0.6'
-							});
-
-							// Показуємо чи варіюється атрибут
-							const varyingText = attr.is_varying ? ' ✓ (варіюється)' : ' ✗ (не варіюється)';
-							$label.text(attr.name + varyingText + ' (' + attr.values.join(', ') + ')');
-
-							$checkboxWrapper.append($checkbox).append($label);
-							$groupBox.append($checkboxWrapper);
-						});
-					} else {
-						$groupBox.append($('<p>').text('<?php esc_html_e( 'Немає атрибутів що відрізняються', 'xml-prom' ); ?>').css('color', 'orange'));
-					}
-
-					$container.append($groupBox);
-					
-					// Початковий розрахунок варіацій
-					updateVariationsCount(groupId);
-				});
-			}
-
-			// Функція для розрахунку кількості варіацій
-			function updateVariationsCount(groupId) {
-				const group = groupsData[groupId];
-				if (!group || !group.selected_attributes || group.selected_attributes.length === 0) {
-					$('#calculated_count_' + groupId).html('');
-					return;
-				}
-
-				// Розраховуємо добуток кількості значень тільки ВАРІАЦІЙНИХ атрибутів
-				let totalVariations = 1;
-				const selectedAttrNames = group.selected_attributes;
-				const attrInfo = [];
-
-				group.attributes.forEach(function(attr) {
-					if (selectedAttrNames.includes(attr.name) && attr.is_varying) {
-						totalVariations *= attr.values.length;
-						attrInfo.push(attr.name + ': ' + attr.values.length);
-					}
-				});
-
-				// Показуємо розрахунок
-				if (attrInfo.length > 1) {
-					$('#calculated_count_' + groupId).html(
-						'<strong><?php esc_html_e( 'Буде створено варіацій:', 'xml-prom' ); ?></strong> ' + 
-						totalVariations + ' (' + attrInfo.join(' × ') + ')'
-					);
-				} else if (attrInfo.length === 1) {
-					$('#calculated_count_' + groupId).html(
-						'<strong><?php esc_html_e( 'Буде створено варіацій:', 'xml-prom' ); ?></strong> ' + totalVariations
-					);
-				} else {
-					$('#calculated_count_' + groupId).html(
-						'<strong style="color: orange;"><?php esc_html_e( 'Увага: вибрані атрибути не варіюються - буде створено 1 варіацію', 'xml-prom' ); ?></strong>'
-					);
-				}
-			}
-
-			$('#start-import').on('click', function() {
-				var skuPrefix = $('#import_sku_prefix').val().trim();
-				if (!skuPrefix) {
-					alert('<?php esc_html_e( 'Будь ласка, введіть SKU Prefix перед початком імпорту.', 'xml-prom' ); ?>');
-					$('#import_sku_prefix').focus();
-					return;
-				}
-
-			stopImport = false;
-			var formData = new FormData($('#xml-import-form')[0]);
-			formData.append('action', 'prom_xml_import_action');
-			formData.append('new_category', $('#new_category').is(':checked') ? '1' : '0');
-			formData.append('import_variations', '0'); // Завжди прості товари для цієї кнопки
-			formData.append('sku_prefix', skuPrefix);
-
-				$('#import-progress-container').show();
-				$('#stop-import').show();
-				$('#start-import').prop('disabled', true);
-
-				function importChunk(offset = 0) {
-					if (stopImport) {
-						$('#import-status').text('<?php esc_html_e( 'Імпорт зупинено.', 'xml-prom' ); ?>');
-						$('#stop-import').hide();
-						$('#start-import').prop('disabled', false);
-						return;
-					}
-
-					formData.set('offset', offset);
-
-					$.ajax({
-						url: ajaxurl,
-						type: 'POST',
-						data: formData,
-						processData: false,
-						contentType: false,
-						success: function(response) {
-							if (response.success) {
-								const { imported, total, finished } = response.data;
-
-								const progress = (imported / total) * 100;
-								$('#import-progress').val(progress);
-								$('#import-status').text(imported + ' / ' + total + ' <?php esc_html_e( 'товарів імпортовано', 'xml-prom' ); ?>');
-
-								if (!finished) {
-									importChunk(imported);
-								} else {
-									$('#import-status').text('<?php esc_html_e( 'Імпорт завершено!', 'xml-prom' ); ?>');
-									$('#stop-import').hide();
-									$('#start-import').prop('disabled', false);
-								}
-							} else {
-								alert('<?php esc_html_e( 'Помилка: ', 'xml-prom' ); ?>' + response.data.message);
-								$('#stop-import').hide();
-								$('#start-import').prop('disabled', false);
-							}
-						},
-						error: function() {
-							alert('<?php esc_html_e( 'Сталася помилка під час імпорту.', 'xml-prom' ); ?>');
-							$('#stop-import').hide();
-							$('#start-import').prop('disabled', false);
-						}
-					});
-				}
-
-				importChunk();
-			});
-
-			$('#stop-import').on('click', function() {
-				stopImport = true;
-			});
-
-			// Імпорт з вибраними атрибутами
-			$('#start-import-with-selection').on('click', function() {
-				const skuPrefix = $('#import_sku_prefix').val().trim();
-				
-				// Збираємо вибрані атрибути
-				const selectedAttributes = {};
-				let hasEmptySelection = false;
-				
-				Object.keys(groupsData).forEach(function(groupId) {
-					const selected = groupsData[groupId].selected_attributes || [];
-					selectedAttributes[groupId] = selected;
-					
-					// Перевіряємо тільки ті групи, які мають варіаційні атрибути
-					if (selected.length > 0 || groupsData[groupId].attributes.some(attr => attr.is_varying)) {
-						if (selected.length === 0) {
-							hasEmptySelection = true;
-						}
-					}
-				});
-
-				// Перевіряємо чи всі групи мають вибрані атрибути
-				if (hasEmptySelection) {
-					alert('<?php esc_html_e( 'Будь ласка, виберіть хоча б один атрибут для кожної групи товарів.', 'xml-prom' ); ?>');
-					return;
-				}
-
-				stopImport = false;
-				const formData = new FormData($('#xml-import-form')[0]);
-				formData.append('action', 'prom_xml_import_action');
-				formData.append('new_category', $('#new_category').is(':checked') ? '1' : '0');
-				formData.append('import_variations', '1');
-				formData.append('sku_prefix', skuPrefix);
-				formData.append('selected_attributes', JSON.stringify(selectedAttributes));
-
-				$('#import-progress-container').show();
-				$('#stop-import').show();
-				$('#start-import-with-selection').prop('disabled', true);
-				$('#groups-analysis-container').hide();
-
-				function importChunk(offset = 0) {
-					if (stopImport) {
-						$('#import-status').text('<?php esc_html_e( 'Імпорт зупинено.', 'xml-prom' ); ?>');
-						$('#stop-import').hide();
-						$('#start-import-with-selection').prop('disabled', false);
-						return;
-					}
-
-					formData.set('offset', offset);
-
-					$.ajax({
-						url: ajaxurl,
-						type: 'POST',
-						data: formData,
-						processData: false,
-						contentType: false,
-						success: function(response) {
-							if (response.success) {
-								const imported = response.data.imported;
-								const total = response.data.total;
-								const progress = (imported / total) * 100;
-
-								$('#import-progress').val(progress);
-								$('#import-status').html('<?php esc_html_e( 'Імпортовано:', 'xml-prom' ); ?> ' + imported + ' / ' + total);
-
-								if (!response.data.finished && !stopImport) {
-									importChunk(imported);
-								} else {
-									$('#import-status').html('<?php esc_html_e( 'Імпорт завершено! Імпортовано:', 'xml-prom' ); ?> ' + imported + ' <?php esc_html_e( 'товарів', 'xml-prom' ); ?>');
-									$('#stop-import').hide();
-									$('#start-import-with-selection').prop('disabled', false);
-								}
-							} else {
-								alert('<?php esc_html_e( 'Помилка:', 'xml-prom' ); ?> ' + response.data.message);
-								$('#stop-import').hide();
-								$('#start-import-with-selection').prop('disabled', false);
-							}
-						},
-						error: function() {
-							alert('<?php esc_html_e( 'Сталася помилка під час імпорту.', 'xml-prom' ); ?>');
-							$('#stop-import').hide();
-							$('#start-import-with-selection').prop('disabled', false);
-						}
-					});
-				}
-
-				importChunk();
-			});
-		});
-	</script>
 	<?php
 }
 
