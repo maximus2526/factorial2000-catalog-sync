@@ -40,7 +40,7 @@ add_action( 'admin_menu', 'prom_xml_importer_add_admin_menu' );
 function prom_xml_importer_update_page() {
 	?>
 	<div class="wrap">
-		<h1><?php esc_html_e( 'Prom XML Importer – Оновлення', 'xml-prom' ); ?></h1>
+		<h1><?php esc_html_e( 'Prom XML Importer – Оновлення', 'prom-xml-importer' ); ?></h1>
 		
 		<?php settings_errors(); ?>
 		
@@ -58,24 +58,24 @@ function prom_xml_importer_update_page() {
 			
 			<table class="form-table">
 				<tr>
-					<th><?php esc_html_e( 'Background Processing', 'xml-prom' ); ?></th>
+					<th><?php esc_html_e( 'Background Processing', 'prom-xml-importer' ); ?></th>
 					<td>
 						<label>
 							<input type="radio" name="use_background" value="yes" checked>
-							<?php esc_html_e( 'Запустити у фоновому режимі', 'xml-prom' ); ?>
+							<?php esc_html_e( 'Запустити у фоновому режимі', 'prom-xml-importer' ); ?>
 						</label>
 						<br>
 						<label>
 							<input type="radio" name="use_background" value="no">
-							<?php esc_html_e( 'Запустити відразу', 'xml-prom' ); ?>
+							<?php esc_html_e( 'Запустити відразу', 'prom-xml-importer' ); ?>
 						</label>
 					</td>
 				</tr>
 			</table>
 			
 			<p>
-				<input type="submit" name="run_script" class="button button-primary" value="<?php esc_attr_e( 'Update Stock Status', 'xml-prom' ); ?>" style="margin-right: 10px;">
-				<input type="submit" name="prom_xml_importer_stop" class="button button-secondary" value="<?php esc_attr_e( 'Stop Cron Jobs', 'xml-prom' ); ?>">
+				<input type="submit" name="run_script" class="button button-primary" value="<?php esc_attr_e( 'Update Stock Status', 'prom-xml-importer' ); ?>" style="margin-right: 10px;">
+				<input type="submit" name="prom_xml_importer_stop" class="button button-secondary" value="<?php esc_attr_e( 'Stop Cron Jobs', 'prom-xml-importer' ); ?>">
 			</p>
 		</form>
 		
@@ -85,19 +85,19 @@ function prom_xml_importer_update_page() {
 		$bg_pending = wp_next_scheduled( 'prom_single_update_event' );
 
 		echo '<div class="prom-xml-status">';
-		echo '<h3>' . esc_html__( 'Status', 'xml-prom' ) . '</h3>';
+		echo '<h3>' . esc_html__( 'Status', 'prom-xml-importer' ) . '</h3>';
 
 		if ( $next_run ) {
-			echo '<p>' . esc_html__( 'Automatic updates: ', 'xml-prom' ) . '<span class="active">✅ ' . esc_html__( 'Active', 'xml-prom' ) . '</span></p>';
-			echo '<p>' . esc_html__( 'Next scheduled update: ', 'xml-prom' ) . date_i18n( 'j F Y, H:i', $next_run ) . '</p>';
-			echo '<p>' . esc_html__( 'Update interval: ', 'xml-prom' ) . esc_html( $interval ) . '</p>';
+			echo '<p>' . esc_html__( 'Automatic updates: ', 'prom-xml-importer' ) . '<span class="active">✅ ' . esc_html__( 'Active', 'prom-xml-importer' ) . '</span></p>';
+			echo '<p>' . esc_html__( 'Next scheduled update: ', 'prom-xml-importer' ) . date_i18n( 'j F Y, H:i', $next_run ) . '</p>';
+			echo '<p>' . esc_html__( 'Update interval: ', 'prom-xml-importer' ) . esc_html( $interval ) . '</p>';
 		} else {
-			echo '<p>' . esc_html__( 'Automatic updates: ', 'xml-prom' ) . '<span class="inactive">❌ ' . esc_html__( 'Inactive', 'xml-prom' ) . '</span></p>';
+			echo '<p>' . esc_html__( 'Automatic updates: ', 'prom-xml-importer' ) . '<span class="inactive">❌ ' . esc_html__( 'Inactive', 'prom-xml-importer' ) . '</span></p>';
 		}
 
 		if ( $bg_pending ) {
-			echo '<p>' . esc_html__( 'Background update: ', 'xml-prom' ) . '<span class="pending">⏳ ' . esc_html__( 'Pending', 'xml-prom' ) . '</span></p>';
-			echo '<p>' . esc_html__( 'Scheduled for: ', 'xml-prom' ) . date_i18n( 'F j, Y, g:i a', $bg_pending ) . '</p>';
+			echo '<p>' . esc_html__( 'Background update: ', 'prom-xml-importer' ) . '<span class="pending">⏳ ' . esc_html__( 'Pending', 'prom-xml-importer' ) . '</span></p>';
+			echo '<p>' . esc_html__( 'Scheduled for: ', 'prom-xml-importer' ) . date_i18n( 'F j, Y, g:i a', $bg_pending ) . '</p>';
 		}
 
 		echo '</div>';
@@ -109,67 +109,67 @@ function prom_xml_importer_update_page() {
 function prom_xml_importer_import_page() {
 	?>
 	<div class="wrap">
-		<h1><?php esc_html_e( 'Prom XML Importer – Імпорт', 'xml-prom' ); ?></h1>
+		<h1><?php esc_html_e( 'Prom XML Importer – Імпорт', 'prom-xml-importer' ); ?></h1>
 		<form id="xml-import-form" enctype="multipart/form-data">
 			<?php wp_nonce_field( 'prom_xml_import_action', 'prom_xml_import_nonce' ); ?>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><label for="import_xml_file"><?php esc_html_e( 'Виберіть XML файл для імпорту', 'xml-prom' ); ?></label></th>
+					<th scope="row"><label for="import_xml_file"><?php esc_html_e( 'Виберіть XML файл для імпорту', 'prom-xml-importer' ); ?></label></th>
 					<td><input type="file" name="import_xml_file" id="import_xml_file" accept=".xml" required></td>
 				</tr>
 			<tr valign="top">
-				<th scope="row"><label for="import_sku_prefix"><?php esc_html_e( 'SKU Prefix', 'xml-prom' ); ?></label></th>
-				<td><input type="text" name="import_sku_prefix" id="import_sku_prefix" placeholder="<?php esc_attr_e( 'Наприклад: NEW_', 'xml-prom' ); ?>" required></td>
+				<th scope="row"><label for="import_sku_prefix"><?php esc_html_e( 'SKU Prefix', 'prom-xml-importer' ); ?></label></th>
+				<td><input type="text" name="import_sku_prefix" id="import_sku_prefix" placeholder="<?php esc_attr_e( 'Наприклад: NEW_', 'prom-xml-importer' ); ?>" required></td>
 			</tr>
 		</table>
 		<div class="prom-xml-import-field">
 			<label for="new_category">
 				<input type="checkbox" name="new_category" id="new_category" value="1">
-				<?php esc_html_e( 'Додавати неіснуючі товари в категорію New', 'xml-prom' ); ?>
+				<?php esc_html_e( 'Додавати неіснуючі товари в категорію New', 'prom-xml-importer' ); ?>
 			</label>
 		</div>
 
 		<div class="prom-xml-import-mode">
 			<label class="prom-xml-import-mode__title">
-				<?php esc_html_e( 'Режим імпорту:', 'xml-prom' ); ?>
+				<?php esc_html_e( 'Режим імпорту:', 'prom-xml-importer' ); ?>
 			</label>
 			<div class="prom-xml-import-mode__options">
 				<label class="prom-xml-import-mode__option">
 					<input type="radio" name="import_mode" value="simple" checked>
-					<?php esc_html_e( 'Прості продукти (тільки товари БЕЗ group_id)', 'xml-prom' ); ?>
+					<?php esc_html_e( 'Прості продукти (тільки товари БЕЗ group_id)', 'prom-xml-importer' ); ?>
 				</label>
 				<label class="prom-xml-import-mode__option">
 					<input type="radio" name="import_mode" value="variable">
-					<?php esc_html_e( 'Варіативні продукти (тільки товари З group_id, з вибором атрибутів)', 'xml-prom' ); ?>
+					<?php esc_html_e( 'Варіативні продукти (тільки товари З group_id, з вибором атрибутів)', 'prom-xml-importer' ); ?>
 				</label>
 			</div>
 		</div>
 
 		<div class="prom-xml-import-actions">
 			<button type="button" id="analyze-xml" class="button button-secondary is-hidden">
-				<?php esc_html_e( 'Проаналізувати XML', 'xml-prom' ); ?>
+				<?php esc_html_e( 'Проаналізувати XML', 'prom-xml-importer' ); ?>
 			</button>
 			<button type="button" id="start-import" class="button button-primary">
-				<?php esc_html_e( 'Імпортувати', 'xml-prom' ); ?>
+				<?php esc_html_e( 'Імпортувати', 'prom-xml-importer' ); ?>
 			</button>
 			<button type="button" id="stop-import" class="button button-secondary is-hidden">
-				<?php esc_html_e( 'Зупинити', 'xml-prom' ); ?>
+				<?php esc_html_e( 'Зупинити', 'prom-xml-importer' ); ?>
 			</button>
 		</div>
 		</form>
 
 		<div id="groups-analysis-container" class="prom-xml-analysis">
-			<h3><?php esc_html_e( 'Вибір варіаційних атрибутів', 'xml-prom' ); ?></h3>
-			<p class="description"><?php esc_html_e( 'Для кожної групи товарів виберіть атрибут який буде використовуватись для створення варіацій:', 'xml-prom' ); ?></p>
+			<h3><?php esc_html_e( 'Вибір варіаційних атрибутів', 'prom-xml-importer' ); ?></h3>
+			<p class="description"><?php esc_html_e( 'Для кожної групи товарів виберіть атрибут який буде використовуватись для створення варіацій:', 'prom-xml-importer' ); ?></p>
 			<div id="analysis-status" class="prom-xml-analysis__status"></div>
 			<div id="groups-list" class="prom-xml-analysis__list"></div>
 			<button type="button" id="start-import-with-selection" class="button button-primary prom-xml-analysis__submit is-hidden">
-				<?php esc_html_e( 'Імпортувати з вибраними атрибутами', 'xml-prom' ); ?>
+				<?php esc_html_e( 'Імпортувати з вибраними атрибутами', 'prom-xml-importer' ); ?>
 			</button>
 		</div>
 
 		<div id="import-progress-container" class="prom-xml-import-progress">
-			<h3><?php esc_html_e( 'Прогрес імпорту', 'xml-prom' ); ?></h3>
+			<h3><?php esc_html_e( 'Прогрес імпорту', 'prom-xml-importer' ); ?></h3>
 			<progress id="import-progress" class="prom-xml-import-progress__bar" value="0" max="100"></progress>
 			<div id="import-status"></div>
 		</div>
@@ -216,43 +216,43 @@ function prom_xml_importer_settings_init() {
 	register_setting( 'prom_xml_importer_settings', 'telegram_user_ids' );
 	register_setting( 'prom_xml_importer_settings', 'telegram_token_id' );
 
-	add_settings_section( 'prom_xml_importer_section', __( 'Основні налаштування', 'xml-prom' ), null, 'prom-xml-importer' );
+	add_settings_section( 'prom_xml_importer_section', __( 'Основні налаштування', 'prom-xml-importer' ), null, 'prom-xml-importer' );
 
-	add_settings_field( 'prom_xml_url', __( 'URL XML файлу 1', 'xml-prom' ), 'prom_xml_importer_url_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_sku_prefix_1', __( 'SKU Prefix 1', 'xml-prom' ), 'prom_xml_importer_sku_prefix_1_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_skip_price_1', __( 'Не оновлювати ціну 1', 'xml-prom' ), 'prom_xml_importer_skip_price_1_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_url_2', __( 'URL XML файлу 2', 'xml-prom' ), 'prom_xml_importer_url_2_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_sku_prefix_2', __( 'SKU Prefix 2', 'xml-prom' ), 'prom_xml_importer_sku_prefix_2_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_skip_price_2', __( 'Не оновлювати ціну 2', 'xml-prom' ), 'prom_xml_importer_skip_price_2_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_url_3', __( 'URL XML файлу 3', 'xml-prom' ), 'prom_xml_importer_url_3_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_sku_prefix_3', __( 'SKU Prefix 3', 'xml-prom' ), 'prom_xml_importer_sku_prefix_3_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_skip_price_3', __( 'Не оновлювати ціну 3', 'xml-prom' ), 'prom_xml_importer_skip_price_3_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_url_4', __( 'URL XML файлу 4', 'xml-prom' ), 'prom_xml_importer_url_4_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_sku_prefix_4', __( 'SKU Prefix 4', 'xml-prom' ), 'prom_xml_importer_sku_prefix_4_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_skip_price_4', __( 'Не оновлювати ціну 4', 'xml-prom' ), 'prom_xml_importer_skip_price_4_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_url_5', __( 'URL XML файлу 5', 'xml-prom' ), 'prom_xml_importer_url_5_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_sku_prefix_5', __( 'SKU Prefix 5', 'xml-prom' ), 'prom_xml_importer_sku_prefix_5_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_skip_price_5', __( 'Не оновлювати ціну 5', 'xml-prom' ), 'prom_xml_importer_skip_price_5_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_update_interval', __( 'Інтервал оновлення', 'xml-prom' ), 'prom_xml_importer_interval_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_hide_variable_low_instock', __( 'Variable-товари з малою наявністю', 'xml-prom' ), 'prom_xml_importer_hide_variable_low_instock_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_variable_low_instock_max', __( 'Поріг варіацій в наявності', 'xml-prom' ), 'prom_xml_importer_variable_low_instock_max_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'telegram_user_ids', __( 'Telegram User IDs', 'xml-prom' ), 'prom_xml_importer_telegram_user_ids_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'telegram_token_id', __( 'Telegram Token ID', 'xml-prom' ), 'prom_xml_importer_telegram_token_id_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_url', __( 'URL XML файлу 1', 'prom-xml-importer' ), 'prom_xml_importer_url_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_sku_prefix_1', __( 'SKU Prefix 1', 'prom-xml-importer' ), 'prom_xml_importer_sku_prefix_1_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_skip_price_1', __( 'Не оновлювати ціну 1', 'prom-xml-importer' ), 'prom_xml_importer_skip_price_1_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_url_2', __( 'URL XML файлу 2', 'prom-xml-importer' ), 'prom_xml_importer_url_2_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_sku_prefix_2', __( 'SKU Prefix 2', 'prom-xml-importer' ), 'prom_xml_importer_sku_prefix_2_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_skip_price_2', __( 'Не оновлювати ціну 2', 'prom-xml-importer' ), 'prom_xml_importer_skip_price_2_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_url_3', __( 'URL XML файлу 3', 'prom-xml-importer' ), 'prom_xml_importer_url_3_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_sku_prefix_3', __( 'SKU Prefix 3', 'prom-xml-importer' ), 'prom_xml_importer_sku_prefix_3_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_skip_price_3', __( 'Не оновлювати ціну 3', 'prom-xml-importer' ), 'prom_xml_importer_skip_price_3_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_url_4', __( 'URL XML файлу 4', 'prom-xml-importer' ), 'prom_xml_importer_url_4_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_sku_prefix_4', __( 'SKU Prefix 4', 'prom-xml-importer' ), 'prom_xml_importer_sku_prefix_4_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_skip_price_4', __( 'Не оновлювати ціну 4', 'prom-xml-importer' ), 'prom_xml_importer_skip_price_4_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_url_5', __( 'URL XML файлу 5', 'prom-xml-importer' ), 'prom_xml_importer_url_5_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_sku_prefix_5', __( 'SKU Prefix 5', 'prom-xml-importer' ), 'prom_xml_importer_sku_prefix_5_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_skip_price_5', __( 'Не оновлювати ціну 5', 'prom-xml-importer' ), 'prom_xml_importer_skip_price_5_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_update_interval', __( 'Інтервал оновлення', 'prom-xml-importer' ), 'prom_xml_importer_interval_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_hide_variable_low_instock', __( 'Variable-товари з малою наявністю', 'prom-xml-importer' ), 'prom_xml_importer_hide_variable_low_instock_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'prom_xml_variable_low_instock_max', __( 'Поріг варіацій в наявності', 'prom-xml-importer' ), 'prom_xml_importer_variable_low_instock_max_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'telegram_user_ids', __( 'Telegram User IDs', 'prom-xml-importer' ), 'prom_xml_importer_telegram_user_ids_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'telegram_token_id', __( 'Telegram Token ID', 'prom-xml-importer' ), 'prom_xml_importer_telegram_token_id_render', 'prom-xml-importer', 'prom_xml_importer_section' );
 }
 add_action( 'admin_init', 'prom_xml_importer_settings_init' );
 
 function prom_xml_importer_url_render() {
 	$url = get_option( 'prom_xml_url', '' );
 	?>
-	<input type="text" name="prom_xml_url" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products1.xml', 'xml-prom' ); ?>" style="width: 100%;">
+	<input type="text" name="prom_xml_url" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products1.xml', 'prom-xml-importer' ); ?>" style="width: 100%;">
 	<?php
 }
 
 function prom_xml_importer_sku_prefix_1_render() {
 	$prefix = get_option( 'prom_xml_sku_prefix_1', '' );
 	?>
-	<input type="text" name="prom_xml_sku_prefix_1" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML1_', 'xml-prom' ); ?>" style="width: 100%;">
-	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'xml-prom' ); ?></p>
+	<input type="text" name="prom_xml_sku_prefix_1" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML1_', 'prom-xml-importer' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'prom-xml-importer' ); ?></p>
 	<?php
 }
 
@@ -261,7 +261,7 @@ function prom_xml_importer_skip_price_1_render() {
 	?>
 	<label>
 		<input type="checkbox" name="prom_xml_skip_price_1" value="1" <?php checked( $val, '1' ); ?>>
-		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'xml-prom' ); ?>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'prom-xml-importer' ); ?>
 	</label>
 	<?php
 }
@@ -269,15 +269,15 @@ function prom_xml_importer_skip_price_1_render() {
 function prom_xml_importer_url_2_render() {
 	$url = get_option( 'prom_xml_url_2', '' );
 	?>
-	<input type="text" name="prom_xml_url_2" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products2.xml', 'xml-prom' ); ?>" style="width: 100%;">
+	<input type="text" name="prom_xml_url_2" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products2.xml', 'prom-xml-importer' ); ?>" style="width: 100%;">
 	<?php
 }
 
 function prom_xml_importer_sku_prefix_2_render() {
 	$prefix = get_option( 'prom_xml_sku_prefix_2', '' );
 	?>
-	<input type="text" name="prom_xml_sku_prefix_2" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML2_', 'xml-prom' ); ?>" style="width: 100%;">
-	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'xml-prom' ); ?></p>
+	<input type="text" name="prom_xml_sku_prefix_2" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML2_', 'prom-xml-importer' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'prom-xml-importer' ); ?></p>
 	<?php
 }
 
@@ -286,7 +286,7 @@ function prom_xml_importer_skip_price_2_render() {
 	?>
 	<label>
 		<input type="checkbox" name="prom_xml_skip_price_2" value="1" <?php checked( $val, '1' ); ?>>
-		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'xml-prom' ); ?>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'prom-xml-importer' ); ?>
 	</label>
 	<?php
 }
@@ -294,15 +294,15 @@ function prom_xml_importer_skip_price_2_render() {
 function prom_xml_importer_url_3_render() {
 	$url = get_option( 'prom_xml_url_3', '' );
 	?>
-	<input type="text" name="prom_xml_url_3" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products3.xml', 'xml-prom' ); ?>" style="width: 100%;">
+	<input type="text" name="prom_xml_url_3" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products3.xml', 'prom-xml-importer' ); ?>" style="width: 100%;">
 	<?php
 }
 
 function prom_xml_importer_sku_prefix_3_render() {
 	$prefix = get_option( 'prom_xml_sku_prefix_3', '' );
 	?>
-	<input type="text" name="prom_xml_sku_prefix_3" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML3_', 'xml-prom' ); ?>" style="width: 100%;">
-	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'xml-prom' ); ?></p>
+	<input type="text" name="prom_xml_sku_prefix_3" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML3_', 'prom-xml-importer' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'prom-xml-importer' ); ?></p>
 	<?php
 }
 
@@ -311,7 +311,7 @@ function prom_xml_importer_skip_price_3_render() {
 	?>
 	<label>
 		<input type="checkbox" name="prom_xml_skip_price_3" value="1" <?php checked( $val, '1' ); ?>>
-		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'xml-prom' ); ?>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'prom-xml-importer' ); ?>
 	</label>
 	<?php
 }
@@ -319,15 +319,15 @@ function prom_xml_importer_skip_price_3_render() {
 function prom_xml_importer_url_4_render() {
 	$url = get_option( 'prom_xml_url_4', '' );
 	?>
-	<input type="text" name="prom_xml_url_4" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products4.xml', 'xml-prom' ); ?>" style="width: 100%;">
+	<input type="text" name="prom_xml_url_4" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products4.xml', 'prom-xml-importer' ); ?>" style="width: 100%;">
 	<?php
 }
 
 function prom_xml_importer_sku_prefix_4_render() {
 	$prefix = get_option( 'prom_xml_sku_prefix_4', '' );
 	?>
-	<input type="text" name="prom_xml_sku_prefix_4" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML4_', 'xml-prom' ); ?>" style="width: 100%;">
-	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'xml-prom' ); ?></p>
+	<input type="text" name="prom_xml_sku_prefix_4" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML4_', 'prom-xml-importer' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'prom-xml-importer' ); ?></p>
 	<?php
 }
 
@@ -336,7 +336,7 @@ function prom_xml_importer_skip_price_4_render() {
 	?>
 	<label>
 		<input type="checkbox" name="prom_xml_skip_price_4" value="1" <?php checked( $val, '1' ); ?>>
-		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'xml-prom' ); ?>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'prom-xml-importer' ); ?>
 	</label>
 	<?php
 }
@@ -344,15 +344,15 @@ function prom_xml_importer_skip_price_4_render() {
 function prom_xml_importer_url_5_render() {
 	$url = get_option( 'prom_xml_url_5', '' );
 	?>
-	<input type="text" name="prom_xml_url_5" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products5.xml', 'xml-prom' ); ?>" style="width: 100%;">
+	<input type="text" name="prom_xml_url_5" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products5.xml', 'prom-xml-importer' ); ?>" style="width: 100%;">
 	<?php
 }
 
 function prom_xml_importer_sku_prefix_5_render() {
 	$prefix = get_option( 'prom_xml_sku_prefix_5', '' );
 	?>
-	<input type="text" name="prom_xml_sku_prefix_5" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML5_', 'xml-prom' ); ?>" style="width: 100%;">
-	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'xml-prom' ); ?></p>
+	<input type="text" name="prom_xml_sku_prefix_5" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML5_', 'prom-xml-importer' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'prom-xml-importer' ); ?></p>
 	<?php
 }
 
@@ -361,7 +361,7 @@ function prom_xml_importer_skip_price_5_render() {
 	?>
 	<label>
 		<input type="checkbox" name="prom_xml_skip_price_5" value="1" <?php checked( $val, '1' ); ?>>
-		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'xml-prom' ); ?>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'prom-xml-importer' ); ?>
 	</label>
 	<?php
 }
@@ -370,10 +370,10 @@ function prom_xml_importer_interval_render() {
 	$interval = get_option( 'prom_xml_update_interval', 'hourly' );
 	?>
 	<select name="prom_xml_update_interval">
-		<option value="5_minute" <?php selected( $interval, '5_minute' ); ?>><?php esc_html_e( 'Що 5 хв', 'xml-prom' ); ?></option>
-		<option value="hourly" <?php selected( $interval, 'hourly' ); ?>><?php esc_html_e( 'Щогодини', 'xml-prom' ); ?></option>
-		<option value="twicedaily" <?php selected( $interval, 'twicedaily' ); ?>><?php esc_html_e( 'Двічі на день', 'xml-prom' ); ?></option>
-		<option value="daily" <?php selected( $interval, 'daily' ); ?>><?php esc_html_e( 'Щодня', 'xml-prom' ); ?></option>
+		<option value="5_minute" <?php selected( $interval, '5_minute' ); ?>><?php esc_html_e( 'Що 5 хв', 'prom-xml-importer' ); ?></option>
+		<option value="hourly" <?php selected( $interval, 'hourly' ); ?>><?php esc_html_e( 'Щогодини', 'prom-xml-importer' ); ?></option>
+		<option value="twicedaily" <?php selected( $interval, 'twicedaily' ); ?>><?php esc_html_e( 'Двічі на день', 'prom-xml-importer' ); ?></option>
+		<option value="daily" <?php selected( $interval, 'daily' ); ?>><?php esc_html_e( 'Щодня', 'prom-xml-importer' ); ?></option>
 	</select>
 	<?php
 }
@@ -384,9 +384,9 @@ function prom_xml_importer_hide_variable_low_instock_render() {
 	<input type="hidden" name="prom_xml_hide_variable_low_instock" value="0">
 	<label>
 		<input type="checkbox" name="prom_xml_hide_variable_low_instock" value="1" <?php checked( $val, '1' ); ?>>
-		<?php esc_html_e( 'Після оновлення ставити variable-товари в «немає в наявності», якщо варіацій в наявності недостатньо', 'xml-prom' ); ?>
+		<?php esc_html_e( 'Після оновлення ставити variable-товари в «немає в наявності», якщо варіацій в наявності недостатньо', 'prom-xml-importer' ); ?>
 	</label>
-	<p class="description"><?php esc_html_e( 'Застосовується після завершення stock update.', 'xml-prom' ); ?></p>
+	<p class="description"><?php esc_html_e( 'Застосовується після завершення stock update.', 'prom-xml-importer' ); ?></p>
 	<?php
 }
 
@@ -394,23 +394,23 @@ function prom_xml_importer_variable_low_instock_max_render() {
 	$max = get_option( 'prom_xml_variable_low_instock_max', 2 );
 	?>
 	<input type="number" name="prom_xml_variable_low_instock_max" value="<?php echo esc_attr( $max ); ?>" min="0" step="1" style="width: 80px;">
-	<p class="description"><?php esc_html_e( 'Максимальна кількість варіацій «в наявності» (включно), при якій батьківський товар буде позначено як «немає в наявності». За замовчуванням: 2.', 'xml-prom' ); ?></p>
+	<p class="description"><?php esc_html_e( 'Максимальна кількість варіацій «в наявності» (включно), при якій батьківський товар буде позначено як «немає в наявності». За замовчуванням: 2.', 'prom-xml-importer' ); ?></p>
 	<?php
 }
 
 function prom_xml_importer_telegram_user_ids_render() {
 	$user_ids = get_option( 'telegram_user_ids', '' );
 	?>
-	<input type="text" name="telegram_user_ids" value="<?php echo esc_attr( $user_ids ); ?>" placeholder="<?php esc_attr_e( '123456789, 987654321', 'xml-prom' ); ?>" style="width: 100%;">
-	<p class="description"><?php esc_html_e( 'Введіть Telegram User IDs, розділені комою.', 'xml-prom' ); ?></p>
+	<input type="text" name="telegram_user_ids" value="<?php echo esc_attr( $user_ids ); ?>" placeholder="<?php esc_attr_e( '123456789, 987654321', 'prom-xml-importer' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'Введіть Telegram User IDs, розділені комою.', 'prom-xml-importer' ); ?></p>
 	<?php
 }
 
 function prom_xml_importer_telegram_token_id_render() {
 	$token_id = get_option( 'telegram_token_id', '' );
 	?>
-	<input type="text" name="telegram_token_id" value="<?php echo esc_attr( $token_id ); ?>" placeholder="<?php esc_attr_e( '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz', 'xml-prom' ); ?>" style="width: 100%;">
-	<p class="description"><?php esc_html_e( 'Введіть токен вашого Telegram бота.', 'xml-prom' ); ?></p>
+	<input type="text" name="telegram_token_id" value="<?php echo esc_attr( $token_id ); ?>" placeholder="<?php esc_attr_e( '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz', 'prom-xml-importer' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'Введіть токен вашого Telegram бота.', 'prom-xml-importer' ); ?></p>
 	<?php
 }
 
@@ -631,7 +631,7 @@ function prom_xml_importer_handle_action() {
 					add_settings_error(
 						'prom_xml_importer_settings',
 						'background_sync_started',
-						__( 'Stock update has been scheduled to run in the background.', 'xml-prom' ),
+						__( 'Stock update has been scheduled to run in the background.', 'prom-xml-importer' ),
 						'updated'
 					);
 				}
@@ -670,14 +670,14 @@ function prom_xml_importer_handle_action() {
 						add_settings_error(
 							'prom_xml_importer_settings',
 							'settings_updated',
-							sprintf( __( 'Stock update completed successfully for %1$d out of %2$d XML files.', 'xml-prom' ), $success_count, $total_count ),
+							sprintf( __( 'Stock update completed successfully for %1$d out of %2$d XML files.', 'prom-xml-importer' ), $success_count, $total_count ),
 							'updated'
 						);
 					} else {
 						add_settings_error(
 							'prom_xml_importer_settings',
 							'update_error',
-							__( 'Failed to update stock for all XML files.', 'xml-prom' ),
+							__( 'Failed to update stock for all XML files.', 'prom-xml-importer' ),
 							'error'
 						);
 					}
@@ -685,7 +685,7 @@ function prom_xml_importer_handle_action() {
 					add_settings_error(
 						'prom_xml_importer_settings',
 						'update_error',
-						__( 'Error updating stock: ', 'xml-prom' ) . $e->getMessage(),
+						__( 'Error updating stock: ', 'prom-xml-importer' ) . $e->getMessage(),
 						'error'
 					);
 				}
@@ -696,7 +696,7 @@ function prom_xml_importer_handle_action() {
 			add_settings_error(
 				'prom_xml_importer_settings',
 				'missing_url',
-				__( 'Please configure at least one XML URL first.', 'xml-prom' ),
+				__( 'Please configure at least one XML URL first.', 'prom-xml-importer' ),
 				'error'
 			);
 		}
@@ -709,7 +709,7 @@ function prom_xml_importer_handle_action() {
 		add_settings_error(
 			'prom_xml_importer_settings',
 			'settings_updated',
-			__( 'Cron jobs stopped.', 'xml-prom' ),
+			__( 'Cron jobs stopped.', 'prom-xml-importer' ),
 			'updated'
 		);
 	}
@@ -795,7 +795,7 @@ function prom_xml_importer_export_page() {
 	?>
 	
 	<div class="wrap">
-		<h1><?php esc_html_e( 'Налаштування вигрузки', 'xml-prom' ); ?></h1>
+		<h1><?php esc_html_e( 'Налаштування вигрузки', 'prom-xml-importer' ); ?></h1>
 		
 		<?php settings_errors( 'prom_xml_export' ); ?>
 		
@@ -809,7 +809,7 @@ function prom_xml_importer_export_page() {
 				<table class="form-table">
 					<tr>
 						<th scope="row">
-							<label for="xml_file"><?php esc_html_e( 'XML файл', 'xml-prom' ); ?></label>
+							<label for="xml_file"><?php esc_html_e( 'XML файл', 'prom-xml-importer' ); ?></label>
 						</th>
 						<td>
 							<input type="file" 
@@ -817,12 +817,12 @@ function prom_xml_importer_export_page() {
 								   name="xml_file" 
 								   accept=".xml" 
 								   required />
-							<p class="description"><?php esc_html_e( 'Завантажте XML файл з товарами', 'xml-prom' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Завантажте XML файл з товарами', 'prom-xml-importer' ); ?></p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="sku_prefix"><?php esc_html_e( 'SKU префікс', 'xml-prom' ); ?></label>
+							<label for="sku_prefix"><?php esc_html_e( 'SKU префікс', 'prom-xml-importer' ); ?></label>
 						</th>
 						<td>
 							<input type="text" 
@@ -831,12 +831,12 @@ function prom_xml_importer_export_page() {
 								   value="<?php echo esc_attr( $current_sku_prefix ); ?>" 
 								   class="regular-text" 
 								   placeholder="NEW_" />
-							<p class="description"><?php esc_html_e( 'Префікс SKU товарів на сайті (наприклад: NEW_)', 'xml-prom' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Префікс SKU товарів на сайті (наприклад: NEW_)', 'prom-xml-importer' ); ?></p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="min_price"><?php esc_html_e( 'Мінімальна ціна', 'xml-prom' ); ?></label>
+							<label for="min_price"><?php esc_html_e( 'Мінімальна ціна', 'prom-xml-importer' ); ?></label>
 						</th>
 						<td>
 							<input type="number" 
@@ -847,7 +847,7 @@ function prom_xml_importer_export_page() {
 								   step="0.01" 
 								   min="0" 
 								   placeholder="0.00" />
-							<p class="description"><?php esc_html_e( 'Мінімальна ціна товару для включення в вигрузку (залиште порожнім, щоб не фільтрувати за ціною)', 'xml-prom' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Мінімальна ціна товару для включення в вигрузку (залиште порожнім, щоб не фільтрувати за ціною)', 'prom-xml-importer' ); ?></p>
 						</td>
 					</tr>
 				</table>
@@ -856,7 +856,7 @@ function prom_xml_importer_export_page() {
 					<input type="submit" 
 						   name="create_filtered_xml" 
 						   class="button button-primary" 
-						   value="<?php esc_attr_e( 'Створити очищений XML', 'xml-prom' ); ?>" />
+						   value="<?php esc_attr_e( 'Створити очищений XML', 'prom-xml-importer' ); ?>" />
 				</p>
 			</form>
 		</div>

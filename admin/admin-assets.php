@@ -23,30 +23,30 @@ function prom_xml_importer_get_admin_page_slug() {
  */
 function prom_xml_importer_get_import_i18n() {
 	return array(
-		'selectFile'           => __( 'Будь ласка, виберіть XML файл.', 'xml-prom' ),
-		'enterSkuPrefix'       => __( 'Будь ласка, введіть SKU Prefix.', 'xml-prom' ),
-		'analyzing'            => __( 'Аналіз XML файлу...', 'xml-prom' ),
-		'analysisDone'         => __( 'Аналіз завершено! Знайдено груп:', 'xml-prom' ),
-		'analysisError'        => __( 'Помилка при аналізі XML.', 'xml-prom' ),
-		'groupId'              => __( 'Group ID:', 'xml-prom' ),
-		'variationsInXml'      => __( 'Варіацій в XML:', 'xml-prom' ),
-		'selectAttributes'     => __( 'Виберіть варіаційні атрибути:', 'xml-prom' ),
-		'attributesHint'       => __( 'Примітка: Можна вибрати тільки атрибути що варіюються (мають різні значення між варіаціями)', 'xml-prom' ),
-		'noAttributes'         => __( 'Немає атрибутів що відрізняються', 'xml-prom' ),
-		'variationsWillCreate' => __( 'Буде створено варіацій:', 'xml-prom' ),
-		'variationsWarning'    => __( 'Увага: вибрані атрибути не варіюються - буде створено 1 варіацію', 'xml-prom' ),
-		'enterSkuBeforeImport' => __( 'Будь ласка, введіть SKU Prefix перед початком імпорту.', 'xml-prom' ),
-		'importStopped'        => __( 'Імпорт зупинено.', 'xml-prom' ),
-		'productsImported'       => __( 'товарів імпортовано', 'xml-prom' ),
-		'importFinished'       => __( 'Імпорт завершено!', 'xml-prom' ),
-		'errorPrefix'          => __( 'Помилка:', 'xml-prom' ),
-		'importFailed'         => __( 'Сталася помилка під час імпорту.', 'xml-prom' ),
-		'selectAttributeGroup' => __( 'Будь ласка, виберіть хоча б один атрибут для кожної групи товарів.', 'xml-prom' ),
-		'importedLabel'        => __( 'Імпортовано:', 'xml-prom' ),
-		'importFinishedCount'  => __( 'Імпорт завершено! Імпортовано:', 'xml-prom' ),
-		'productsLabel'        => __( 'товарів', 'xml-prom' ),
-		'varyingYes'           => __( 'варіюється', 'xml-prom' ),
-		'varyingNo'            => __( 'не варіюється', 'xml-prom' ),
+		'selectFile'           => __( 'Будь ласка, виберіть XML файл.', 'prom-xml-importer' ),
+		'enterSkuPrefix'       => __( 'Будь ласка, введіть SKU Prefix.', 'prom-xml-importer' ),
+		'analyzing'            => __( 'Аналіз XML файлу...', 'prom-xml-importer' ),
+		'analysisDone'         => __( 'Аналіз завершено! Знайдено груп:', 'prom-xml-importer' ),
+		'analysisError'        => __( 'Помилка при аналізі XML.', 'prom-xml-importer' ),
+		'groupId'              => __( 'Group ID:', 'prom-xml-importer' ),
+		'variationsInXml'      => __( 'Варіацій в XML:', 'prom-xml-importer' ),
+		'selectAttributes'     => __( 'Виберіть варіаційні атрибути:', 'prom-xml-importer' ),
+		'attributesHint'       => __( 'Примітка: Можна вибрати тільки атрибути що варіюються (мають різні значення між варіаціями)', 'prom-xml-importer' ),
+		'noAttributes'         => __( 'Немає атрибутів що відрізняються', 'prom-xml-importer' ),
+		'variationsWillCreate' => __( 'Буде створено варіацій:', 'prom-xml-importer' ),
+		'variationsWarning'    => __( 'Увага: вибрані атрибути не варіюються - буде створено 1 варіацію', 'prom-xml-importer' ),
+		'enterSkuBeforeImport' => __( 'Будь ласка, введіть SKU Prefix перед початком імпорту.', 'prom-xml-importer' ),
+		'importStopped'        => __( 'Імпорт зупинено.', 'prom-xml-importer' ),
+		'productsImported'       => __( 'товарів імпортовано', 'prom-xml-importer' ),
+		'importFinished'       => __( 'Імпорт завершено!', 'prom-xml-importer' ),
+		'errorPrefix'          => __( 'Помилка:', 'prom-xml-importer' ),
+		'importFailed'         => __( 'Сталася помилка під час імпорту.', 'prom-xml-importer' ),
+		'selectAttributeGroup' => __( 'Будь ласка, виберіть хоча б один атрибут для кожної групи товарів.', 'prom-xml-importer' ),
+		'importedLabel'        => __( 'Імпортовано:', 'prom-xml-importer' ),
+		'importFinishedCount'  => __( 'Імпорт завершено! Імпортовано:', 'prom-xml-importer' ),
+		'productsLabel'        => __( 'товарів', 'prom-xml-importer' ),
+		'varyingYes'           => __( 'варіюється', 'prom-xml-importer' ),
+		'varyingNo'            => __( 'не варіюється', 'prom-xml-importer' ),
 	);
 }
 
@@ -85,7 +85,7 @@ function prom_xml_importer_enqueue_admin_assets( $_hook_suffix ) {
 		'promXmlSupport',
 		array(
 			'cardNumber'  => '4874100038712884',
-			'copiedLabel' => __( 'Скопійовано', 'xml-prom' ),
+			'copiedLabel' => __( 'Скопійовано', 'prom-xml-importer' ),
 		)
 	);
 

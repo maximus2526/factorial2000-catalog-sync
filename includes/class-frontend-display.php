@@ -47,7 +47,7 @@ class Frontend_Display {
 			'prom-xml-frontend-vendor',
 			'promXmlVendor',
 			array(
-				'copiedLabel' => __( '✓ Скопійовано!', 'xml-prom' ),
+				'copiedLabel' => __( '✓ Скопійовано!', 'prom-xml-importer' ),
 			)
 		);
 	}
@@ -115,7 +115,7 @@ class Frontend_Display {
 			}
 
 			$variations_with_vendor[] = array(
-				'attributes'  => __( 'Only parent product without variations', 'xml-prom' ),
+				'attributes'  => __( 'Only parent product without variations', 'prom-xml-importer' ),
 				'vendor_code' => $parent_vendor,
 			);
 		}
@@ -124,7 +124,7 @@ class Frontend_Display {
 		<div class="prom-vendor-code-footer prom-vendor-code-footer--variable">
 			<div class="prom-vendor-code-footer__inner">
 				<h4 class="prom-vendor-code-footer__title">
-					<?php esc_html_e( 'Інформація для менеджерів (vendorCode) - клікніть для копіювання', 'xml-prom' ); ?>
+					<?php esc_html_e( 'Інформація для менеджерів (vendorCode) - клікніть для копіювання', 'prom-xml-importer' ); ?>
 				</h4>
 				<div class="prom-vendor-code-footer__list">
 					<?php foreach ( $variations_with_vendor as $variation_info ) : ?>
@@ -133,7 +133,7 @@ class Frontend_Display {
 							<span
 								class="vendor-code-copy vendor-code-copy--variation"
 								data-code="<?php echo esc_attr( $variation_info['vendor_code'] ); ?>"
-								title="<?php esc_attr_e( 'Клікніть для копіювання', 'xml-prom' ); ?>"
+								title="<?php esc_attr_e( 'Клікніть для копіювання', 'prom-xml-importer' ); ?>"
 							>
 								<?php echo esc_html( $variation_info['vendor_code'] ); ?>
 							</span>
@@ -161,12 +161,12 @@ class Frontend_Display {
 		<div class="prom-vendor-code-footer prom-vendor-code-footer--simple">
 			<div class="prom-vendor-code-footer__inner prom-vendor-code-footer__inner--simple">
 				<strong class="prom-vendor-code-footer__title prom-vendor-code-footer__title--simple">
-					<?php esc_html_e( 'Інформація для менеджерів - клікніть для копіювання', 'xml-prom' ); ?>
+					<?php esc_html_e( 'Інформація для менеджерів - клікніть для копіювання', 'prom-xml-importer' ); ?>
 				</strong>
 				<span
 					class="vendor-code-copy vendor-code-copy--simple"
 					data-code="<?php echo esc_attr( $vendor_code ); ?>"
-					title="<?php esc_attr_e( 'Клікніть для копіювання', 'xml-prom' ); ?>"
+					title="<?php esc_attr_e( 'Клікніть для копіювання', 'prom-xml-importer' ); ?>"
 				>
 					<?php echo esc_html( 'Vendor Code: ' . $vendor_code ); ?>
 				</span>

@@ -47,27 +47,27 @@ class Cron_Job {
 	public static function add_custom_cron_schedule( $schedules ) {
 		$schedules['5_minute'] = array(
 			'interval' => 300,
-			'display'  => __( 'Every 5 Minutes', 'xml-prom' ),
+			'display'  => __( 'Every 5 Minutes', 'prom-xml-importer' ),
 		);
 
 		if ( ! isset( $schedules['hourly'] ) ) {
 			$schedules['hourly'] = array(
 				'interval' => 3600,
-				'display'  => __( 'Every Hour', 'xml-prom' ),
+				'display'  => __( 'Every Hour', 'prom-xml-importer' ),
 			);
 		}
 
 		if ( ! isset( $schedules['twicedaily'] ) ) {
 			$schedules['twicedaily'] = array(
 				'interval' => 43200,
-				'display'  => __( 'Twice Daily', 'xml-prom' ),
+				'display'  => __( 'Twice Daily', 'prom-xml-importer' ),
 			);
 		}
 
 		if ( ! isset( $schedules['daily'] ) ) {
 			$schedules['daily'] = array(
 				'interval' => 86400,
-				'display'  => __( 'Once Daily', 'xml-prom' ),
+				'display'  => __( 'Once Daily', 'prom-xml-importer' ),
 			);
 		}
 

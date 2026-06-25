@@ -44,7 +44,7 @@ function prom_xml_importer_init() {
 		return;
 	}
 
-	load_plugin_textdomain( 'xml-prom', false, PROM_XML_IMPORTER_BASENAME . '/languages' );
+	load_plugin_textdomain( 'prom-xml-importer', false, PROM_XML_IMPORTER_BASENAME . '/languages' );
 
 	add_action( Cron_Job::CRON_HOOK, array( 'Cron_Job', 'update_stock' ) );
 
@@ -67,7 +67,7 @@ function prom_xml_importer_woocommerce_missing_notice() {
 
 	echo '<div class="notice notice-error"><p>';
 	echo '<strong>Prom XML Importer:</strong> ';
-	echo esc_html__( 'This plugin requires WooCommerce to be installed and active.', 'xml-prom' );
+	echo esc_html__( 'This plugin requires WooCommerce to be installed and active.', 'prom-xml-importer' );
 	echo '</p></div>';
 }
 
@@ -90,7 +90,7 @@ function prom_xml_importer_activate() {
 function prom_xml_importer_check_resources() {
 	if ( get_transient( 'prom_xml_importer_activated' ) ) {
 		echo '<div class="notice notice-success is-dismissible">';
-		echo '<p><strong>Prom XML Importer:</strong> ' . esc_html__( 'Plugin has been activated. Please configure settings to start updating stock status.', 'xml-prom' ) . '</p>';
+		echo '<p><strong>Prom XML Importer:</strong> ' . esc_html__( 'Plugin has been activated. Please configure settings to start updating stock status.', 'prom-xml-importer' ) . '</p>';
 		echo '</div>';
 		delete_transient( 'prom_xml_importer_activated' );
 	}
@@ -102,7 +102,7 @@ function prom_xml_importer_check_resources() {
 
 	if ( ! prom_is_configured() && isset( $_GET['page'] ) && $_GET['page'] === 'prom-xml-importer-update' ) {
 		echo '<div class="notice notice-warning">';
-		echo '<p><strong>Prom XML Importer:</strong> ' . esc_html__( 'Please configure an XML URL to start updating stock status.', 'xml-prom' ) . '</p>';
+		echo '<p><strong>Prom XML Importer:</strong> ' . esc_html__( 'Please configure an XML URL to start updating stock status.', 'prom-xml-importer' ) . '</p>';
 		echo '</div>';
 	}
 }
@@ -131,7 +131,7 @@ function prom_xml_importer_check_requirements() {
 			function () use ( $missing ) {
 				echo '<div class="notice notice-error">';
 				echo '<p><strong>Prom XML Importer:</strong> ' .
-				esc_html__( 'The following PHP extensions are required: ', 'xml-prom' ) .
+				esc_html__( 'The following PHP extensions are required: ', 'prom-xml-importer' ) .
 				implode( ', ', $missing ) . '</p>';
 				echo '</div>';
 			}
