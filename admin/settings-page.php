@@ -44,7 +44,7 @@ function prom_xml_importer_update_page() {
 			<?php
 			settings_fields( 'prom_xml_importer_settings' );
 			do_settings_sections( 'prom-xml-importer' );
-			submit_button( 'Save Settings' );
+			submit_button( 'Зберегти налаштування' );
 			?>
 		</form>
 		
@@ -58,12 +58,12 @@ function prom_xml_importer_update_page() {
 					<td>
 						<label>
 							<input type="radio" name="use_background" value="yes" checked>
-							<?php esc_html_e( 'Run in background (recommended for large XML files)', 'xml-prom' ); ?>
+							<?php esc_html_e( 'Запустити у фоновому режимі', 'xml-prom' ); ?>
 						</label>
 						<br>
 						<label>
 							<input type="radio" name="use_background" value="no">
-							<?php esc_html_e( 'Run immediately', 'xml-prom' ); ?>
+							<?php esc_html_e( 'Запустити відразу', 'xml-prom' ); ?>
 						</label>
 					</td>
 				</tr>
@@ -792,7 +792,7 @@ function prom_xml_importer_hide_variable_low_instock_render() {
 		<input type="checkbox" name="prom_xml_hide_variable_low_instock" value="1" <?php checked( $val, '1' ); ?>>
 		<?php esc_html_e( 'Після оновлення ставити variable-товари в «немає в наявності», якщо варіацій в наявності недостатньо', 'xml-prom' ); ?>
 	</label>
-	<p class="description"><?php esc_html_e( 'Застосовується після завершення stock update. Варіації не змінюються — лише статус батьківського товару.', 'xml-prom' ); ?></p>
+	<p class="description"><?php esc_html_e( 'Застосовується після завершення stock update.', 'xml-prom' ); ?></p>
 	<?php
 }
 
