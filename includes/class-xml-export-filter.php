@@ -136,7 +136,6 @@ class XML_Export_Filter {
 	private function add_variable_product_group_ids(): void {
 		global $wpdb;
 
-		// Get parent variable products with group_id in meta
 		$sql = "SELECT pm.meta_value AS group_id
 			FROM {$wpdb->posts} p
 			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
@@ -148,7 +147,6 @@ class XML_Export_Filter {
 
 		$group_ids = $wpdb->get_col( $sql );
 		
-		// Add group IDs to site SKUs
 		foreach ( $group_ids as $group_id ) {
 			$original_group_id = ! empty( $this->sku_prefix ) ? substr( $group_id, strlen( $this->sku_prefix ) ) : $group_id;
 			$this->site_skus[] = $original_group_id;
@@ -161,7 +159,6 @@ class XML_Export_Filter {
 	 * @return string|false XML content or false on failure.
 	 */
 	private function fetch_xml_content() {
-		// Check if it's a local file path
 		if ( file_exists( $this->xml_url ) ) {
 			$content = file_get_contents( $this->xml_url );
 			if ( $content !== false ) {
@@ -169,7 +166,6 @@ class XML_Export_Filter {
 			}
 		}
 
-		// If it's a URL, try to fetch it
 		if ( filter_var( $this->xml_url, FILTER_VALIDATE_URL ) ) {
 			// Try to open directly first
 			$context = stream_context_create( array(
@@ -208,7 +204,6 @@ class XML_Export_Filter {
 	 * @return string Filtered XML content.
 	 */
 	private function filter_xml_content( string $xml_content ): string {
-		// Parse XML
 		$xml = simplexml_load_string( $xml_content );
 		if ( ! $xml ) {
 			throw new Exception( 'Не вдалося розпарсити XML файл.' );
@@ -220,7 +215,6 @@ class XML_Export_Filter {
 		// Store original offers data in array to avoid iteration issues
 		$offers_to_process = array();
 		foreach ( $xml->shop->offers->offer as $offer ) {
-			// Store all child elements data
 			$children_data = array();
 			foreach ( $offer->children() as $child ) {
 				$children_data[] = array(
@@ -230,12 +224,10 @@ class XML_Export_Filter {
 					'children' => array()
 				);
 				
-				// Store attributes
 				foreach ( $child->attributes() as $attr_name => $attr_value ) {
 					$children_data[count($children_data)-1]['attributes'][$attr_name] = (string) $attr_value;
 				}
 				
-				// Store nested children
 				foreach ( $child->children() as $grandchild ) {
 					$children_data[count($children_data)-1]['children'][] = array(
 						'name' => $grandchild->getName(),
@@ -243,7 +235,6 @@ class XML_Export_Filter {
 						'attributes' => array()
 					);
 					
-					// Store grandchild attributes
 					foreach ( $grandchild->attributes() as $attr_name => $attr_value ) {
 						$children_data[count($children_data)-1]['children'][count($children_data[count($children_data)-1]['children'])-1]['attributes'][$attr_name] = (string) $attr_value;
 					}
@@ -262,15 +253,12 @@ class XML_Export_Filter {
 		// Clear existing offers
 		unset( $xml->shop->offers->offer );
 
-		// Process each offer
 		foreach ( $offers_to_process as $offer_data ) {
 			$offer_id = $offer_data['id'];
 			$group_id = $offer_data['group_id'];
 
-			// Check if this offer should be removed
 			$should_remove = false;
 
-			// Check by offer ID
 			if ( in_array( $offer_id, $this->site_skus, true ) ) {
 				$should_remove = true;
 			}
@@ -288,9 +276,7 @@ class XML_Export_Filter {
 				}
 			}
 
-			// Add offer to new container only if it should NOT be removed
 			if ( ! $should_remove ) {
-				// Clone the offer to the new container
 				$new_offer = $xml->shop->offers->addChild( 'offer' );
 				$new_offer->addAttribute( 'id', $offer_id );
 				if ( ! empty( $group_id ) ) {
@@ -300,7 +286,6 @@ class XML_Export_Filter {
 					$new_offer->addAttribute( 'available', $offer_data['available'] );
 				}
 				
-				// Copy all child elements from stored data
 				foreach ( $offer_data['children'] as $child_data ) {
 					$this->copy_xml_element_from_data( $child_data, $new_offer );
 				}
@@ -311,7 +296,6 @@ class XML_Export_Filter {
 
 		$this->removed_count = $removed_count;
 
-		// Log basic statistics only
 		$remaining_count = $total_offers - $removed_count;
 
 		return $xml->asXML();
@@ -324,7 +308,6 @@ class XML_Export_Filter {
 	 * @return float Offer price or 0 if not found.
 	 */
 	private function get_offer_price( array $offer_data ): float {
-		// Look for price in children data
 		foreach ( $offer_data['children'] as $child_data ) {
 			if ( $child_data['name'] === 'price' ) {
 				return floatval( $child_data['value'] );
@@ -343,12 +326,10 @@ class XML_Export_Filter {
 	private function copy_xml_element( SimpleXMLElement $source, SimpleXMLElement $target ): void {
 		$new_element = $target->addChild( $source->getName(), htmlspecialchars( (string) $source ) );
 		
-		// Copy attributes
 		foreach ( $source->attributes() as $name => $value ) {
 			$new_element->addAttribute( $name, (string) $value );
 		}
 		
-		// Copy children
 		foreach ( $source->children() as $child ) {
 			$this->copy_xml_element( $child, $new_element );
 		}
@@ -364,12 +345,10 @@ class XML_Export_Filter {
 	private function copy_xml_element_from_data( array $element_data, SimpleXMLElement $target ): void {
 		$new_element = $target->addChild( $element_data['name'], htmlspecialchars( $element_data['value'] ) );
 		
-		// Copy attributes
 		foreach ( $element_data['attributes'] as $name => $value ) {
 			$new_element->addAttribute( $name, $value );
 		}
 		
-		// Copy children
 		foreach ( $element_data['children'] as $child_data ) {
 			$this->copy_xml_element_from_data( $child_data, $new_element );
 		}
@@ -385,16 +364,13 @@ class XML_Export_Filter {
 		$upload_dir = wp_upload_dir();
 		$export_dir = $upload_dir['basedir'] . '/prom-xml-exports';
 		
-		// Create directory if it doesn't exist
 		if ( ! file_exists( $export_dir ) ) {
 			wp_mkdir_p( $export_dir );
 		}
 
-		// Generate unique filename
 		$filename = 'filtered-xml-' . date( 'Y-m-d-H-i-s' ) . '.xml';
 		$file_path = $export_dir . '/' . $filename;
 
-		// Save file
 		$result = file_put_contents( $file_path, $filtered_content );
 		
 		if ( $result === false ) {
@@ -433,7 +409,6 @@ class XML_Export_Filter {
 			basename( $this->filtered_xml_path )
 		);
 
-		// Send to Telegram if configured
 		$telegram_token = get_option( 'telegram_token_id', '' );
 		$telegram_users = get_option( 'telegram_user_ids', '' );
 		
@@ -450,7 +425,6 @@ class XML_Export_Filter {
 			}
 		}
 
-		// Log to WordPress (only if there were items removed)
 		if ( $this->removed_count > 0 ) {
 			prom_log( $message );
 		}

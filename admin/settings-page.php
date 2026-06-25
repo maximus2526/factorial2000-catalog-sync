@@ -76,7 +76,6 @@ function prom_xml_importer_update_page() {
 		</form>
 		
 		<?php
-		// Display cron status
 		$next_run   = wp_next_scheduled( 'prom_update_stock_cron' );
 		$interval   = get_option( 'prom_xml_update_interval', 'hourly' );
 		$bg_pending = wp_next_scheduled( 'prom_single_update_event' );
@@ -98,8 +97,6 @@ function prom_xml_importer_update_page() {
 		}
 
 		echo '</div>';
-
-		// Add some basic styling
 		?>
 		<style>
 			.prom-xml-status {
@@ -424,7 +421,6 @@ function prom_xml_importer_import_page() {
 			}
 
 			$('#start-import').on('click', function() {
-				// Check if SKU prefix is provided
 				var skuPrefix = $('#import_sku_prefix').val().trim();
 				if (!skuPrefix) {
 					alert('<?php esc_html_e( 'Будь ласка, введіть SKU Prefix перед початком імпорту.', 'xml-prom' ); ?>');
@@ -840,7 +836,6 @@ function prom_xml_importer_handle_import_action() {
 		$import_variations = isset( $_POST['import_variations'] ) && $_POST['import_variations'] === '1';
 		$sku_prefix        = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( $_POST['sku_prefix'] ) : '';
 
-		// Get selected attributes for manual mode
 		$selected_attributes = array();
 		if ( isset( $_POST['selected_attributes'] ) ) {
 			$decoded = json_decode( stripslashes( $_POST['selected_attributes'] ), true );
@@ -848,8 +843,6 @@ function prom_xml_importer_handle_import_action() {
 				$selected_attributes = $decoded;
 			}
 		}
-
-		// Setting import variations and attributes
 
 		// Set temporary options for this import session
 		set_transient( 'prom_xml_import_variations_temp', $import_variations ? '1' : '0', HOUR_IN_SECONDS );
@@ -859,7 +852,6 @@ function prom_xml_importer_handle_import_action() {
 		try {
 			$result = $xml_parser->import_products( $offset, 1 );
 			
-			// Clear transients if import is finished
 			if ( $result['finished'] ) {
 				delete_transient( 'prom_xml_import_variations_temp' );
 				delete_transient( 'prom_xml_selected_attributes_temp' );
@@ -937,7 +929,6 @@ function prom_xml_analyze_variable_groups( string $file_path ): array {
 
 		$group_id = (string) $offer['group_id'];
 
-		// Extract offer data
 		$offer_data = array(
 			'id'     => (string) $offer['id'],
 			'name'   => (string) $offer->name,
@@ -945,7 +936,6 @@ function prom_xml_analyze_variable_groups( string $file_path ): array {
 			'attributes' => array(),
 		);
 
-		// Extract all attributes
 		if ( isset( $offer->param ) ) {
 			foreach ( $offer->param as $param ) {
 				$attr_name  = (string) $param['name'];
@@ -956,7 +946,6 @@ function prom_xml_analyze_variable_groups( string $file_path ): array {
 			}
 		}
 
-		// Add to group
 		if ( ! isset( $groups[ $group_id ] ) ) {
 			$groups[ $group_id ] = array(
 				'name'              => $offer_data['name'],
@@ -970,7 +959,6 @@ function prom_xml_analyze_variable_groups( string $file_path ): array {
 		$groups[ $group_id ]['variations'][] = $offer_data;
 		$groups[ $group_id ]['variations_count']++;
 
-		// Collect all attributes from all variations
 		foreach ( $offer_data['attributes'] as $attr_name => $attr_value ) {
 			if ( ! isset( $groups[ $group_id ]['all_attributes'][ $attr_name ] ) ) {
 				$groups[ $group_id ]['all_attributes'][ $attr_name ] = array();
@@ -983,7 +971,6 @@ function prom_xml_analyze_variable_groups( string $file_path ): array {
 
 	$reader->close();
 
-	// Filter attributes - only those that vary between products
 	foreach ( $groups as $group_id => &$group ) {
 		$varying_attributes = array();
 
@@ -999,8 +986,6 @@ function prom_xml_analyze_variable_groups( string $file_path ): array {
 			);
 		}
 
-		// Group attributes processed
-
 		$group['attributes'] = $varying_attributes;
 		unset( $group['all_attributes'] ); // Видаляємо тимчасові дані
 		unset( $group['variations'] ); // Не передаємо всі варіації на фронтенд
@@ -1011,12 +996,8 @@ function prom_xml_analyze_variable_groups( string $file_path ): array {
 	foreach ( $groups as $group_id => $group ) {
 		if ( $group['variations_count'] >= 2 ) {
 			$filtered_groups[ $group_id ] = $group;
-		} else {
-			// Skipping group with only 1 variation
 		}
 	}
-	
-	// Filtered groups with 2+ variations
 
 	return $filtered_groups;
 }
@@ -1032,7 +1013,6 @@ function prom_xml_importer_handle_action() {
 	}
 
 	if ( isset( $_POST['run_script'] ) ) {
-		// Get all configured XML URLs
 		$xml_urls = array();
 		for ( $i = 1; $i <= 5; $i++ ) {
 			$url = get_option( 'prom_xml_url' . ( $i === 1 ? '' : '_' . $i ), '' );
@@ -1042,11 +1022,9 @@ function prom_xml_importer_handle_action() {
 		}
 
 		if ( ! empty( $xml_urls ) ) {
-			// Check if we should run in background or immediately
 			$bg_option = isset( $_POST['use_background'] ) ? $_POST['use_background'] : 'no';
 
 			if ( $bg_option === 'yes' ) {
-				// Run in background and ensure cron is active
 				$started = false;
 				foreach ( $xml_urls as $index => $xml_url ) {
 					$sku_prefix = get_option( 'prom_xml_sku_prefix_' . $index, '' );
@@ -1142,7 +1120,6 @@ function prom_xml_importer_handle_action() {
 		);
 	}
 
-	// Redirect back to settings page
 	wp_redirect( add_query_arg( 'settings-updated', 'true', wp_get_referer() ) );
 	exit;
 }
@@ -1153,15 +1130,12 @@ add_action( 'admin_post_prom_xml_importer_action', 'prom_xml_importer_handle_act
  * Export settings page
  */
 function prom_xml_importer_export_page() {
-	// Handle form submission
 	if ( isset( $_POST['create_filtered_xml'] ) && wp_verify_nonce( $_POST['prom_xml_export_nonce'], 'prom_xml_export_filter' ) ) {
 		$sku_prefix = sanitize_text_field( $_POST['sku_prefix'] );
 		
-		// Check if file was uploaded
 		if ( isset( $_FILES['xml_file'] ) && $_FILES['xml_file']['error'] === UPLOAD_ERR_OK ) {
 			$uploaded_file = $_FILES['xml_file'];
 			
-			// Validate file type
 			$file_type = wp_check_filetype( $uploaded_file['name'] );
 			$file_extension = strtolower( pathinfo( $uploaded_file['name'], PATHINFO_EXTENSION ) );
 			
@@ -1184,10 +1158,8 @@ function prom_xml_importer_export_page() {
 					'error'
 				);
 			} else {
-				// Get minimum price
 				$min_price = isset( $_POST['min_price'] ) ? floatval( $_POST['min_price'] ) : 0;
 				
-				// Create filtered XML
 				require_once plugin_dir_path( __FILE__ ) . '../includes/class-xml-export-filter.php';
 				$export_filter = new XML_Export_Filter( $uploaded_file['tmp_name'], $sku_prefix, $min_price );
 				$result = $export_filter->create_filtered_xml();
@@ -1224,7 +1196,6 @@ function prom_xml_importer_export_page() {
 		}
 	}
 	
-	// Get current settings
 	$current_xml_url = get_option( 'prom_xml_url', '' );
 	$current_sku_prefix = get_option( 'prom_sku_prefix', 'NEW_' );
 	?>
@@ -1308,7 +1279,6 @@ function prom_xml_importer_export_page() {
 			
 			<h4>📊 Статистика</h4>
 			<?php
-			// Show current site statistics
 			global $wpdb;
 			$site_products_count = $wpdb->get_var( $wpdb->prepare(
 				"SELECT COUNT(DISTINCT pm.meta_value) 

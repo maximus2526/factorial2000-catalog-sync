@@ -42,7 +42,6 @@ function prom_send_telegram_notification( $message, $retry_count = 2 ) {
 		$try_count       = 0;
 		$request_success = false;
 
-		// Retry logic
 		while ( ! $request_success && $try_count <= $retry_count ) {
 			$response = wp_remote_post( $url, $args );
 
@@ -105,7 +104,6 @@ function prom_get_settings_url() {
  * @return bool True if configured, false otherwise
  */
 function prom_is_configured() {
-	// Check if at least one XML URL is configured
 	for ( $i = 1; $i <= 5; $i++ ) {
 		$xml_url = get_option( 'prom_xml_url' . ( $i === 1 ? '' : '_' . $i ), '' );
 		if ( ! empty( $xml_url ) ) {
@@ -149,7 +147,6 @@ function prom_cleanup_wc_transients( $aggressive = false ) {
 		);
 	}
 
-	// Clear object cache if available
 	if ( function_exists( 'wp_cache_flush' ) ) {
 		wp_cache_flush();
 	}
@@ -436,7 +433,6 @@ function prom_trigger_background_sync( $xml_url, $sku_prefix = '' ) {
 	return false;
 }
 
-// Add action for the single update event
 add_action(
 	'prom_single_update_event',
 	function ( $xml_url, $sku_prefix = '' ) {

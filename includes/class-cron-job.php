@@ -80,7 +80,6 @@ class Cron_Job {
 	 * @return void
 	 */
 	public static function update_stock() {
-		// Get all configured XML URLs
 		$xml_urls = array();
 		for ( $i = 1; $i <= 5; $i++ ) {
 			$url = get_option( 'prom_xml_url' . ( $i === 1 ? '' : '_' . $i ), '' );
@@ -93,7 +92,6 @@ class Cron_Job {
 			// Clean up transients before starting the update process
 			prom_cleanup_wc_transients();
 
-			// Process each XML URL
 			foreach ( $xml_urls as $index => $xml_url ) {
 				try {
 					$sku_prefix = get_option( 'prom_xml_sku_prefix_' . $index, '' );
@@ -107,7 +105,6 @@ class Cron_Job {
 
 			prom_after_stock_update_complete();
 
-			// Clean up again after the process completes
 			prom_cleanup_wc_transients();
 		} else {
 			// No XML URLs configured - silent

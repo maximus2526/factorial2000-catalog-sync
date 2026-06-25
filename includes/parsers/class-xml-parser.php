@@ -142,7 +142,6 @@ class XML_Parser {
 		// Trim to WC limits
 		$attribute_slug = substr( $attribute_slug, 0, 28 );
 
-		// Check if attribute already exists (by slug)
 		$attr_tax_table = $wpdb->prefix . 'woocommerce_attribute_taxonomies';
 		$existing       = $wpdb->get_var( $wpdb->prepare( "SELECT attribute_id FROM {$attr_tax_table} WHERE attribute_name = %s LIMIT 1", $attribute_slug ) );
 		if ( $existing ) {
@@ -240,7 +239,6 @@ class XML_Parser {
 			return $this->send_telegram_message( 'XML parsing error: ' . $e->getMessage() );
 		}
 
-		// Process in batches for production
 		$batch_size  = 100;
 		$updates     = array();
 		$batch_count = 0;
@@ -258,7 +256,6 @@ class XML_Parser {
 					$updates = array();
 					++$batch_count;
 
-					// Free memory
 					gc_collect_cycles();
 				}
 			}
@@ -300,8 +297,6 @@ class XML_Parser {
 			$this->update_product_stock( $product, $stock_status );
 			$stock_status === 'instock' ? ++$updated_in_stock : ++$updated_out_of_stock;
 		}
-
-		// Batch processing completed
 	}
 
 	/**
@@ -322,8 +317,6 @@ class XML_Parser {
 		// Check if variable products import is enabled (from transient during import session)
 		$import_variations_transient = get_transient( 'prom_xml_import_variations_temp' );
 		$import_variations           = $import_variations_transient === '1';
-
-		// Import variations setting loaded
 
 		$reader = new XMLReader();
 
@@ -384,8 +377,6 @@ class XML_Parser {
 					++$single_variation_groups;
 				}
 			}
-
-			// Moved single-variation groups to simple products
 		}
 
 		// Підраховуємо скільки товарів буде оброблено
@@ -396,8 +387,6 @@ class XML_Parser {
 				$variable_count += count( $variations );
 			}
 		}
-
-		// XML parsed and grouped
 
 		// Second pass: Create products
 		$imported       = 0;
@@ -413,11 +402,9 @@ class XML_Parser {
 					++$total_products;
 				}
 			}
-			// Variable mode: importing variable products
 		} else {
 			// В режимі простих - рахуємо тільки прості товари
 			$total_products = count( $simple_products );
-			// Simple mode: importing simple products
 		}
 
 		// Import simple products
@@ -454,7 +441,6 @@ class XML_Parser {
 
 			// Пропускаємо групи з тільки 1 варіацією в режимі варіативних товарів
 			if ( count( $variations_data ) === 1 ) {
-				// Skipping group with only 1 variation in variable mode
 				++$skipped;
 				++$current_offset;
 				continue;
@@ -567,7 +553,6 @@ class XML_Parser {
 		// Check if product already exists (передаємо SKU без префіксу)
 		$existing_product = $this->get_product_ids_by_skus( array( $sku ) );
 		if ( ! empty( $existing_product ) && isset( $existing_product[ $sku ] ) ) {
-			// Skipping simple product - already exists
 			return false;
 		}
 
@@ -592,7 +577,6 @@ class XML_Parser {
 
 		update_post_meta( $post_id, '_sku', $sku );
 
-		// Set prices
 		if ( $old_price > 0 && $old_price > $price ) {
 			update_post_meta( $post_id, '_regular_price', number_format( $old_price, 2, '.', '' ) );
 			update_post_meta( $post_id, '_sale_price', number_format( $price, 2, '.', '' ) );
@@ -615,7 +599,6 @@ class XML_Parser {
 			$this->handle_product_images( $post_id, $images );
 		}
 
-		// Set category
 		if ( ! $this->new_category ) {
 			$this->set_product_category( $post_id, $category );
 		}
@@ -645,8 +628,7 @@ class XML_Parser {
 		// Check if parent product already exists (передаємо group_id без префіксу, функція поверне з ключем без префіксу)
 		$existing_parent = $this->get_product_ids_by_skus( array( $group_id ) );
 		if ( ! empty( $existing_parent ) && isset( $existing_parent[ $group_id ] ) ) {
-			// Skipping group - parent product already exists
-			return false; // Skip if already exists
+			return false;
 		}
 
 		// Apply SKU prefix to group_id для створення
@@ -672,13 +654,11 @@ class XML_Parser {
 			return false;
 		}
 
-		// Set parent product as variable type
 		wp_set_object_terms( $parent_id, 'variable', 'product_type' );
 		update_post_meta( $parent_id, '_sku', $parent_sku );
 		update_post_meta( $parent_id, '_stock_status', 'instock' );
 		update_post_meta( $parent_id, '_manage_stock', 'no' );
 
-		// Set category
 		if ( ! $this->new_category ) {
 			$this->set_product_category( $parent_id, $base_data['category'] );
 		}
@@ -699,7 +679,6 @@ class XML_Parser {
 		$variation_attributes = $this->determine_variation_attributes( $variations_data, $group_id );
 
 		if ( empty( $variation_attributes ) ) {
-			// Cannot determine variation attributes, skipping variable product
 			// Delete parent product since we can't create variations
 			wp_delete_post( $parent_id, true );
 			return false;
@@ -723,7 +702,6 @@ class XML_Parser {
 		// Set product attributes for variations
 		$this->set_variation_attributes_for_product( $parent_id, $variation_attributes, $variations_data );
 
-		// Create variations
 		$this->create_product_variations( $parent_id, $variations_data, $variation_attributes );
 
 		return true;
@@ -740,7 +718,6 @@ class XML_Parser {
 			return '';
 		}
 
-		// Take the first name as base
 		$base_name = $variation_names[0];
 
 		// Remove common size patterns
@@ -798,29 +775,21 @@ class XML_Parser {
 			$skipped_attrs        = array();
 
 			foreach ( $selected_attrs as $selected_attr ) {
-				// Check if this attribute exists and has multiple values
 				if ( isset( $all_attributes[ $selected_attr ] ) ) {
 					if ( count( $all_attributes[ $selected_attr ] ) > 1 ) {
 						$variation_attributes[ $selected_attr ] = $all_attributes[ $selected_attr ];
 					} else {
 						$skipped_attrs[] = $selected_attr . ' (тільки 1 значення)';
 					}
-				} else {
-					$skipped_attrs[] = $selected_attr . ' (не знайдено)';
+					} else {
+						$skipped_attrs[] = $selected_attr . ' (не знайдено)';
+					}
+				}
+
+				if ( ! empty( $variation_attributes ) ) {
+					return $variation_attributes;
 				}
 			}
-
-			if ( ! empty( $skipped_attrs ) ) {
-				// Skipped non-varying attributes
-			}
-
-			if ( ! empty( $variation_attributes ) ) {
-				// Using manually selected attributes
-				return $variation_attributes;
-			} else {
-				// None of the manually selected attributes vary - will use auto-selection
-			}
-		}
 
 		// Filter to find attributes that vary between products
 		$variation_attributes = array();
@@ -844,21 +813,15 @@ class XML_Parser {
 			if ( isset( $all_attributes[ $priority_attr ] ) && count( $all_attributes[ $priority_attr ] ) > 1 ) {
 				$variation_attributes[ $priority_attr ] = $all_attributes[ $priority_attr ];
 
-				// Логуємо який атрибут обрано
-				// Auto-selected variation attribute
-
 				break; // Беремо тільки ОДИН атрибут!
 			}
 		}
 
 		// If no priority attributes found, use any attribute that varies
 		if ( empty( $variation_attributes ) ) {
-			// No priority variation attributes found, searching for any varying attribute
-
 			foreach ( $all_attributes as $attr_name => $attr_values ) {
 				if ( count( $attr_values ) > 1 ) {
 					$variation_attributes[ $attr_name ] = $attr_values;
-					// Using non-priority variation attribute
 					break; // Беремо тільки ОДИН атрибут!
 				}
 			}
@@ -880,9 +843,7 @@ class XML_Parser {
 		$position           = 0;
 
 		foreach ( $variation_attributes as $attr_name => $attr_values ) {
-			// Skip if no values
 			if ( empty( $attr_values ) ) {
-				// Skipping empty variation attribute
 				continue;
 			}
 
@@ -940,8 +901,6 @@ class XML_Parser {
 					'is_variation' => 1,
 					'is_taxonomy'  => 1,
 				);
-
-				// Added variation attribute
 			}
 		}
 
@@ -974,8 +933,6 @@ class XML_Parser {
 				}
 			}
 		}
-
-		// Collected non-variation attributes for parent product
 
 		// Add collected non-variation attributes to product
 		foreach ( $non_variation_attributes as $attr_name => $attr_values ) {
@@ -1012,8 +969,6 @@ class XML_Parser {
 					$term_info = wp_insert_term( $attr_value, $taxonomy );
 					if ( ! is_wp_error( $term_info ) ) {
 						$term_ids[] = $term_info['term_id'];
-					} else {
-						// Error creating term
 					}
 				} else {
 					$term_ids[] = $term->term_id;
@@ -1031,14 +986,10 @@ class XML_Parser {
 					'is_variation' => 0,
 					'is_taxonomy'  => 1,
 				);
-
-				// Added non-variation attribute
-			} else {
-				// Skipped attribute - no term IDs created
 			}
 		}
 
-			// Save attributes to product
+		// Save attributes to product
 		if ( ! empty( $product_attributes ) ) {
 			update_post_meta( $parent_id, '_product_attributes', $product_attributes );
 			// Clear product transients so attributes are visible in UI immediately
@@ -1095,7 +1046,6 @@ class XML_Parser {
 				$variation_sku = $this->sku_prefix . $variation_sku;
 			}
 
-			// Create variation
 			$variation_id = wp_insert_post(
 				array(
 					'post_title'  => $variation_data['title'],
@@ -1109,10 +1059,8 @@ class XML_Parser {
 				continue;
 			}
 
-			// Set variation SKU
 			update_post_meta( $variation_id, '_sku', $variation_sku );
 
-			// Set prices
 			$price     = $variation_data['price'];
 			$old_price = $variation_data['old_price'];
 
@@ -1125,11 +1073,9 @@ class XML_Parser {
 				update_post_meta( $variation_id, '_price', number_format( $price, 2, '.', '' ) );
 			}
 
-			// Set stock status
 			update_post_meta( $variation_id, '_stock_status', $variation_data['available'] );
 			update_post_meta( $variation_id, '_manage_stock', 'no' );
 
-			// Set variation attributes
 			foreach ( $variation_attributes as $attr_name => $attr_values ) {
 				$taxonomy_name = $this->sanitize_for_taxonomy( $attr_name );
 				$taxonomy      = 'pa_' . $taxonomy_name;
@@ -1138,11 +1084,9 @@ class XML_Parser {
 					$taxonomy = substr( $taxonomy, 0, 32 );
 				}
 
-				// Get the value for this variation
 				if ( isset( $variation_data['attributes'][ $attr_name ] ) ) {
 					$attr_value = $variation_data['attributes'][ $attr_name ];
 
-					// Get or create term
 					$term = get_term_by( 'name', $attr_value, $taxonomy );
 					if ( $term ) {
 						update_post_meta( $variation_id, 'attribute_' . $taxonomy, $term->slug );
@@ -1152,7 +1096,6 @@ class XML_Parser {
 
 			// Handle variation images if they differ
 			if ( ! empty( $variation_data['images'] ) ) {
-				// Set first image as variation image
 				$this->set_variation_image( $variation_id, $variation_data['images'][0] );
 			}
 
@@ -1161,7 +1104,6 @@ class XML_Parser {
 			wc_delete_product_transients( $variation_id );
 		}
 
-		// Sync parent product after all variations created
 		WC_Product_Variable::sync( $parent_id );
 	}
 
@@ -1308,7 +1250,6 @@ class XML_Parser {
 			$parent_term_id = $this->ensure_category_term( $parent_id, $categories, $cache );
 		}
 
-		// First check if we already have a term with this name
 		$term = get_term_by( 'name', $name, 'product_cat' );
 		if ( ! $term ) {
 			$term = wp_insert_term(
@@ -1415,7 +1356,6 @@ class XML_Parser {
 					);
 			}
 
-			// Either get or create the term
 			$term_id = null;
 			$term    = get_term_by( 'name', $value, $taxonomy );
 			if ( ! $term ) {
@@ -1427,7 +1367,6 @@ class XML_Parser {
 				$term_id = $term->term_id;
 			}
 
-			// Set the product attribute
 			if ( $term_id ) {
 				wp_set_object_terms( $post_id, array( $term_id ), $taxonomy );
 				$product_attributes[ $taxonomy ] = array(
@@ -1491,7 +1430,6 @@ class XML_Parser {
 
 			$attachment_ids[] = $attachment_id;
 
-			// Set the first image as featured image
 			if ( $index === 0 && ! $featured_image_set ) {
 				set_post_thumbnail( $post_id, $attachment_id );
 				$featured_image_set = true;
@@ -1598,7 +1536,6 @@ class XML_Parser {
 	 */
 	private function update_product_stock( $product, $stock_status ) {
 		try {
-			// Skip if the stock status is already set to the same value
 			if ( $product->get_stock_status() === $stock_status ) {
 				return;
 			}
@@ -1607,7 +1544,6 @@ class XML_Parser {
 			$product->save();
 			wc_delete_product_transients( $product->get_id() );
 
-			// Update variations if the product is a variable product.
 			if ( 'variable' === $product->get_type() ) {
 				foreach ( $product->get_children() as $variation_id ) {
 					$variation = wc_get_product( $variation_id );

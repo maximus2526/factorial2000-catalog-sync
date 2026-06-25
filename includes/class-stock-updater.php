@@ -107,15 +107,11 @@ class XML_Stock_Updater {
 		$start_time   = microtime( true );
 		$start_memory = memory_get_usage();
 
-		// Check if we can proceed with the update
 		if ( ! $this->xml_url ) {
 			return;
 		}
 
-		// Set maximum execution time
 		$this->set_max_execution_time();
-
-		// Increase memory limit if possible
 		$this->increase_memory_limit();
 
 		$this->send_telegram_message( 'Starting stock and price update process for XML: ' . $this->xml_url . ( $this->skip_price_updates ? ' (ціни не оновлюються)' : '' ) );
@@ -144,7 +140,6 @@ class XML_Stock_Updater {
 			$error_message = 'Error updating products: ' . $e->getMessage();
 			$this->send_telegram_message( $error_message );
 		} finally {
-			// Clean up any resources
 			$this->cleanup_resources();
 		}
 	}
@@ -153,7 +148,6 @@ class XML_Stock_Updater {
 	 * Set maximum execution time for long-running process
 	 */
 	private function set_max_execution_time() {
-		// Only try to change if we can
 		if ( function_exists( 'set_time_limit' ) && ! ini_get( 'safe_mode' ) ) {
 			@set_time_limit( 600 ); // 10 minutes
 		}
@@ -163,7 +157,6 @@ class XML_Stock_Updater {
 	 * Increase memory limit if possible
 	 */
 	private function increase_memory_limit() {
-		// Try to increase memory limit to 256MB if less than that
 		$current_limit = $this->get_memory_limit_in_bytes();
 		if ( $current_limit < 256 * 1024 * 1024 ) {
 			@ini_set( 'memory_limit', '256M' );
@@ -174,13 +167,11 @@ class XML_Stock_Updater {
 	 * Clean up resources after processing
 	 */
 	private function cleanup_resources() {
-		// Clear WP object cache and run garbage collection
 		if ( function_exists( 'wp_cache_flush' ) ) {
 			wp_cache_flush();
 		}
 		gc_collect_cycles();
 
-		// Clear WooCommerce transients to free memory
 		prom_cleanup_wc_transients();
 	}
 
@@ -196,7 +187,6 @@ class XML_Stock_Updater {
 		try {
 			$reader = new XMLReader();
 
-			// Try to open the XML file
 			if ( ! $reader->open( $this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING ) ) {
 				// If direct URL open fails, try to download the file first
 				$xml_data = $this->fetch_xml_data();
@@ -204,7 +194,6 @@ class XML_Stock_Updater {
 					throw new Exception( 'Failed to retrieve XML data' );
 				}
 
-				// Create a temporary file to store the XML
 				$temp_file = wp_tempnam( 'prom_xml_' );
 				if ( file_put_contents( $temp_file, $xml_data ) ) {
 					$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING );
@@ -213,12 +202,10 @@ class XML_Stock_Updater {
 				}
 			}
 
-			// Check if we have a valid XMLReader object
 			if ( ! $reader->read() ) {
 				throw new Exception( 'Failed to read XML content' );
 			}
 
-			// Extract stock and price data
 			while ( $reader->read() ) {
 				if ( $reader->nodeType == XMLReader::ELEMENT && $reader->localName == 'offer' ) {
 					$sku       = (string) $reader->getAttribute( 'id' );
@@ -228,11 +215,9 @@ class XML_Stock_Updater {
 					// Get the offer node as SimpleXML to extract pricing
 					$offer_xml = simplexml_load_string( $reader->readOuterXML() );
 
-					// Extract prices
 					$price     = isset( $offer_xml->price ) ? (float) $offer_xml->price : 0;
 					$old_price = isset( $offer_xml->oldprice ) ? (float) $offer_xml->oldprice : 0;
 
-					// Extract vendor code (if available)
 					$vendor_code = isset( $offer_xml->vendorCode ) ? (string) $offer_xml->vendorCode : '';
 
 					$stock_status = 'true' === $available ? 'instock' : 'outofstock';
@@ -246,12 +231,8 @@ class XML_Stock_Updater {
 							'vendor_code'  => $vendor_code,
 						);
 					}
-
-					// Free memory to avoid memory leaks
-					// $reader->next();
 				}
 
-				// Free memory periodically
 				if ( count( $updates ) % 500 === 0 ) {
 					gc_collect_cycles();
 				}
@@ -259,12 +240,10 @@ class XML_Stock_Updater {
 		} catch ( Exception $e ) {
 			$this->send_telegram_message( 'XML parsing error: ' . $e->getMessage() );
 		} finally {
-			// Always close the reader to free resources
 			if ( $reader !== null ) {
 				$reader->close();
 			}
 
-			// Remove temporary file if it exists
 			if ( isset( $temp_file ) && file_exists( $temp_file ) ) {
 				@unlink( $temp_file );
 			}
@@ -311,7 +290,6 @@ class XML_Stock_Updater {
 		$not_found            = 0;
 		$skipped_unchanged    = 0; // Count of products where nothing changed.
 
-		// Process in batches to avoid memory issues.
 		$batches     = array_chunk( $updates, $this->batch_size, true );
 		$batch_count = count( $batches );
 
@@ -326,17 +304,14 @@ class XML_Stock_Updater {
 				break;
 			}
 
-			// Check if we're approaching the max execution time.
 			if ( $this->max_execution_time > 0 && ( microtime( true ) - $process_start_time ) > $this->max_execution_time ) {
 				$this->send_telegram_message( "Execution time limit approaching. Processed $processed/$total products. Continuing in next run." );
 				break;
 			}
 
-			// Get product IDs for this batch.
 			$skus        = array_keys( $batch );
 			$product_ids = $this->get_product_ids_by_skus( $skus );
 
-			// Update each product in the batch.
 			foreach ( $batch as $sku => $product_data ) {
 				$product_id = $product_ids[ $sku ] ?? false;
 
@@ -354,14 +329,12 @@ class XML_Stock_Updater {
 
 					$changes_made = false;
 
-					// Update stock status if needed.
 					$stock_status_changed = $this->update_product_stock( $product, $product_data['stock_status'] );
 					if ( $stock_status_changed ) {
 						$product_data['stock_status'] === 'instock' ? ++$updated_in_stock : ++$updated_out_of_stock;
 						$changes_made = true;
 					}
 
-					// Update prices if not skipped and needed.
 					if ( ! $this->skip_price_updates && $product_data['price'] > 0 ) {
 						$price_changed = $this->update_product_price( $product, $product_data['price'], $product_data['old_price'] );
 						if ( $price_changed ) {
@@ -370,7 +343,6 @@ class XML_Stock_Updater {
 						}
 					}
 
-					// Update vendorCode if provided and not already set.
 					if ( ! empty( $product_data['vendor_code'] ) ) {
 						$current_vendor = get_post_meta( $product_id, 'prom-xml-updater-vendor', true );
 						if ( empty( $current_vendor ) ) {
@@ -388,14 +360,12 @@ class XML_Stock_Updater {
 				++$processed;
 			}
 
-			// Free up memory more aggressively for production
 			if ( $batch_index % 10 === 0 ) {
 				wp_cache_flush();
 				gc_collect_cycles();
 			}
 		}
 
-		// Send final results with improved information
 		$this->send_telegram_message(
 			sprintf(
 				"Результати оновлення товарів:\n" .
@@ -417,7 +387,6 @@ class XML_Stock_Updater {
 			)
 		);
 
-		// Log only important info to system log (only if there were changes)
 		if ( ( $updated_in_stock + $updated_out_of_stock ) > 0 || $updated_price > 0 ) {
 			prom_log(
 				sprintf(
@@ -443,7 +412,6 @@ class XML_Stock_Updater {
 	 * @return string|false XML data or false on failure.
 	 */
 	private function fetch_xml_data() {
-		// First try to use WordPress HTTP API
 		$response = wp_remote_get(
 			$this->xml_url,
 			array(
@@ -457,7 +425,6 @@ class XML_Stock_Updater {
 			return wp_remote_retrieve_body( $response );
 		}
 
-		// Fallback to cURL if WordPress HTTP API fails
 		if ( function_exists( 'curl_init' ) ) {
 			$ch = curl_init();
 			curl_setopt( $ch, CURLOPT_URL, $this->xml_url );
@@ -501,7 +468,6 @@ class XML_Stock_Updater {
 			return $results;
 		}
 
-		// Prepare IN clause with proper escaping
 		$placeholders = implode( ',', array_fill( 0, count( $skus ), '%s' ) );
 
 		// Use a direct query for better performance with indexes
@@ -540,7 +506,6 @@ class XML_Stock_Updater {
 
 			update_post_meta( $product_id, '_stock_status', $stock_status );
 
-			// Clear necessary transients only
 			wc_delete_product_transients( $product_id );
 
 			if ( $product_type === 'variation' ) {
@@ -585,10 +550,7 @@ class XML_Stock_Updater {
 			$peak_memory
 		);
 
-		// Send log to Telegram
 		$this->send_telegram_message( $log_message );
-
-		// Only log detailed memory usage in debug mode (removed to reduce spam)
 	}
 
 	/**
@@ -618,17 +580,14 @@ class XML_Stock_Updater {
 		$product_id = $product->get_id();
 		$changed    = false;
 
-		// Format prices to ensure consistent decimal places
 		$price = number_format( (float) $price, 2, '.', '' );
 
-		// Handle sale pricing if old_price is provided and greater than current price
 		if ( $old_price > 0 && $old_price > $price ) {
 			$old_price = number_format( (float) $old_price, 2, '.', '' );
 
 			$current_regular_price = $product->get_regular_price();
 			$current_sale_price    = $product->get_sale_price();
 
-			// Only update if prices have changed
 			if ( $current_regular_price !== $old_price || $current_sale_price !== $price ) {
 				update_post_meta( $product_id, '_regular_price', $old_price );
 				update_post_meta( $product_id, '_sale_price', $price );
@@ -636,14 +595,12 @@ class XML_Stock_Updater {
 				$changed = true;
 			}
 		} else {
-			// Just update regular price
 			$current_regular_price = $product->get_regular_price();
 
 			if ( $current_regular_price !== $price ) {
 				update_post_meta( $product_id, '_regular_price', $price );
 				update_post_meta( $product_id, '_price', $price );
 
-				// Remove any sale price
 				delete_post_meta( $product_id, '_sale_price' );
 				$changed = true;
 			}
@@ -652,7 +609,6 @@ class XML_Stock_Updater {
 		// Note: We do NOT automatically update all variations for variable products
 		// Each variation should be updated individually based on its own SKU in the XML
 
-		// Clear product cache if prices were changed
 		if ( $changed ) {
 			wc_delete_product_transients( $product_id );
 		}
@@ -674,7 +630,6 @@ class XML_Stock_Updater {
 			return; // Skip if no SKU prefix configured
 		}
 
-		// Get SKUs from database that match current feed's prefix
 		$db_skus = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT pm.meta_value AS sku
@@ -694,10 +649,8 @@ class XML_Stock_Updater {
 			return; // No products with this prefix found
 		}
 
-		// Get XML SKU keys
 		$xml_sku_keys = array_keys( $xml_skus );
 
-		// Find missing SKUs
 		$missing_skus = array_diff( $db_skus, $xml_sku_keys );
 
 		if ( empty( $missing_skus ) ) {
@@ -737,10 +690,8 @@ class XML_Stock_Updater {
 			);
 		}
 
-		// Get product details for missing SKUs
 		$missing_products = $this->get_missing_products_details( $missing_skus );
 
-		// Send report to Telegram
 		$this->send_missing_products_report( $missing_products, count( $missing_skus ) );
 	}
 
@@ -782,7 +733,6 @@ class XML_Stock_Updater {
 		$message .= "📊 Всього відсутніх товарів: $total_missing\n";
 		$message .= "🔗 URL вигрузки: $this->xml_url\n\n";
 
-		// Group products by type (product vs variation)
 		$products   = array();
 		$variations = array();
 
@@ -795,10 +745,9 @@ class XML_Stock_Updater {
 			}
 		}
 
-		// Add main products
 		if ( ! empty( $products ) ) {
 			$message .= '📦 Основні товари (' . count( $products ) . "):\n";
-			foreach ( array_slice( $products, 0, 20 ) as $product ) { // Limit to first 20
+			foreach ( array_slice( $products, 0, 20 ) as $product ) {
 				$message .= "• {$product->post_title} (SKU: {$product->sku})\n";
 			}
 			if ( count( $products ) > 20 ) {
@@ -807,10 +756,9 @@ class XML_Stock_Updater {
 			$message .= "\n";
 		}
 
-		// Add variations
 		if ( ! empty( $variations ) ) {
 			$message .= '🔄 Варіації товарів (' . count( $variations ) . "):\n";
-			foreach ( array_slice( $variations, 0, 20 ) as $variation ) { // Limit to first 20
+			foreach ( array_slice( $variations, 0, 20 ) as $variation ) {
 				$message .= "• {$variation->post_title} (SKU: {$variation->sku})\n";
 			}
 			if ( count( $variations ) > 20 ) {
@@ -823,7 +771,6 @@ class XML_Stock_Updater {
 
 		$this->send_telegram_message( $message );
 
-		// Convert missing products to draft status
 		$this->convert_missing_products_to_draft( $missing_products );
 	}
 
@@ -847,7 +794,6 @@ class XML_Stock_Updater {
 					}
 				}
 
-				// Update post status to draft
 				$result = wp_update_post(
 					array(
 						'ID'          => $product->ID,
@@ -859,7 +805,6 @@ class XML_Stock_Updater {
 				if ( ! is_wp_error( $result ) ) {
 					++$converted_count;
 
-					// Clear product cache
 					wc_delete_product_transients( $product->ID );
 				} else {
 					// Silent error handling

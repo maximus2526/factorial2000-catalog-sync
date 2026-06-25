@@ -12,12 +12,10 @@ class Frontend_Display {
 	 * Initialize frontend display hooks
 	 */
 	public static function init() {
-		// Check if WooCommerce is active
 		if ( ! class_exists( 'WooCommerce' ) ) {
 			return;
 		}
 
-		// Display vendor code in footer (only on product pages)
 		add_action( 'wp_footer', array( __CLASS__, 'display_vendor_code_footer' ), 10 );
 	}
 
@@ -25,7 +23,6 @@ class Frontend_Display {
 	 * Display vendor code in footer for administrators
 	 */
 	public static function display_vendor_code_footer() {
-		// Only on single product pages
 		if ( ! is_product() ) {
 			return;
 		}
@@ -43,7 +40,6 @@ class Frontend_Display {
 
 		$product_id = $product->get_id();
 
-		// Handle variable products with variations
 		if ( $product->is_type( 'variable' ) ) {
 			$variation_ids = $product->get_children();
 
@@ -184,7 +180,6 @@ class Frontend_Display {
 			</script>
 			<?php
 		} else {
-			// Handle simple products
 			$vendor_code = get_post_meta( $product_id, 'prom-xml-updater-vendor', true );
 
 			if ( empty( $vendor_code ) ) {
