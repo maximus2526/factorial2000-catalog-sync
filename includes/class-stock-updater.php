@@ -149,7 +149,8 @@ class XML_Stock_Updater {
 	 */
 	private function set_max_execution_time() {
 		if ( function_exists( 'set_time_limit' ) && ! ini_get( 'safe_mode' ) ) {
-			@set_time_limit( 600 ); // 10 minutes
+			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.NoSilencedErrors.Discouraged -- Needed to avoid timeouts on large catalogs; failure is non-fatal.
+			@set_time_limit( 600 );
 		}
 	}
 
@@ -159,6 +160,7 @@ class XML_Stock_Updater {
 	private function increase_memory_limit() {
 		$current_limit = $this->get_memory_limit_in_bytes();
 		if ( $current_limit < 256 * 1024 * 1024 ) {
+			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.memory_limit_Disallowed, WordPress.PHP.NoSilencedErrors.Discouraged -- Best-effort memory bump for large imports; failure is non-fatal.
 			@ini_set( 'memory_limit', '256M' );
 		}
 	}
@@ -245,7 +247,7 @@ class XML_Stock_Updater {
 			}
 
 			if ( isset( $temp_file ) && file_exists( $temp_file ) ) {
-				@unlink( $temp_file );
+				wp_delete_file( $temp_file );
 			}
 		}
 
@@ -255,6 +257,7 @@ class XML_Stock_Updater {
 	private function sync_parent_stock_status( $parent_id ) {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Real-time variation stock count; cache would return stale data.
 		$instock_count = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) 
@@ -426,6 +429,7 @@ class XML_Stock_Updater {
 		}
 
 		if ( function_exists( 'curl_init' ) ) {
+			// phpcs:disable WordPress.WP.AlternativeFunctions.curl_curl_init, WordPress.WP.AlternativeFunctions.curl_curl_setopt, WordPress.WP.AlternativeFunctions.curl_curl_exec, WordPress.WP.AlternativeFunctions.curl_curl_close -- Fallback only when wp_remote_get() fails on some hosts.
 			$ch = curl_init();
 			curl_setopt( $ch, CURLOPT_URL, $this->xml_url );
 			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
@@ -435,6 +439,7 @@ class XML_Stock_Updater {
 			curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
 			$body = curl_exec( $ch );
 			curl_close( $ch );
+			// phpcs:enable WordPress.WP.AlternativeFunctions.curl_curl_init, WordPress.WP.AlternativeFunctions.curl_curl_setopt, WordPress.WP.AlternativeFunctions.curl_curl_exec, WordPress.WP.AlternativeFunctions.curl_curl_close
 
 			return $body ?: false;
 		}
@@ -470,7 +475,8 @@ class XML_Stock_Updater {
 
 		$placeholders = implode( ',', array_fill( 0, count( $skus ), '%s' ) );
 
-		// Use a direct query for better performance with indexes
+		// Use a direct query for better performance with indexes.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is a generated list of %s placeholders, values are passed to prepare().
 		$sql = $wpdb->prepare(
 			"SELECT pm.meta_value AS sku, p.ID
 			FROM {$wpdb->posts} p
@@ -481,7 +487,9 @@ class XML_Stock_Updater {
 			AND pm.meta_value IN ($placeholders)",
 			$skus
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is already prepared above; lookup must be live.
 		$results = $wpdb->get_results( $sql );
 		return array_column( $results, 'ID', 'sku' );
 	}
@@ -630,6 +638,7 @@ class XML_Stock_Updater {
 			return; // Skip if no SKU prefix configured
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live SKU list needed during sync; cache would be stale.
 		$db_skus = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT pm.meta_value AS sku
@@ -641,7 +650,7 @@ class XML_Stock_Updater {
 				AND pm.meta_value != ''
 				AND pm.meta_value IS NOT NULL
 				AND pm.meta_value LIKE %s",
-				$this->sku_prefix . '%'
+				$wpdb->esc_like( $this->sku_prefix ) . '%'
 			)
 		);
 
@@ -660,6 +669,7 @@ class XML_Stock_Updater {
 
 		$placeholders = implode( ',', array_fill( 0, count( $missing_skus ), '%s' ) );
 
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is a generated %s list; values passed to prepare().
 		$missing_variation_ids = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT p.ID
@@ -672,6 +682,7 @@ class XML_Stock_Updater {
 				$missing_skus
 			)
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 		foreach ( $missing_variation_ids as $vid ) {
 			update_post_meta( $vid, '_stock_status', 'outofstock' );
@@ -706,6 +717,7 @@ class XML_Stock_Updater {
 
 		$placeholders = implode( ',', array_fill( 0, count( $missing_skus ), '%s' ) );
 
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is a generated %s list; values passed to prepare().
 		$sql = $wpdb->prepare(
 			"SELECT p.ID, p.post_title, pm.meta_value AS sku, p.post_status
 			FROM {$wpdb->posts} p
@@ -717,7 +729,9 @@ class XML_Stock_Updater {
 			ORDER BY p.post_title ASC",
 			$missing_skus
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is already prepared above; live data required.
 		return $wpdb->get_results( $sql );
 	}
 

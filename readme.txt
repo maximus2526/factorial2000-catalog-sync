@@ -1,9 +1,9 @@
 === Prom XML Importer ===
 Contributors: factorial2000
 Donate link: https://send.monobank.ua/jar/8CiFBAfJKK
-Tags: woocommerce, import, xml, stock, e-commerce, promua, prom
+Tags: woocommerce, import, xml, stock, prom
 Requires at least: 5.8
-Tested up to: 6.8
+Tested up to: 7.0
 Requires PHP: 7.4
 Stable tag: 0.1
 License: GPLv2 or later

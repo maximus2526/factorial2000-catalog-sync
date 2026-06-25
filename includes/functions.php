@@ -80,7 +80,7 @@ function prom_log( $message, $level = 'info' ) {
 		$memory_usage      = round( memory_get_usage() / 1024 / 1024, 2 );
 		$formatted_message = sprintf(
 			'[%s] Prom XML Importer [%s] [Memory: %sMB]: %s',
-			date( 'Y-m-d H:i:s' ),
+			gmdate( 'Y-m-d H:i:s' ),
 			strtoupper( $level ),
 			$memory_usage,
 			$message
@@ -125,7 +125,8 @@ function prom_cleanup_wc_transients( $aggressive = false ) {
 
 	// Delete specific WooCommerce transients that might be using memory
 	if ( $aggressive ) {
-		// More aggressive cleanup for production environments
+		// More aggressive cleanup for production environments.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk transient cleanup with static query; caching not applicable.
 		$wpdb->query(
 			"
             DELETE FROM $wpdb->options 
@@ -138,7 +139,8 @@ function prom_cleanup_wc_transients( $aggressive = false ) {
         "
 		);
 	} else {
-		// Standard cleanup - only product specific transients
+		// Standard cleanup - only product specific transients.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk transient cleanup with static query; caching not applicable.
 		$wpdb->query(
 			"
             DELETE FROM $wpdb->options 
@@ -198,6 +200,7 @@ function prom_bulk_sync_lookup_stock_status( array $product_ids, $stock_status =
 	foreach ( array_chunk( $product_ids, 500 ) as $chunk ) {
 		$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
 
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- {$table} is an internal WC lookup table name and $placeholders is a generated %d list; all values passed to prepare().
 		$wpdb->query(
 			$wpdb->prepare(
 				"UPDATE {$table}
@@ -207,6 +210,7 @@ function prom_bulk_sync_lookup_stock_status( array $product_ids, $stock_status =
 				array_merge( array( $stock_status ), $chunk, array( $stock_status ) )
 			)
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 	}
 }
 
@@ -238,6 +242,7 @@ function prom_apply_variable_low_instock_rule() {
 
 	$max_instock = prom_get_variable_low_instock_threshold();
 
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live aggregate over variations; cache would be stale.
 	$parent_ids = $wpdb->get_col(
 		$wpdb->prepare(
 			"SELECT v.post_parent
@@ -273,6 +278,7 @@ function prom_apply_variable_low_instock_rule() {
 		$changed       = false;
 		$instock_count = 0;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live variation lookup; cache would be stale.
 		$variation_ids = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT ID

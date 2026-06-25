@@ -143,6 +143,7 @@ class XML_Parser {
 		$attribute_slug = substr( $attribute_slug, 0, 28 );
 
 		$attr_tax_table = $wpdb->prefix . 'woocommerce_attribute_taxonomies';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $attr_tax_table is the internal WC attribute table name (built from $wpdb->prefix), value is bound via prepare().
 		$existing       = $wpdb->get_var( $wpdb->prepare( "SELECT attribute_id FROM {$attr_tax_table} WHERE attribute_name = %s LIMIT 1", $attribute_slug ) );
 		if ( $existing ) {
 			return;
@@ -161,7 +162,8 @@ class XML_Parser {
 			try {
 				$attr_id = wc_create_attribute( $args );
 				if ( is_wp_error( $attr_id ) ) {
-					// Fallback to direct insert
+					// Fallback to direct insert.
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert into internal WC attribute table; no caching applicable.
 					$wpdb->insert(
 						$attr_tax_table,
 						array(
@@ -174,7 +176,8 @@ class XML_Parser {
 					);
 				}
 			} catch ( Exception $e ) {
-				// Fallback to direct insert on any exception
+				// Fallback to direct insert on any exception.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert into internal WC attribute table; no caching applicable.
 				$wpdb->insert(
 					$attr_tax_table,
 					array(
@@ -187,7 +190,8 @@ class XML_Parser {
 				);
 			}
 		} else {
-			// No Woo helper: direct insert
+			// No Woo helper: direct insert.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert into internal WC attribute table; no caching applicable.
 			$wpdb->insert(
 				$attr_tax_table,
 				array(
@@ -213,9 +217,10 @@ class XML_Parser {
 		$start_time   = microtime( true );
 		$start_memory = memory_get_usage();
 
-		// Set maximum execution time for production
+		// Set maximum execution time for production.
 		if ( function_exists( 'set_time_limit' ) && ! ini_get( 'safe_mode' ) ) {
-			@set_time_limit( 600 ); // 10 minutes
+			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.NoSilencedErrors.Discouraged -- Needed to avoid timeouts on large catalogs; failure is non-fatal.
+			@set_time_limit( 600 );
 		}
 
 		$xml_data = $this->fetch_xml_data();
@@ -1135,7 +1140,7 @@ class XML_Parser {
 
 		$attachment_id = media_handle_sideload( $file_array, $variation_id );
 		if ( is_wp_error( $attachment_id ) ) {
-			@unlink( $tmp );
+			wp_delete_file( $tmp );
 			return;
 		}
 
@@ -1302,7 +1307,7 @@ class XML_Parser {
 
 		$attachment_id = media_handle_sideload( $file_array, $post_id );
 		if ( is_wp_error( $attachment_id ) ) {
-			@unlink( $tmp );
+			wp_delete_file( $tmp );
 			return;
 		}
 
@@ -1424,7 +1429,7 @@ class XML_Parser {
 			$attachment_id = media_handle_sideload( $file_array, $post_id );
 
 			if ( is_wp_error( $attachment_id ) ) {
-				@unlink( $tmp );
+				wp_delete_file( $tmp );
 				continue;
 			}
 
@@ -1487,6 +1492,7 @@ class XML_Parser {
 		// Only query the database for SKUs not in cache
 		if ( ! empty( $uncached_skus ) ) {
 			$placeholders = implode( ',', array_fill( 0, count( $uncached_skus ), '%s' ) );
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is a generated %s list; values passed to prepare().
 			$sql          = $wpdb->prepare(
 				"SELECT pm.meta_value AS sku, p.ID
 				FROM {$wpdb->posts} p
@@ -1496,7 +1502,9 @@ class XML_Parser {
 				AND pm.meta_value IN ($placeholders)",
 				$uncached_skus
 			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is already prepared above; results are cached in $this->sku_cache.
 			$db_results = $wpdb->get_results( $sql );
 			$db_results = array_column( $db_results, 'ID', 'sku' );
 
@@ -1517,12 +1525,33 @@ class XML_Parser {
 	 * @return string|false XML data or false on failure.
 	 */
 	private function fetch_xml_data() {
+		$response = wp_remote_get(
+			$this->xml_url,
+			array(
+				'timeout'   => 600,
+				'sslverify' => false,
+			)
+		);
+
+		if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
+			$body = wp_remote_retrieve_body( $response );
+			if ( ! empty( $body ) ) {
+				return $body;
+			}
+		}
+
+		if ( ! function_exists( 'curl_init' ) ) {
+			return false;
+		}
+
+		// phpcs:disable WordPress.WP.AlternativeFunctions.curl_curl_init, WordPress.WP.AlternativeFunctions.curl_curl_setopt, WordPress.WP.AlternativeFunctions.curl_curl_exec, WordPress.WP.AlternativeFunctions.curl_curl_close -- Fallback only when wp_remote_get() fails on some hosts.
 		$ch = curl_init();
 		curl_setopt( $ch, CURLOPT_URL, $this->xml_url );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 		curl_setopt( $ch, CURLOPT_TIMEOUT, 600 );
 		$body = curl_exec( $ch );
 		curl_close( $ch );
+		// phpcs:enable WordPress.WP.AlternativeFunctions.curl_curl_init, WordPress.WP.AlternativeFunctions.curl_curl_setopt, WordPress.WP.AlternativeFunctions.curl_curl_exec, WordPress.WP.AlternativeFunctions.curl_curl_close
 
 		return $body ?: false;
 	}
@@ -1577,7 +1606,7 @@ class XML_Parser {
 		// Format the log message
 		$log_message = sprintf(
 			"[%s] %s | Execution time: %.2f sec | Memory usage: %.2f MB\n",
-			date( 'Y-m-d H:i:s' ),
+			gmdate( 'Y-m-d H:i:s' ),
 			$message,
 			$execution_time,
 			$memory_usage
@@ -1610,13 +1639,13 @@ class XML_Parser {
 				'parse_mode' => 'HTML',
 			);
 
-			$ch = curl_init();
-			curl_setopt( $ch, CURLOPT_URL, $url );
-			curl_setopt( $ch, CURLOPT_POST, true );
-			curl_setopt( $ch, CURLOPT_POSTFIELDS, http_build_query( $data ) );
-			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-			curl_exec( $ch );
-			curl_close( $ch );
+			wp_remote_post(
+				$url,
+				array(
+					'timeout' => 15,
+					'body'    => $data,
+				)
+			);
 		}
 	}
 }

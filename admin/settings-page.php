@@ -89,7 +89,7 @@ function prom_xml_importer_update_page() {
 
 		if ( $next_run ) {
 			echo '<p>' . esc_html__( 'Automatic updates: ', 'prom-xml-importer' ) . '<span class="active">✅ ' . esc_html__( 'Active', 'prom-xml-importer' ) . '</span></p>';
-			echo '<p>' . esc_html__( 'Next scheduled update: ', 'prom-xml-importer' ) . date_i18n( 'j F Y, H:i', $next_run ) . '</p>';
+			echo '<p>' . esc_html__( 'Next scheduled update: ', 'prom-xml-importer' ) . esc_html( date_i18n( 'j F Y, H:i', $next_run ) ) . '</p>';
 			echo '<p>' . esc_html__( 'Update interval: ', 'prom-xml-importer' ) . esc_html( $interval ) . '</p>';
 		} else {
 			echo '<p>' . esc_html__( 'Automatic updates: ', 'prom-xml-importer' ) . '<span class="inactive">❌ ' . esc_html__( 'Inactive', 'prom-xml-importer' ) . '</span></p>';
@@ -97,7 +97,7 @@ function prom_xml_importer_update_page() {
 
 		if ( $bg_pending ) {
 			echo '<p>' . esc_html__( 'Background update: ', 'prom-xml-importer' ) . '<span class="pending">⏳ ' . esc_html__( 'Pending', 'prom-xml-importer' ) . '</span></p>';
-			echo '<p>' . esc_html__( 'Scheduled for: ', 'prom-xml-importer' ) . date_i18n( 'F j, Y, g:i a', $bg_pending ) . '</p>';
+			echo '<p>' . esc_html__( 'Scheduled for: ', 'prom-xml-importer' ) . esc_html( date_i18n( 'F j, Y, g:i a', $bg_pending ) ) . '</p>';
 		}
 
 		echo '</div>';
@@ -178,23 +178,31 @@ function prom_xml_importer_import_page() {
 }
 
 function prom_xml_importer_settings_init() {
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_url' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_1' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_2' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_3' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_4' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_5' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_1' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_1' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_2' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_2' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_3' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_3' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_4' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_4' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_5' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_5' );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_update_interval' );
+	$url_args        = array( 'sanitize_callback' => 'esc_url_raw' );
+	$text_args       = array( 'sanitize_callback' => 'sanitize_text_field' );
+	$skip_price_args = array(
+		'sanitize_callback' => function ( $value ) {
+			return ( $value === '1' || $value === 'yes' || $value === 'on' ) ? '1' : '0';
+		},
+	);
+
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_url', $url_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_1', $url_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_2', $url_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_3', $url_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_4', $url_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_5', $url_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_1', $text_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_1', $skip_price_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_2', $text_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_2', $skip_price_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_3', $text_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_3', $skip_price_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_4', $text_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_4', $skip_price_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_5', $text_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_5', $skip_price_args );
+	register_setting( 'prom_xml_importer_settings', 'prom_xml_update_interval', $text_args );
 	register_setting(
 		'prom_xml_importer_settings',
 		'prom_xml_hide_variable_low_instock',
@@ -213,8 +221,8 @@ function prom_xml_importer_settings_init() {
 			},
 		)
 	);
-	register_setting( 'prom_xml_importer_settings', 'telegram_user_ids' );
-	register_setting( 'prom_xml_importer_settings', 'telegram_token_id' );
+	register_setting( 'prom_xml_importer_settings', 'telegram_user_ids', $text_args );
+	register_setting( 'prom_xml_importer_settings', 'telegram_token_id', $text_args );
 
 	add_settings_section( 'prom_xml_importer_section', __( 'Основні налаштування', 'prom-xml-importer' ), null, 'prom-xml-importer' );
 
@@ -415,7 +423,7 @@ function prom_xml_importer_telegram_token_id_render() {
 }
 
 function prom_xml_importer_handle_import_action() {
-	if ( ! isset( $_POST['prom_xml_import_nonce'] ) || ! wp_verify_nonce( $_POST['prom_xml_import_nonce'], 'prom_xml_import_action' ) ) {
+	if ( ! isset( $_POST['prom_xml_import_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['prom_xml_import_nonce'] ) ), 'prom_xml_import_action' ) ) {
 		wp_send_json_error( array( 'message' => 'Nonce verification failed' ) );
 	}
 
@@ -423,18 +431,20 @@ function prom_xml_importer_handle_import_action() {
 		wp_send_json_error( array( 'message' => 'Permission denied' ) );
 	}
 
-	if ( isset( $_FILES['import_xml_file'] ) && $_FILES['import_xml_file']['error'] === UPLOAD_ERR_OK ) {
-		$file_path         = $_FILES['import_xml_file']['tmp_name'];
+	if ( isset( $_FILES['import_xml_file']['error'], $_FILES['import_xml_file']['tmp_name'] ) && UPLOAD_ERR_OK === (int) $_FILES['import_xml_file']['error'] ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Server-generated upload path; unslashing would corrupt Windows paths.
+		$file_path         = sanitize_text_field( $_FILES['import_xml_file']['tmp_name'] );
 		$offset            = isset( $_POST['offset'] ) ? intval( $_POST['offset'] ) : 0;
-		$new_category      = isset( $_POST['new_category'] ) && $_POST['new_category'] === '1';
-		$import_variations = isset( $_POST['import_variations'] ) && $_POST['import_variations'] === '1';
-		$sku_prefix        = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( $_POST['sku_prefix'] ) : '';
+		$new_category      = isset( $_POST['new_category'] ) && '1' === $_POST['new_category'];
+		$import_variations = isset( $_POST['import_variations'] ) && '1' === $_POST['import_variations'];
+		$sku_prefix        = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( wp_unslash( $_POST['sku_prefix'] ) ) : '';
 
 		$selected_attributes = array();
 		if ( isset( $_POST['selected_attributes'] ) ) {
-			$decoded = json_decode( stripslashes( $_POST['selected_attributes'] ), true );
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON payload is decoded then sanitized via map_deep() below.
+			$decoded = json_decode( wp_unslash( $_POST['selected_attributes'] ), true );
 			if ( is_array( $decoded ) ) {
-				$selected_attributes = $decoded;
+				$selected_attributes = map_deep( $decoded, 'sanitize_text_field' );
 			}
 		}
 
@@ -472,7 +482,7 @@ add_action( 'wp_ajax_prom_xml_analyze_groups', 'prom_xml_importer_handle_analyze
  * Handle analyze groups action - scans XML and returns variable product groups
  */
 function prom_xml_importer_handle_analyze_groups() {
-	if ( ! isset( $_POST['prom_xml_import_nonce'] ) || ! wp_verify_nonce( $_POST['prom_xml_import_nonce'], 'prom_xml_import_action' ) ) {
+	if ( ! isset( $_POST['prom_xml_import_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['prom_xml_import_nonce'] ) ), 'prom_xml_import_action' ) ) {
 		wp_send_json_error( array( 'message' => 'Nonce verification failed' ) );
 	}
 
@@ -480,8 +490,9 @@ function prom_xml_importer_handle_analyze_groups() {
 		wp_send_json_error( array( 'message' => 'Permission denied' ) );
 	}
 
-	if ( isset( $_FILES['import_xml_file'] ) && $_FILES['import_xml_file']['error'] === UPLOAD_ERR_OK ) {
-		$file_path = $_FILES['import_xml_file']['tmp_name'];
+	if ( isset( $_FILES['import_xml_file']['error'], $_FILES['import_xml_file']['tmp_name'] ) && UPLOAD_ERR_OK === (int) $_FILES['import_xml_file']['error'] ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Server-generated upload path; unslashing would corrupt Windows paths.
+		$file_path = sanitize_text_field( $_FILES['import_xml_file']['tmp_name'] );
 
 		try {
 			$groups = prom_xml_analyze_variable_groups( $file_path );
@@ -602,8 +613,12 @@ function prom_xml_analyze_variable_groups( string $file_path ): array {
  * @return void
  */
 function prom_xml_importer_handle_action() {
-	if ( ! isset( $_POST['prom_xml_importer_nonce'] ) || ! wp_verify_nonce( $_POST['prom_xml_importer_nonce'], 'prom_xml_importer_action' ) ) {
+	if ( ! isset( $_POST['prom_xml_importer_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['prom_xml_importer_nonce'] ) ), 'prom_xml_importer_action' ) ) {
 		wp_die( 'Nonce verification failed' );
+	}
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( 'Permission denied' );
 	}
 
 	if ( isset( $_POST['run_script'] ) ) {
@@ -616,7 +631,7 @@ function prom_xml_importer_handle_action() {
 		}
 
 		if ( ! empty( $xml_urls ) ) {
-			$bg_option = isset( $_POST['use_background'] ) ? $_POST['use_background'] : 'no';
+			$bg_option = isset( $_POST['use_background'] ) ? sanitize_text_field( wp_unslash( $_POST['use_background'] ) ) : 'no';
 
 			if ( $bg_option === 'yes' ) {
 				$started = false;
@@ -644,9 +659,10 @@ function prom_xml_importer_handle_action() {
 			} else {
 				// Run immediately without scheduling cron jobs
 				try {
-					// Increase time limit for direct execution
+					// Increase time limit for direct execution of a long-running import.
 					if ( function_exists( 'set_time_limit' ) && ! ini_get( 'safe_mode' ) ) {
-						@set_time_limit( 300 ); // 5 minutes
+						// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.NoSilencedErrors.Discouraged -- Needed to avoid timeouts on large catalogs; failure is non-fatal.
+						@set_time_limit( 300 );
 					}
 
 					$success_count = 0;
@@ -670,6 +686,7 @@ function prom_xml_importer_handle_action() {
 						add_settings_error(
 							'prom_xml_importer_settings',
 							'settings_updated',
+							/* translators: 1: number of successfully updated XML files, 2: total number of XML files. */
 							sprintf( __( 'Stock update completed successfully for %1$d out of %2$d XML files.', 'prom-xml-importer' ), $success_count, $total_count ),
 							'updated'
 						);
@@ -714,7 +731,7 @@ function prom_xml_importer_handle_action() {
 		);
 	}
 
-	wp_redirect( add_query_arg( 'settings-updated', 'true', wp_get_referer() ) );
+	wp_safe_redirect( add_query_arg( 'settings-updated', 'true', wp_get_referer() ) );
 	exit;
 }
 
@@ -724,22 +741,16 @@ add_action( 'admin_post_prom_xml_importer_action', 'prom_xml_importer_handle_act
  * Export settings page
  */
 function prom_xml_importer_export_page() {
-	if ( isset( $_POST['create_filtered_xml'] ) && wp_verify_nonce( $_POST['prom_xml_export_nonce'], 'prom_xml_export_filter' ) ) {
-		$sku_prefix = sanitize_text_field( $_POST['sku_prefix'] );
+	if ( isset( $_POST['create_filtered_xml'], $_POST['prom_xml_export_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['prom_xml_export_nonce'] ) ), 'prom_xml_export_filter' ) ) {
+		$sku_prefix = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( wp_unslash( $_POST['sku_prefix'] ) ) : '';
 		
-		if ( isset( $_FILES['xml_file'] ) && $_FILES['xml_file']['error'] === UPLOAD_ERR_OK ) {
-			$uploaded_file = $_FILES['xml_file'];
+		if ( isset( $_FILES['xml_file']['error'], $_FILES['xml_file']['name'], $_FILES['xml_file']['tmp_name'] ) && UPLOAD_ERR_OK === (int) $_FILES['xml_file']['error'] ) {
+			$uploaded_name = sanitize_file_name( wp_unslash( $_FILES['xml_file']['name'] ) );
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Server-generated upload path; unslashing would corrupt Windows paths.
+			$uploaded_tmp  = sanitize_text_field( $_FILES['xml_file']['tmp_name'] );
 			
-			$file_type = wp_check_filetype( $uploaded_file['name'] );
-			$file_extension = strtolower( pathinfo( $uploaded_file['name'], PATHINFO_EXTENSION ) );
-			
-			// Debug info for troubleshooting
-			$debug_info = sprintf( 
-				'Debug: wp_check_filetype ext="%s", pathinfo ext="%s", filename="%s"', 
-				$file_type['ext'] ?? 'null', 
-				$file_extension, 
-				$uploaded_file['name'] 
-			);
+			$file_type = wp_check_filetype( $uploaded_name );
+			$file_extension = strtolower( pathinfo( $uploaded_name, PATHINFO_EXTENSION ) );
 			
 			// More flexible validation - check both methods
 			$is_xml_file = ( $file_type['ext'] === 'xml' ) || ( $file_extension === 'xml' );
@@ -748,14 +759,14 @@ function prom_xml_importer_export_page() {
 				add_settings_error(
 					'prom_xml_export',
 					'export_error',
-					'❌ Помилка: Файл повинен мати розширення .xml. ' . $debug_info,
+					'❌ Помилка: Файл повинен мати розширення .xml.',
 					'error'
 				);
 			} else {
-				$min_price = isset( $_POST['min_price'] ) ? floatval( $_POST['min_price'] ) : 0;
+				$min_price = isset( $_POST['min_price'] ) ? floatval( wp_unslash( $_POST['min_price'] ) ) : 0;
 				
 				require_once plugin_dir_path( __FILE__ ) . '../includes/class-xml-export-filter.php';
-				$export_filter = new XML_Export_Filter( $uploaded_file['tmp_name'], $sku_prefix, $min_price );
+				$export_filter = new XML_Export_Filter( $uploaded_tmp, $sku_prefix, $min_price );
 				$result = $export_filter->create_filtered_xml();
 				
 				if ( $result['success'] ) {
@@ -842,7 +853,7 @@ function prom_xml_importer_export_page() {
 							<input type="number" 
 								   id="min_price" 
 								   name="min_price" 
-								   value="<?php echo esc_attr( isset( $_POST['min_price'] ) ? $_POST['min_price'] : '' ); ?>" 
+								   value="<?php echo esc_attr( isset( $_POST['min_price'] ) ? sanitize_text_field( wp_unslash( $_POST['min_price'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Re-populating a field for display only. ?>" 
 								   class="regular-text" 
 								   step="0.01" 
 								   min="0" 
@@ -874,6 +885,7 @@ function prom_xml_importer_export_page() {
 			<h4>📊 Статистика</h4>
 			<?php
 			global $wpdb;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-off admin statistic, caching not required.
 			$site_products_count = $wpdb->get_var( $wpdb->prepare(
 				"SELECT COUNT(DISTINCT pm.meta_value) 
 				FROM {$wpdb->posts} p
@@ -882,7 +894,7 @@ function prom_xml_importer_export_page() {
 				AND p.post_status IN ('publish', 'draft', 'private')
 				AND pm.meta_key = '_sku'
 				AND pm.meta_value LIKE %s",
-				$current_sku_prefix . '%'
+				$wpdb->esc_like( $current_sku_prefix ) . '%'
 			) );
 			?>
 			<p><strong>Товарів на сайті з префіксом "<?php echo esc_html( $current_sku_prefix ); ?>":</strong> <?php echo intval( $site_products_count ); ?></p>

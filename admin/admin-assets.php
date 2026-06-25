@@ -15,6 +15,7 @@ function prom_xml_importer_is_plugin_admin_screen() {
  * Get current plugin admin page slug.
  */
 function prom_xml_importer_get_admin_page_slug() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only check used only to decide which assets to enqueue.
 	return isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
 }
 

@@ -38,7 +38,7 @@ function prom_xml_importer_render_support_widget() {
 							<?php esc_html_e( 'Копіювати', 'prom-xml-importer' ); ?>
 						</button>
 					</div>
-					<span class="prom-xml-support__card-label"><?php esc_html_e( 'Максим К.', 'prom-xml-importer' ); ?></span>
+					<span class="prom-xml-support__card-label"><?php esc_html_e( 'Максим Кляхін', 'prom-xml-importer' ); ?></span>
 				</div>
 
 				<div class="prom-xml-support__actions">

@@ -113,9 +113,10 @@ class XML_Export_Filter {
 			AND pm.meta_value != ''
 			AND pm.meta_value IS NOT NULL
 			AND pm.meta_value LIKE %s",
-			$this->sku_prefix . '%'
+			$wpdb->esc_like( $this->sku_prefix ) . '%'
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is already prepared above; live data required.
 		$results = $wpdb->get_col( $sql );
 		
 		// Remove prefix from SKUs for comparison with XML
@@ -145,6 +146,7 @@ class XML_Export_Filter {
 			AND pm.meta_value != ''
 			AND pm.meta_value IS NOT NULL";
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Static query with no user input; live data required.
 		$group_ids = $wpdb->get_col( $sql );
 		
 		foreach ( $group_ids as $group_id ) {
@@ -368,7 +370,7 @@ class XML_Export_Filter {
 			wp_mkdir_p( $export_dir );
 		}
 
-		$filename = 'filtered-xml-' . date( 'Y-m-d-H-i-s' ) . '.xml';
+		$filename = 'filtered-xml-' . gmdate( 'Y-m-d-H-i-s' ) . '.xml';
 		$file_path = $export_dir . '/' . $filename;
 
 		$result = file_put_contents( $file_path, $filtered_content );

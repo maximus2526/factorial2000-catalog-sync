@@ -10,7 +10,6 @@
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       prom-xml-importer
- * Domain Path:       /languages
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -43,8 +42,6 @@ function prom_xml_importer_init() {
 		add_action( 'admin_notices', 'prom_xml_importer_woocommerce_missing_notice' );
 		return;
 	}
-
-	load_plugin_textdomain( 'prom-xml-importer', false, PROM_XML_IMPORTER_BASENAME . '/languages' );
 
 	add_action( Cron_Job::CRON_HOOK, array( 'Cron_Job', 'update_stock' ) );
 
@@ -100,7 +97,10 @@ function prom_xml_importer_check_resources() {
 		return;
 	}
 
-	if ( ! prom_is_configured() && isset( $_GET['page'] ) && $_GET['page'] === 'prom-xml-importer-update' ) {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page check for an admin notice, no data is processed.
+	$current_page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
+
+	if ( ! prom_is_configured() && 'prom-xml-importer-update' === $current_page ) {
 		echo '<div class="notice notice-warning">';
 		echo '<p><strong>Prom XML Importer:</strong> ' . esc_html__( 'Please configure an XML URL to start updating stock status.', 'prom-xml-importer' ) . '</p>';
 		echo '</div>';
@@ -132,7 +132,7 @@ function prom_xml_importer_check_requirements() {
 				echo '<div class="notice notice-error">';
 				echo '<p><strong>Prom XML Importer:</strong> ' .
 				esc_html__( 'The following PHP extensions are required: ', 'prom-xml-importer' ) .
-				implode( ', ', $missing ) . '</p>';
+				esc_html( implode( ', ', $missing ) ) . '</p>';
 				echo '</div>';
 			}
 		);
