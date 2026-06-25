@@ -24,6 +24,7 @@ require_once PROM_XML_IMPORTER_PATH . 'includes/class-xml-export-filter.php';
 require_once PROM_XML_IMPORTER_PATH . 'includes/functions.php';
 require_once PROM_XML_IMPORTER_PATH . 'includes/class-frontend-display.php';
 require_once PROM_XML_IMPORTER_PATH . 'admin/settings-page.php';
+require_once PROM_XML_IMPORTER_PATH . 'admin/support-widget.php';
 
 register_activation_hook( __FILE__, 'prom_xml_importer_activate' );
 register_deactivation_hook( __FILE__, array( 'Cron_Job', 'deactivate' ) );
