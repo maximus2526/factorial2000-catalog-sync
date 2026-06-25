@@ -64,7 +64,7 @@ git clone [https://github.com/maximus2526/prom-xml-importer.git](https://github.
 
 Якщо цей інструмент заощадив ваші гроші на покупку дорогих модулів імпорту та допоміг вашому бізнесу, ви можете підтримати розробника:
 
-- **💳 Номер картки:** `4874 1000 3871 2884` (Максим К.)
+- **💳 Номер картки:** `4874 1000 3871 2884` (Максим Кляхін)
 - **🍯 Посилання на Банку Monobank:** [send.monobank.ua/jar/8CiFBAfJKK](https://send.monobank.ua/jar/8CiFBAfJKK)
 
 ---
@@ -79,7 +79,7 @@ git clone [https://github.com/maximus2526/prom-xml-importer.git](https://github.
 
 ## 📄 Ліцензія
 
-Цей плагін розповсюджується під ліцензією [MIT License](LICENSE). Ви можете вільно використовувати та модифікувати його для своїх комерційних проектів.
+Цей плагін розповсюджується під ліцензією [GPLv2 or later](https://www.gnu.org/licenses/gpl-2.0.html) — вимога каталогу плагінів WordPress.org.
 
 **Розробник:** Maxim (KMax)  
 GitHub: [maximus2526](https://github.com/maximus2526)

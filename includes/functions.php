@@ -85,7 +85,8 @@ function prom_log( $message, $level = 'info' ) {
 			$memory_usage,
 			$message
 		);
-		error_log( $formatted_message );
+		// TODO: Uncomment this for debugging purposes
+		// error_log( $formatted_message );
 	}
 }
 

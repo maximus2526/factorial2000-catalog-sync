@@ -3,6 +3,10 @@
 defined( 'ABSPATH' ) || exit;
 
 function prom_xml_importer_add_admin_menu() {
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		return;
+	}
+
 	add_menu_page(
 		'Оновлення XML',
 		'Оновлення XML',

@@ -2,20 +2,20 @@
 /**
  * Plugin Name:       Prom XML Importer
  * Description:       Плагін для імпорту XML даних та оновлення статусу запасів із платформи Prom.ua.
- * Version:           1.2.0
+ * Version:           0.1
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            KMax (Maxim Kliakhin)
  * Author URI:        https://github.com/maximus2526
- * License:           MIT
- * License URI:       https://opensource.org/licenses/MIT
+ * License:           GPL v2 or later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       prom-xml-importer
  * Domain Path:       /languages
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PROM_XML_IMPORTER_VERSION', '1.2' );
+define( 'PROM_XML_IMPORTER_VERSION', '0.1' );
 define( 'PROM_XML_IMPORTER_PATH', plugin_dir_path( __FILE__ ) );
 define( 'PROM_XML_IMPORTER_URL', plugin_dir_url( __FILE__ ) );
 define( 'PROM_XML_IMPORTER_BASENAME', plugin_basename( __FILE__ ) );
@@ -39,6 +39,11 @@ add_action( 'plugins_loaded', 'prom_xml_importer_init' );
  * Initialize plugin on plugins_loaded action.
  */
 function prom_xml_importer_init() {
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		add_action( 'admin_notices', 'prom_xml_importer_woocommerce_missing_notice' );
+		return;
+	}
+
 	load_plugin_textdomain( 'xml-prom', false, PROM_XML_IMPORTER_BASENAME . '/languages' );
 
 	add_action( Cron_Job::CRON_HOOK, array( 'Cron_Job', 'update_stock' ) );
@@ -50,6 +55,20 @@ function prom_xml_importer_init() {
 	add_action( 'admin_notices', 'prom_xml_importer_check_resources' );
 
 	add_action( 'admin_init', 'prom_xml_importer_check_requirements' );
+}
+
+/**
+ * Admin notice when WooCommerce is not active.
+ */
+function prom_xml_importer_woocommerce_missing_notice() {
+	if ( ! current_user_can( 'activate_plugins' ) ) {
+		return;
+	}
+
+	echo '<div class="notice notice-error"><p>';
+	echo '<strong>Prom XML Importer:</strong> ';
+	echo esc_html__( 'This plugin requires WooCommerce to be installed and active.', 'xml-prom' );
+	echo '</p></div>';
 }
 
 /**
