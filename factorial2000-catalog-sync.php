@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:       Factorial2000 Catalog Sync for Prom.ua and WooCommerce
+ * Plugin Name:       Factorial2000 Catalog Sync for Prom.ua
  * Description:       Плагін для імпорту XML даних та оновлення статусу запасів із платформи Prom.ua.
  * Version:           0.2
  * Requires at least: 5.8

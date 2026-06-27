@@ -1,4 +1,4 @@
-=== Factorial2000 Catalog Sync for Prom.ua and WooCommerce ===
+=== Factorial2000 Catalog Sync for Prom.ua ===
 Contributors: factorial2000
 Donate link: https://send.monobank.ua/jar/8CiFBAfJKK
 Tags: woocommerce, import, xml, stock, prom
