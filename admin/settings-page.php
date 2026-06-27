@@ -2,102 +2,111 @@
 
 defined( 'ABSPATH' ) || exit;
 
-function prom_xml_importer_add_admin_menu() {
+function f2cs_add_admin_menu() {
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		return;
 	}
 
 	add_menu_page(
 		'Оновлення XML',
-		'Оновлення XML',
+		'Catalog Sync',
 		'manage_options',
-		'prom-xml-importer-update',
-		'prom_xml_importer_update_page',
+		'f2cs-update',
+		'f2cs_update_page',
 		'dashicons-update',
 		60
 	);
 
 	add_submenu_page(
-		'prom-xml-importer-update',
-		'Імпорт XML',
-		'Імпорт XML',
+		'f2cs-update',
+		'Оновлення XML',
+		'Оновлення XML',
 		'manage_options',
-		'prom-xml-importer-import',
-		'prom_xml_importer_import_page'
+		'f2cs-update',
+		'f2cs_update_page'
 	);
 
 	add_submenu_page(
-		'prom-xml-importer-update',
+		'f2cs-update',
+		'Імпорт XML',
+		'Імпорт XML',
+		'manage_options',
+		'f2cs-import',
+		'f2cs_import_page'
+	);
+
+	add_submenu_page(
+		'f2cs-update',
 		'Налаштування вигрузки',
 		'Налаштування вигрузки',
 		'manage_options',
-		'prom-xml-importer-export',
-		'prom_xml_importer_export_page'
+		'f2cs-export',
+		'f2cs_export_page'
 	);
 }
-add_action( 'admin_menu', 'prom_xml_importer_add_admin_menu' );
+add_action( 'admin_menu', 'f2cs_add_admin_menu' );
 
-function prom_xml_importer_update_page() {
+function f2cs_update_page() {
 	?>
 	<div class="wrap">
-		<h1><?php esc_html_e( 'Prom XML Importer – Оновлення', 'prom-xml-importer' ); ?></h1>
+		<h1><?php esc_html_e( 'Factorial2000 Catalog Sync – Оновлення', 'factorial2000-catalog-sync' ); ?></h1>
 		
 		<?php settings_errors(); ?>
 		
 		<form method="post" action="options.php">
 			<?php
-			settings_fields( 'prom_xml_importer_settings' );
-			do_settings_sections( 'prom-xml-importer' );
+			settings_fields( 'f2cs_settings' );
+			do_settings_sections( 'f2cs' );
 			submit_button( 'Зберегти налаштування' );
 			?>
 		</form>
 		
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<?php wp_nonce_field( 'prom_xml_importer_action', 'prom_xml_importer_nonce' ); ?>
-			<input type="hidden" name="action" value="prom_xml_importer_action">
+			<?php wp_nonce_field( 'f2cs_action', 'f2cs_nonce' ); ?>
+			<input type="hidden" name="action" value="f2cs_action">
 			
 			<table class="form-table">
 				<tr>
-					<th><?php esc_html_e( 'Background Processing', 'prom-xml-importer' ); ?></th>
+					<th><?php esc_html_e( 'Background Processing', 'factorial2000-catalog-sync' ); ?></th>
 					<td>
 						<label>
 							<input type="radio" name="use_background" value="yes" checked>
-							<?php esc_html_e( 'Запустити у фоновому режимі', 'prom-xml-importer' ); ?>
+							<?php esc_html_e( 'Запустити у фоновому режимі', 'factorial2000-catalog-sync' ); ?>
 						</label>
 						<br>
 						<label>
 							<input type="radio" name="use_background" value="no">
-							<?php esc_html_e( 'Запустити відразу', 'prom-xml-importer' ); ?>
+							<?php esc_html_e( 'Запустити відразу', 'factorial2000-catalog-sync' ); ?>
 						</label>
 					</td>
 				</tr>
 			</table>
 			
 			<p>
-				<input type="submit" name="run_script" class="button button-primary" value="<?php esc_attr_e( 'Update Stock Status', 'prom-xml-importer' ); ?>" style="margin-right: 10px;">
-				<input type="submit" name="prom_xml_importer_stop" class="button button-secondary" value="<?php esc_attr_e( 'Stop Cron Jobs', 'prom-xml-importer' ); ?>">
+				<input type="submit" name="run_script" class="button button-primary" value="<?php esc_attr_e( 'Update Stock Status', 'factorial2000-catalog-sync' ); ?>" style="margin-right: 10px;">
+				<input type="submit" name="f2cs_stop" class="button button-secondary" value="<?php esc_attr_e( 'Stop Cron Jobs', 'factorial2000-catalog-sync' ); ?>">
 			</p>
 		</form>
 		
 		<?php
-		$next_run   = wp_next_scheduled( 'prom_update_stock_cron' );
-		$interval   = get_option( 'prom_xml_update_interval', 'hourly' );
-		$bg_pending = wp_next_scheduled( 'prom_single_update_event' );
+		$next_run   = wp_next_scheduled( 'f2cs_update_stock_cron' );
+		$interval   = get_option( 'f2cs_update_interval', 'hourly' );
+		$bg_pending = wp_next_scheduled( 'f2cs_single_update_event' );
 
-		echo '<div class="prom-xml-status">';
-		echo '<h3>' . esc_html__( 'Status', 'prom-xml-importer' ) . '</h3>';
+		echo '<div class="f2cs-status">';
+		echo '<h3>' . esc_html__( 'Status', 'factorial2000-catalog-sync' ) . '</h3>';
 
 		if ( $next_run ) {
-			echo '<p>' . esc_html__( 'Automatic updates: ', 'prom-xml-importer' ) . '<span class="active">✅ ' . esc_html__( 'Active', 'prom-xml-importer' ) . '</span></p>';
-			echo '<p>' . esc_html__( 'Next scheduled update: ', 'prom-xml-importer' ) . esc_html( date_i18n( 'j F Y, H:i', $next_run ) ) . '</p>';
-			echo '<p>' . esc_html__( 'Update interval: ', 'prom-xml-importer' ) . esc_html( $interval ) . '</p>';
+			echo '<p>' . esc_html__( 'Automatic updates: ', 'factorial2000-catalog-sync' ) . '<span class="active">✅ ' . esc_html__( 'Active', 'factorial2000-catalog-sync' ) . '</span></p>';
+			echo '<p>' . esc_html__( 'Next scheduled update: ', 'factorial2000-catalog-sync' ) . esc_html( date_i18n( 'j F Y, H:i', $next_run ) ) . '</p>';
+			echo '<p>' . esc_html__( 'Update interval: ', 'factorial2000-catalog-sync' ) . esc_html( $interval ) . '</p>';
 		} else {
-			echo '<p>' . esc_html__( 'Automatic updates: ', 'prom-xml-importer' ) . '<span class="inactive">❌ ' . esc_html__( 'Inactive', 'prom-xml-importer' ) . '</span></p>';
+			echo '<p>' . esc_html__( 'Automatic updates: ', 'factorial2000-catalog-sync' ) . '<span class="inactive">❌ ' . esc_html__( 'Inactive', 'factorial2000-catalog-sync' ) . '</span></p>';
 		}
 
 		if ( $bg_pending ) {
-			echo '<p>' . esc_html__( 'Background update: ', 'prom-xml-importer' ) . '<span class="pending">⏳ ' . esc_html__( 'Pending', 'prom-xml-importer' ) . '</span></p>';
-			echo '<p>' . esc_html__( 'Scheduled for: ', 'prom-xml-importer' ) . esc_html( date_i18n( 'F j, Y, g:i a', $bg_pending ) ) . '</p>';
+			echo '<p>' . esc_html__( 'Background update: ', 'factorial2000-catalog-sync' ) . '<span class="pending">⏳ ' . esc_html__( 'Pending', 'factorial2000-catalog-sync' ) . '</span></p>';
+			echo '<p>' . esc_html__( 'Scheduled for: ', 'factorial2000-catalog-sync' ) . esc_html( date_i18n( 'F j, Y, g:i a', $bg_pending ) ) . '</p>';
 		}
 
 		echo '</div>';
@@ -106,78 +115,78 @@ function prom_xml_importer_update_page() {
 	<?php
 }
 
-function prom_xml_importer_import_page() {
+function f2cs_import_page() {
 	?>
 	<div class="wrap">
-		<h1><?php esc_html_e( 'Prom XML Importer – Імпорт', 'prom-xml-importer' ); ?></h1>
+		<h1><?php esc_html_e( 'Factorial2000 Catalog Sync – Імпорт', 'factorial2000-catalog-sync' ); ?></h1>
 		<form id="xml-import-form" enctype="multipart/form-data">
-			<?php wp_nonce_field( 'prom_xml_import_action', 'prom_xml_import_nonce' ); ?>
+			<?php wp_nonce_field( 'f2cs_import_action', 'f2cs_import_nonce' ); ?>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><label for="import_xml_file"><?php esc_html_e( 'Виберіть XML файл для імпорту', 'prom-xml-importer' ); ?></label></th>
+					<th scope="row"><label for="import_xml_file"><?php esc_html_e( 'Виберіть XML файл для імпорту', 'factorial2000-catalog-sync' ); ?></label></th>
 					<td><input type="file" name="import_xml_file" id="import_xml_file" accept=".xml" required></td>
 				</tr>
 			<tr valign="top">
-				<th scope="row"><label for="import_sku_prefix"><?php esc_html_e( 'SKU Prefix', 'prom-xml-importer' ); ?></label></th>
-				<td><input type="text" name="import_sku_prefix" id="import_sku_prefix" placeholder="<?php esc_attr_e( 'Наприклад: NEW_', 'prom-xml-importer' ); ?>" required></td>
+				<th scope="row"><label for="import_sku_prefix"><?php esc_html_e( 'SKU Prefix', 'factorial2000-catalog-sync' ); ?></label></th>
+				<td><input type="text" name="import_sku_prefix" id="import_sku_prefix" placeholder="<?php esc_attr_e( 'Наприклад: NEW_', 'factorial2000-catalog-sync' ); ?>" required></td>
 			</tr>
 		</table>
-		<div class="prom-xml-import-field">
+		<div class="f2cs-import-field">
 			<label for="new_category">
 				<input type="checkbox" name="new_category" id="new_category" value="1">
-				<?php esc_html_e( 'Додавати неіснуючі товари в категорію New', 'prom-xml-importer' ); ?>
+				<?php esc_html_e( 'Додавати неіснуючі товари в категорію New', 'factorial2000-catalog-sync' ); ?>
 			</label>
 		</div>
 
-		<div class="prom-xml-import-mode">
-			<label class="prom-xml-import-mode__title">
-				<?php esc_html_e( 'Режим імпорту:', 'prom-xml-importer' ); ?>
+		<div class="f2cs-import-mode">
+			<label class="f2cs-import-mode__title">
+				<?php esc_html_e( 'Режим імпорту:', 'factorial2000-catalog-sync' ); ?>
 			</label>
-			<div class="prom-xml-import-mode__options">
-				<label class="prom-xml-import-mode__option">
+			<div class="f2cs-import-mode__options">
+				<label class="f2cs-import-mode__option">
 					<input type="radio" name="import_mode" value="simple" checked>
-					<?php esc_html_e( 'Прості продукти (тільки товари БЕЗ group_id)', 'prom-xml-importer' ); ?>
+					<?php esc_html_e( 'Прості продукти (тільки товари БЕЗ group_id)', 'factorial2000-catalog-sync' ); ?>
 				</label>
-				<label class="prom-xml-import-mode__option">
+				<label class="f2cs-import-mode__option">
 					<input type="radio" name="import_mode" value="variable">
-					<?php esc_html_e( 'Варіативні продукти (тільки товари З group_id, з вибором атрибутів)', 'prom-xml-importer' ); ?>
+					<?php esc_html_e( 'Варіативні продукти (тільки товари З group_id, з вибором атрибутів)', 'factorial2000-catalog-sync' ); ?>
 				</label>
 			</div>
 		</div>
 
-		<div class="prom-xml-import-actions">
+		<div class="f2cs-import-actions">
 			<button type="button" id="analyze-xml" class="button button-secondary is-hidden">
-				<?php esc_html_e( 'Проаналізувати XML', 'prom-xml-importer' ); ?>
+				<?php esc_html_e( 'Проаналізувати XML', 'factorial2000-catalog-sync' ); ?>
 			</button>
 			<button type="button" id="start-import" class="button button-primary">
-				<?php esc_html_e( 'Імпортувати', 'prom-xml-importer' ); ?>
+				<?php esc_html_e( 'Імпортувати', 'factorial2000-catalog-sync' ); ?>
 			</button>
 			<button type="button" id="stop-import" class="button button-secondary is-hidden">
-				<?php esc_html_e( 'Зупинити', 'prom-xml-importer' ); ?>
+				<?php esc_html_e( 'Зупинити', 'factorial2000-catalog-sync' ); ?>
 			</button>
 		</div>
 		</form>
 
-		<div id="groups-analysis-container" class="prom-xml-analysis">
-			<h3><?php esc_html_e( 'Вибір варіаційних атрибутів', 'prom-xml-importer' ); ?></h3>
-			<p class="description"><?php esc_html_e( 'Для кожної групи товарів виберіть атрибут який буде використовуватись для створення варіацій:', 'prom-xml-importer' ); ?></p>
-			<div id="analysis-status" class="prom-xml-analysis__status"></div>
-			<div id="groups-list" class="prom-xml-analysis__list"></div>
-			<button type="button" id="start-import-with-selection" class="button button-primary prom-xml-analysis__submit is-hidden">
-				<?php esc_html_e( 'Імпортувати з вибраними атрибутами', 'prom-xml-importer' ); ?>
+		<div id="groups-analysis-container" class="f2cs-analysis">
+			<h3><?php esc_html_e( 'Вибір варіаційних атрибутів', 'factorial2000-catalog-sync' ); ?></h3>
+			<p class="description"><?php esc_html_e( 'Для кожної групи товарів виберіть атрибут який буде використовуватись для створення варіацій:', 'factorial2000-catalog-sync' ); ?></p>
+			<div id="analysis-status" class="f2cs-analysis__status"></div>
+			<div id="groups-list" class="f2cs-analysis__list"></div>
+			<button type="button" id="start-import-with-selection" class="button button-primary f2cs-analysis__submit is-hidden">
+				<?php esc_html_e( 'Імпортувати з вибраними атрибутами', 'factorial2000-catalog-sync' ); ?>
 			</button>
 		</div>
 
-		<div id="import-progress-container" class="prom-xml-import-progress">
-			<h3><?php esc_html_e( 'Прогрес імпорту', 'prom-xml-importer' ); ?></h3>
-			<progress id="import-progress" class="prom-xml-import-progress__bar" value="0" max="100"></progress>
+		<div id="import-progress-container" class="f2cs-import-progress">
+			<h3><?php esc_html_e( 'Прогрес імпорту', 'factorial2000-catalog-sync' ); ?></h3>
+			<progress id="import-progress" class="f2cs-import-progress__bar" value="0" max="100"></progress>
 			<div id="import-status"></div>
 		</div>
 	</div>
 	<?php
 }
 
-function prom_xml_importer_settings_init() {
+function f2cs_settings_init() {
 	$url_args        = array( 'sanitize_callback' => 'esc_url_raw' );
 	$text_args       = array( 'sanitize_callback' => 'sanitize_text_field' );
 	$skip_price_args = array(
@@ -186,26 +195,26 @@ function prom_xml_importer_settings_init() {
 		},
 	);
 
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_url', $url_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_1', $url_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_2', $url_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_3', $url_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_4', $url_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_url_5', $url_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_1', $text_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_1', $skip_price_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_2', $text_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_2', $skip_price_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_3', $text_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_3', $skip_price_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_4', $text_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_4', $skip_price_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_sku_prefix_5', $text_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_skip_price_5', $skip_price_args );
-	register_setting( 'prom_xml_importer_settings', 'prom_xml_update_interval', $text_args );
+	register_setting( 'f2cs_settings', 'f2cs_url', $url_args );
+	register_setting( 'f2cs_settings', 'f2cs_url_1', $url_args );
+	register_setting( 'f2cs_settings', 'f2cs_url_2', $url_args );
+	register_setting( 'f2cs_settings', 'f2cs_url_3', $url_args );
+	register_setting( 'f2cs_settings', 'f2cs_url_4', $url_args );
+	register_setting( 'f2cs_settings', 'f2cs_url_5', $url_args );
+	register_setting( 'f2cs_settings', 'f2cs_sku_prefix_1', $text_args );
+	register_setting( 'f2cs_settings', 'f2cs_skip_price_1', $skip_price_args );
+	register_setting( 'f2cs_settings', 'f2cs_sku_prefix_2', $text_args );
+	register_setting( 'f2cs_settings', 'f2cs_skip_price_2', $skip_price_args );
+	register_setting( 'f2cs_settings', 'f2cs_sku_prefix_3', $text_args );
+	register_setting( 'f2cs_settings', 'f2cs_skip_price_3', $skip_price_args );
+	register_setting( 'f2cs_settings', 'f2cs_sku_prefix_4', $text_args );
+	register_setting( 'f2cs_settings', 'f2cs_skip_price_4', $skip_price_args );
+	register_setting( 'f2cs_settings', 'f2cs_sku_prefix_5', $text_args );
+	register_setting( 'f2cs_settings', 'f2cs_skip_price_5', $skip_price_args );
+	register_setting( 'f2cs_settings', 'f2cs_update_interval', $text_args );
 	register_setting(
-		'prom_xml_importer_settings',
-		'prom_xml_hide_variable_low_instock',
+		'f2cs_settings',
+		'f2cs_hide_variable_low_instock',
 		array(
 			'sanitize_callback' => function ( $value ) {
 				return ( $value === '1' || $value === 'yes' || $value === 'on' ) ? '1' : '0';
@@ -213,217 +222,217 @@ function prom_xml_importer_settings_init() {
 		)
 	);
 	register_setting(
-		'prom_xml_importer_settings',
-		'prom_xml_variable_low_instock_max',
+		'f2cs_settings',
+		'f2cs_variable_low_instock_max',
 		array(
 			'sanitize_callback' => function ( $value ) {
 				return (string) max( 0, absint( $value ) );
 			},
 		)
 	);
-	register_setting( 'prom_xml_importer_settings', 'telegram_user_ids', $text_args );
-	register_setting( 'prom_xml_importer_settings', 'telegram_token_id', $text_args );
+	register_setting( 'f2cs_settings', 'f2cs_telegram_user_ids', $text_args );
+	register_setting( 'f2cs_settings', 'f2cs_telegram_token_id', $text_args );
 
-	add_settings_section( 'prom_xml_importer_section', __( 'Основні налаштування', 'prom-xml-importer' ), null, 'prom-xml-importer' );
+	add_settings_section( 'f2cs_section', __( 'Основні налаштування', 'factorial2000-catalog-sync' ), null, 'f2cs' );
 
-	add_settings_field( 'prom_xml_url', __( 'URL XML файлу 1', 'prom-xml-importer' ), 'prom_xml_importer_url_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_sku_prefix_1', __( 'SKU Prefix 1', 'prom-xml-importer' ), 'prom_xml_importer_sku_prefix_1_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_skip_price_1', __( 'Не оновлювати ціну 1', 'prom-xml-importer' ), 'prom_xml_importer_skip_price_1_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_url_2', __( 'URL XML файлу 2', 'prom-xml-importer' ), 'prom_xml_importer_url_2_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_sku_prefix_2', __( 'SKU Prefix 2', 'prom-xml-importer' ), 'prom_xml_importer_sku_prefix_2_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_skip_price_2', __( 'Не оновлювати ціну 2', 'prom-xml-importer' ), 'prom_xml_importer_skip_price_2_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_url_3', __( 'URL XML файлу 3', 'prom-xml-importer' ), 'prom_xml_importer_url_3_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_sku_prefix_3', __( 'SKU Prefix 3', 'prom-xml-importer' ), 'prom_xml_importer_sku_prefix_3_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_skip_price_3', __( 'Не оновлювати ціну 3', 'prom-xml-importer' ), 'prom_xml_importer_skip_price_3_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_url_4', __( 'URL XML файлу 4', 'prom-xml-importer' ), 'prom_xml_importer_url_4_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_sku_prefix_4', __( 'SKU Prefix 4', 'prom-xml-importer' ), 'prom_xml_importer_sku_prefix_4_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_skip_price_4', __( 'Не оновлювати ціну 4', 'prom-xml-importer' ), 'prom_xml_importer_skip_price_4_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_url_5', __( 'URL XML файлу 5', 'prom-xml-importer' ), 'prom_xml_importer_url_5_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_sku_prefix_5', __( 'SKU Prefix 5', 'prom-xml-importer' ), 'prom_xml_importer_sku_prefix_5_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_skip_price_5', __( 'Не оновлювати ціну 5', 'prom-xml-importer' ), 'prom_xml_importer_skip_price_5_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_update_interval', __( 'Інтервал оновлення', 'prom-xml-importer' ), 'prom_xml_importer_interval_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_hide_variable_low_instock', __( 'Variable-товари з малою наявністю', 'prom-xml-importer' ), 'prom_xml_importer_hide_variable_low_instock_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'prom_xml_variable_low_instock_max', __( 'Поріг варіацій в наявності', 'prom-xml-importer' ), 'prom_xml_importer_variable_low_instock_max_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'telegram_user_ids', __( 'Telegram User IDs', 'prom-xml-importer' ), 'prom_xml_importer_telegram_user_ids_render', 'prom-xml-importer', 'prom_xml_importer_section' );
-	add_settings_field( 'telegram_token_id', __( 'Telegram Token ID', 'prom-xml-importer' ), 'prom_xml_importer_telegram_token_id_render', 'prom-xml-importer', 'prom_xml_importer_section' );
+	add_settings_field( 'f2cs_url', __( 'URL XML файлу 1', 'factorial2000-catalog-sync' ), 'f2cs_url_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_sku_prefix_1', __( 'SKU Prefix 1', 'factorial2000-catalog-sync' ), 'f2cs_sku_prefix_1_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_skip_price_1', __( 'Не оновлювати ціну 1', 'factorial2000-catalog-sync' ), 'f2cs_skip_price_1_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_url_2', __( 'URL XML файлу 2', 'factorial2000-catalog-sync' ), 'f2cs_url_2_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_sku_prefix_2', __( 'SKU Prefix 2', 'factorial2000-catalog-sync' ), 'f2cs_sku_prefix_2_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_skip_price_2', __( 'Не оновлювати ціну 2', 'factorial2000-catalog-sync' ), 'f2cs_skip_price_2_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_url_3', __( 'URL XML файлу 3', 'factorial2000-catalog-sync' ), 'f2cs_url_3_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_sku_prefix_3', __( 'SKU Prefix 3', 'factorial2000-catalog-sync' ), 'f2cs_sku_prefix_3_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_skip_price_3', __( 'Не оновлювати ціну 3', 'factorial2000-catalog-sync' ), 'f2cs_skip_price_3_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_url_4', __( 'URL XML файлу 4', 'factorial2000-catalog-sync' ), 'f2cs_url_4_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_sku_prefix_4', __( 'SKU Prefix 4', 'factorial2000-catalog-sync' ), 'f2cs_sku_prefix_4_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_skip_price_4', __( 'Не оновлювати ціну 4', 'factorial2000-catalog-sync' ), 'f2cs_skip_price_4_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_url_5', __( 'URL XML файлу 5', 'factorial2000-catalog-sync' ), 'f2cs_url_5_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_sku_prefix_5', __( 'SKU Prefix 5', 'factorial2000-catalog-sync' ), 'f2cs_sku_prefix_5_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_skip_price_5', __( 'Не оновлювати ціну 5', 'factorial2000-catalog-sync' ), 'f2cs_skip_price_5_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_update_interval', __( 'Інтервал оновлення', 'factorial2000-catalog-sync' ), 'f2cs_interval_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_hide_variable_low_instock', __( 'Variable-товари з малою наявністю', 'factorial2000-catalog-sync' ), 'f2cs_hide_variable_low_instock_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_variable_low_instock_max', __( 'Поріг варіацій в наявності', 'factorial2000-catalog-sync' ), 'f2cs_variable_low_instock_max_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_telegram_user_ids', __( 'Telegram User IDs', 'factorial2000-catalog-sync' ), 'f2cs_telegram_user_ids_render', 'f2cs', 'f2cs_section' );
+	add_settings_field( 'f2cs_telegram_token_id', __( 'Telegram Token ID', 'factorial2000-catalog-sync' ), 'f2cs_telegram_token_id_render', 'f2cs', 'f2cs_section' );
 }
-add_action( 'admin_init', 'prom_xml_importer_settings_init' );
+add_action( 'admin_init', 'f2cs_settings_init' );
 
-function prom_xml_importer_url_render() {
-	$url = get_option( 'prom_xml_url', '' );
+function f2cs_url_render() {
+	$url = get_option( 'f2cs_url', '' );
 	?>
-	<input type="text" name="prom_xml_url" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products1.xml', 'prom-xml-importer' ); ?>" style="width: 100%;">
+	<input type="text" name="f2cs_url" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products1.xml', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
 	<?php
 }
 
-function prom_xml_importer_sku_prefix_1_render() {
-	$prefix = get_option( 'prom_xml_sku_prefix_1', '' );
+function f2cs_sku_prefix_1_render() {
+	$prefix = get_option( 'f2cs_sku_prefix_1', '' );
 	?>
-	<input type="text" name="prom_xml_sku_prefix_1" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML1_', 'prom-xml-importer' ); ?>" style="width: 100%;">
-	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'prom-xml-importer' ); ?></p>
+	<input type="text" name="f2cs_sku_prefix_1" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML1_', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'factorial2000-catalog-sync' ); ?></p>
 	<?php
 }
 
-function prom_xml_importer_skip_price_1_render() {
-	$val = get_option( 'prom_xml_skip_price_1', '0' );
+function f2cs_skip_price_1_render() {
+	$val = get_option( 'f2cs_skip_price_1', '0' );
 	?>
 	<label>
-		<input type="checkbox" name="prom_xml_skip_price_1" value="1" <?php checked( $val, '1' ); ?>>
-		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'prom-xml-importer' ); ?>
+		<input type="checkbox" name="f2cs_skip_price_1" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'factorial2000-catalog-sync' ); ?>
 	</label>
 	<?php
 }
 
-function prom_xml_importer_url_2_render() {
-	$url = get_option( 'prom_xml_url_2', '' );
+function f2cs_url_2_render() {
+	$url = get_option( 'f2cs_url_2', '' );
 	?>
-	<input type="text" name="prom_xml_url_2" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products2.xml', 'prom-xml-importer' ); ?>" style="width: 100%;">
+	<input type="text" name="f2cs_url_2" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products2.xml', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
 	<?php
 }
 
-function prom_xml_importer_sku_prefix_2_render() {
-	$prefix = get_option( 'prom_xml_sku_prefix_2', '' );
+function f2cs_sku_prefix_2_render() {
+	$prefix = get_option( 'f2cs_sku_prefix_2', '' );
 	?>
-	<input type="text" name="prom_xml_sku_prefix_2" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML2_', 'prom-xml-importer' ); ?>" style="width: 100%;">
-	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'prom-xml-importer' ); ?></p>
+	<input type="text" name="f2cs_sku_prefix_2" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML2_', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'factorial2000-catalog-sync' ); ?></p>
 	<?php
 }
 
-function prom_xml_importer_skip_price_2_render() {
-	$val = get_option( 'prom_xml_skip_price_2', '0' );
+function f2cs_skip_price_2_render() {
+	$val = get_option( 'f2cs_skip_price_2', '0' );
 	?>
 	<label>
-		<input type="checkbox" name="prom_xml_skip_price_2" value="1" <?php checked( $val, '1' ); ?>>
-		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'prom-xml-importer' ); ?>
+		<input type="checkbox" name="f2cs_skip_price_2" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'factorial2000-catalog-sync' ); ?>
 	</label>
 	<?php
 }
 
-function prom_xml_importer_url_3_render() {
-	$url = get_option( 'prom_xml_url_3', '' );
+function f2cs_url_3_render() {
+	$url = get_option( 'f2cs_url_3', '' );
 	?>
-	<input type="text" name="prom_xml_url_3" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products3.xml', 'prom-xml-importer' ); ?>" style="width: 100%;">
+	<input type="text" name="f2cs_url_3" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products3.xml', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
 	<?php
 }
 
-function prom_xml_importer_sku_prefix_3_render() {
-	$prefix = get_option( 'prom_xml_sku_prefix_3', '' );
+function f2cs_sku_prefix_3_render() {
+	$prefix = get_option( 'f2cs_sku_prefix_3', '' );
 	?>
-	<input type="text" name="prom_xml_sku_prefix_3" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML3_', 'prom-xml-importer' ); ?>" style="width: 100%;">
-	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'prom-xml-importer' ); ?></p>
+	<input type="text" name="f2cs_sku_prefix_3" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML3_', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'factorial2000-catalog-sync' ); ?></p>
 	<?php
 }
 
-function prom_xml_importer_skip_price_3_render() {
-	$val = get_option( 'prom_xml_skip_price_3', '0' );
+function f2cs_skip_price_3_render() {
+	$val = get_option( 'f2cs_skip_price_3', '0' );
 	?>
 	<label>
-		<input type="checkbox" name="prom_xml_skip_price_3" value="1" <?php checked( $val, '1' ); ?>>
-		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'prom-xml-importer' ); ?>
+		<input type="checkbox" name="f2cs_skip_price_3" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'factorial2000-catalog-sync' ); ?>
 	</label>
 	<?php
 }
 
-function prom_xml_importer_url_4_render() {
-	$url = get_option( 'prom_xml_url_4', '' );
+function f2cs_url_4_render() {
+	$url = get_option( 'f2cs_url_4', '' );
 	?>
-	<input type="text" name="prom_xml_url_4" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products4.xml', 'prom-xml-importer' ); ?>" style="width: 100%;">
+	<input type="text" name="f2cs_url_4" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products4.xml', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
 	<?php
 }
 
-function prom_xml_importer_sku_prefix_4_render() {
-	$prefix = get_option( 'prom_xml_sku_prefix_4', '' );
+function f2cs_sku_prefix_4_render() {
+	$prefix = get_option( 'f2cs_sku_prefix_4', '' );
 	?>
-	<input type="text" name="prom_xml_sku_prefix_4" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML4_', 'prom-xml-importer' ); ?>" style="width: 100%;">
-	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'prom-xml-importer' ); ?></p>
+	<input type="text" name="f2cs_sku_prefix_4" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML4_', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'factorial2000-catalog-sync' ); ?></p>
 	<?php
 }
 
-function prom_xml_importer_skip_price_4_render() {
-	$val = get_option( 'prom_xml_skip_price_4', '0' );
+function f2cs_skip_price_4_render() {
+	$val = get_option( 'f2cs_skip_price_4', '0' );
 	?>
 	<label>
-		<input type="checkbox" name="prom_xml_skip_price_4" value="1" <?php checked( $val, '1' ); ?>>
-		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'prom-xml-importer' ); ?>
+		<input type="checkbox" name="f2cs_skip_price_4" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'factorial2000-catalog-sync' ); ?>
 	</label>
 	<?php
 }
 
-function prom_xml_importer_url_5_render() {
-	$url = get_option( 'prom_xml_url_5', '' );
+function f2cs_url_5_render() {
+	$url = get_option( 'f2cs_url_5', '' );
 	?>
-	<input type="text" name="prom_xml_url_5" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products5.xml', 'prom-xml-importer' ); ?>" style="width: 100%;">
+	<input type="text" name="f2cs_url_5" value="<?php echo esc_attr( $url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products5.xml', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
 	<?php
 }
 
-function prom_xml_importer_sku_prefix_5_render() {
-	$prefix = get_option( 'prom_xml_sku_prefix_5', '' );
+function f2cs_sku_prefix_5_render() {
+	$prefix = get_option( 'f2cs_sku_prefix_5', '' );
 	?>
-	<input type="text" name="prom_xml_sku_prefix_5" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML5_', 'prom-xml-importer' ); ?>" style="width: 100%;">
-	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'prom-xml-importer' ); ?></p>
+	<input type="text" name="f2cs_sku_prefix_5" value="<?php echo esc_attr( $prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: XML5_', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'Префікс для SKU товарів з цього XML файлу.', 'factorial2000-catalog-sync' ); ?></p>
 	<?php
 }
 
-function prom_xml_importer_skip_price_5_render() {
-	$val = get_option( 'prom_xml_skip_price_5', '0' );
+function f2cs_skip_price_5_render() {
+	$val = get_option( 'f2cs_skip_price_5', '0' );
 	?>
 	<label>
-		<input type="checkbox" name="prom_xml_skip_price_5" value="1" <?php checked( $val, '1' ); ?>>
-		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'prom-xml-importer' ); ?>
+		<input type="checkbox" name="f2cs_skip_price_5" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'factorial2000-catalog-sync' ); ?>
 	</label>
 	<?php
 }
 
-function prom_xml_importer_interval_render() {
-	$interval = get_option( 'prom_xml_update_interval', 'hourly' );
+function f2cs_interval_render() {
+	$interval = get_option( 'f2cs_update_interval', 'hourly' );
 	?>
-	<select name="prom_xml_update_interval">
-		<option value="5_minute" <?php selected( $interval, '5_minute' ); ?>><?php esc_html_e( 'Що 5 хв', 'prom-xml-importer' ); ?></option>
-		<option value="hourly" <?php selected( $interval, 'hourly' ); ?>><?php esc_html_e( 'Щогодини', 'prom-xml-importer' ); ?></option>
-		<option value="twicedaily" <?php selected( $interval, 'twicedaily' ); ?>><?php esc_html_e( 'Двічі на день', 'prom-xml-importer' ); ?></option>
-		<option value="daily" <?php selected( $interval, 'daily' ); ?>><?php esc_html_e( 'Щодня', 'prom-xml-importer' ); ?></option>
+	<select name="f2cs_update_interval">
+		<option value="5_minute" <?php selected( $interval, '5_minute' ); ?>><?php esc_html_e( 'Що 5 хв', 'factorial2000-catalog-sync' ); ?></option>
+		<option value="hourly" <?php selected( $interval, 'hourly' ); ?>><?php esc_html_e( 'Щогодини', 'factorial2000-catalog-sync' ); ?></option>
+		<option value="twicedaily" <?php selected( $interval, 'twicedaily' ); ?>><?php esc_html_e( 'Двічі на день', 'factorial2000-catalog-sync' ); ?></option>
+		<option value="daily" <?php selected( $interval, 'daily' ); ?>><?php esc_html_e( 'Щодня', 'factorial2000-catalog-sync' ); ?></option>
 	</select>
 	<?php
 }
 
-function prom_xml_importer_hide_variable_low_instock_render() {
-	$val = get_option( 'prom_xml_hide_variable_low_instock', '0' );
+function f2cs_hide_variable_low_instock_render() {
+	$val = get_option( 'f2cs_hide_variable_low_instock', '0' );
 	?>
-	<input type="hidden" name="prom_xml_hide_variable_low_instock" value="0">
+	<input type="hidden" name="f2cs_hide_variable_low_instock" value="0">
 	<label>
-		<input type="checkbox" name="prom_xml_hide_variable_low_instock" value="1" <?php checked( $val, '1' ); ?>>
-		<?php esc_html_e( 'Після оновлення ставити variable-товари в «немає в наявності», якщо варіацій в наявності недостатньо', 'prom-xml-importer' ); ?>
+		<input type="checkbox" name="f2cs_hide_variable_low_instock" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Після оновлення ставити variable-товари в «немає в наявності», якщо варіацій в наявності недостатньо', 'factorial2000-catalog-sync' ); ?>
 	</label>
-	<p class="description"><?php esc_html_e( 'Застосовується після завершення stock update.', 'prom-xml-importer' ); ?></p>
+	<p class="description"><?php esc_html_e( 'Застосовується після завершення stock update.', 'factorial2000-catalog-sync' ); ?></p>
 	<?php
 }
 
-function prom_xml_importer_variable_low_instock_max_render() {
-	$max = get_option( 'prom_xml_variable_low_instock_max', 2 );
+function f2cs_variable_low_instock_max_render() {
+	$max = get_option( 'f2cs_variable_low_instock_max', 2 );
 	?>
-	<input type="number" name="prom_xml_variable_low_instock_max" value="<?php echo esc_attr( $max ); ?>" min="0" step="1" style="width: 80px;">
-	<p class="description"><?php esc_html_e( 'Максимальна кількість варіацій «в наявності» (включно), при якій батьківський товар буде позначено як «немає в наявності». За замовчуванням: 2.', 'prom-xml-importer' ); ?></p>
+	<input type="number" name="f2cs_variable_low_instock_max" value="<?php echo esc_attr( $max ); ?>" min="0" step="1" style="width: 80px;">
+	<p class="description"><?php esc_html_e( 'Максимальна кількість варіацій «в наявності» (включно), при якій батьківський товар буде позначено як «немає в наявності». За замовчуванням: 2.', 'factorial2000-catalog-sync' ); ?></p>
 	<?php
 }
 
-function prom_xml_importer_telegram_user_ids_render() {
-	$user_ids = get_option( 'telegram_user_ids', '' );
+function f2cs_telegram_user_ids_render() {
+	$user_ids = get_option( 'f2cs_telegram_user_ids', '' );
 	?>
-	<input type="text" name="telegram_user_ids" value="<?php echo esc_attr( $user_ids ); ?>" placeholder="<?php esc_attr_e( '123456789, 987654321', 'prom-xml-importer' ); ?>" style="width: 100%;">
-	<p class="description"><?php esc_html_e( 'Введіть Telegram User IDs, розділені комою.', 'prom-xml-importer' ); ?></p>
+	<input type="text" name="f2cs_telegram_user_ids" value="<?php echo esc_attr( $user_ids ); ?>" placeholder="<?php esc_attr_e( '123456789, 987654321', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'ID чатів, куди надсилати сповіщення (через кому для кількох). Свій числовий ID дізнаєтесь у боті @userinfobot. Спершу напишіть своєму боту /start, інакше повідомлення не дійде.', 'factorial2000-catalog-sync' ); ?></p>
 	<?php
 }
 
-function prom_xml_importer_telegram_token_id_render() {
-	$token_id = get_option( 'telegram_token_id', '' );
+function f2cs_telegram_token_id_render() {
+	$token_id = get_option( 'f2cs_telegram_token_id', '' );
 	?>
-	<input type="text" name="telegram_token_id" value="<?php echo esc_attr( $token_id ); ?>" placeholder="<?php esc_attr_e( '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz', 'prom-xml-importer' ); ?>" style="width: 100%;">
-	<p class="description"><?php esc_html_e( 'Введіть токен вашого Telegram бота.', 'prom-xml-importer' ); ?></p>
+	<input type="text" name="f2cs_telegram_token_id" value="<?php echo esc_attr( $token_id ); ?>" placeholder="<?php esc_attr_e( '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'Токен бота отримаєте у @BotFather: надішліть /newbot, задайте ім\'я — і скопіюйте рядок виду 1234567890:ABCdef... Без токена Telegram-сповіщення не надсилаються.', 'factorial2000-catalog-sync' ); ?></p>
 	<?php
 }
 
-function prom_xml_importer_handle_import_action() {
-	if ( ! isset( $_POST['prom_xml_import_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['prom_xml_import_nonce'] ) ), 'prom_xml_import_action' ) ) {
+function f2cs_handle_import_action() {
+	if ( ! isset( $_POST['f2cs_import_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['f2cs_import_nonce'] ) ), 'f2cs_import_action' ) ) {
 		wp_send_json_error( array( 'message' => 'Nonce verification failed' ) );
 	}
 
@@ -449,16 +458,16 @@ function prom_xml_importer_handle_import_action() {
 		}
 
 		// Set temporary options for this import session
-		set_transient( 'prom_xml_import_variations_temp', $import_variations ? '1' : '0', HOUR_IN_SECONDS );
-		set_transient( 'prom_xml_selected_attributes_temp', $selected_attributes, HOUR_IN_SECONDS );
+		set_transient( 'f2cs_import_variations_temp', $import_variations ? '1' : '0', HOUR_IN_SECONDS );
+		set_transient( 'f2cs_selected_attributes_temp', $selected_attributes, HOUR_IN_SECONDS );
 
-		$xml_parser = new XML_Parser( $file_path, $new_category, $sku_prefix );
+		$xml_parser = new \F2CS\XML_Parser( $file_path, $new_category, $sku_prefix );
 		try {
 			$result = $xml_parser->import_products( $offset, 1 );
 			
 			if ( $result['finished'] ) {
-				delete_transient( 'prom_xml_import_variations_temp' );
-				delete_transient( 'prom_xml_selected_attributes_temp' );
+				delete_transient( 'f2cs_import_variations_temp' );
+				delete_transient( 'f2cs_selected_attributes_temp' );
 			}
 			
 			wp_send_json_success(
@@ -475,14 +484,14 @@ function prom_xml_importer_handle_import_action() {
 		wp_send_json_error( array( 'message' => 'Помилка завантаження файлу.' ) );
 	}
 }
-add_action( 'wp_ajax_prom_xml_import_action', 'prom_xml_importer_handle_import_action' );
-add_action( 'wp_ajax_prom_xml_analyze_groups', 'prom_xml_importer_handle_analyze_groups' );
+add_action( 'wp_ajax_f2cs_import_action', 'f2cs_handle_import_action' );
+add_action( 'wp_ajax_f2cs_analyze_groups', 'f2cs_handle_analyze_groups' );
 
 /**
  * Handle analyze groups action - scans XML and returns variable product groups
  */
-function prom_xml_importer_handle_analyze_groups() {
-	if ( ! isset( $_POST['prom_xml_import_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['prom_xml_import_nonce'] ) ), 'prom_xml_import_action' ) ) {
+function f2cs_handle_analyze_groups() {
+	if ( ! isset( $_POST['f2cs_import_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['f2cs_import_nonce'] ) ), 'f2cs_import_action' ) ) {
 		wp_send_json_error( array( 'message' => 'Nonce verification failed' ) );
 	}
 
@@ -495,7 +504,7 @@ function prom_xml_importer_handle_analyze_groups() {
 		$file_path = sanitize_text_field( $_FILES['import_xml_file']['tmp_name'] );
 
 		try {
-			$groups = prom_xml_analyze_variable_groups( $file_path );
+			$groups = f2cs_analyze_variable_groups( $file_path );
 			wp_send_json_success( array( 'groups' => $groups ) );
 		} catch ( Exception $e ) {
 			wp_send_json_error( array( 'message' => $e->getMessage() ) );
@@ -511,7 +520,7 @@ function prom_xml_importer_handle_analyze_groups() {
  * @param string $file_path Path to XML file.
  * @return array Groups data.
  */
-function prom_xml_analyze_variable_groups( string $file_path ): array {
+function f2cs_analyze_variable_groups( string $file_path ): array {
 	$reader = new XMLReader();
 
 	if ( ! $reader->open( $file_path ) ) {
@@ -612,8 +621,8 @@ function prom_xml_analyze_variable_groups( string $file_path ): array {
  *
  * @return void
  */
-function prom_xml_importer_handle_action() {
-	if ( ! isset( $_POST['prom_xml_importer_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['prom_xml_importer_nonce'] ) ), 'prom_xml_importer_action' ) ) {
+function f2cs_handle_action() {
+	if ( ! isset( $_POST['f2cs_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['f2cs_nonce'] ) ), 'f2cs_action' ) ) {
 		wp_die( 'Nonce verification failed' );
 	}
 
@@ -624,7 +633,7 @@ function prom_xml_importer_handle_action() {
 	if ( isset( $_POST['run_script'] ) ) {
 		$xml_urls = array();
 		for ( $i = 1; $i <= 5; $i++ ) {
-			$url = get_option( 'prom_xml_url' . ( $i === 1 ? '' : '_' . $i ), '' );
+			$url = get_option( 'f2cs_url' . ( $i === 1 ? '' : '_' . $i ), '' );
 			if ( ! empty( $url ) ) {
 				$xml_urls[ $i ] = $url;
 			}
@@ -636,25 +645,25 @@ function prom_xml_importer_handle_action() {
 			if ( $bg_option === 'yes' ) {
 				$started = false;
 				foreach ( $xml_urls as $index => $xml_url ) {
-					$sku_prefix = get_option( 'prom_xml_sku_prefix_' . $index, '' );
-					if ( prom_trigger_background_sync( $xml_url, $sku_prefix ) ) {
+					$sku_prefix = get_option( 'f2cs_sku_prefix_' . $index, '' );
+					if ( f2cs_trigger_background_sync( $xml_url, $sku_prefix ) ) {
 						$started = true;
 					}
 				}
 
 				if ( $started ) {
 					add_settings_error(
-						'prom_xml_importer_settings',
+						'f2cs_settings',
 						'background_sync_started',
-						__( 'Stock update has been scheduled to run in the background.', 'prom-xml-importer' ),
+						__( 'Stock update has been scheduled to run in the background.', 'factorial2000-catalog-sync' ),
 						'updated'
 					);
 				}
 
 				// Ensure cron is active for future scheduled runs
-				if ( ! wp_next_scheduled( 'prom_update_stock_cron' ) ) {
-					Cron_Job::deactivate();
-					Cron_Job::activate();
+				if ( ! wp_next_scheduled( 'f2cs_update_stock_cron' ) ) {
+					\F2CS\Cron_Job::deactivate();
+					\F2CS\Cron_Job::activate();
 				}
 			} else {
 				// Run immediately without scheduling cron jobs
@@ -670,9 +679,9 @@ function prom_xml_importer_handle_action() {
 
 					foreach ( $xml_urls as $index => $xml_url ) {
 						try {
-							$sku_prefix = get_option( 'prom_xml_sku_prefix_' . $index, '' );
-							$skip_price = get_option( 'prom_xml_skip_price_' . $index, '0' );
-							$updater    = new XML_Stock_Updater( $xml_url, $sku_prefix, ( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' ) );
+							$sku_prefix = get_option( 'f2cs_sku_prefix_' . $index, '' );
+							$skip_price = get_option( 'f2cs_skip_price_' . $index, '0' );
+							$updater    = new \F2CS\XML_Stock_Updater( $xml_url, $sku_prefix, ( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' ) );
 							$updater->update_products_stock_status();
 							++$success_count;
 						} catch ( Exception $e ) {
@@ -680,29 +689,29 @@ function prom_xml_importer_handle_action() {
 						}
 					}
 
-					prom_after_stock_update_complete();
+					f2cs_after_stock_update_complete();
 
 					if ( $success_count > 0 ) {
 						add_settings_error(
-							'prom_xml_importer_settings',
+							'f2cs_settings',
 							'settings_updated',
 							/* translators: 1: number of successfully updated XML files, 2: total number of XML files. */
-							sprintf( __( 'Stock update completed successfully for %1$d out of %2$d XML files.', 'prom-xml-importer' ), $success_count, $total_count ),
+							sprintf( __( 'Stock update completed successfully for %1$d out of %2$d XML files.', 'factorial2000-catalog-sync' ), $success_count, $total_count ),
 							'updated'
 						);
 					} else {
 						add_settings_error(
-							'prom_xml_importer_settings',
+							'f2cs_settings',
 							'update_error',
-							__( 'Failed to update stock for all XML files.', 'prom-xml-importer' ),
+							__( 'Failed to update stock for all XML files.', 'factorial2000-catalog-sync' ),
 							'error'
 						);
 					}
 				} catch ( Exception $e ) {
 					add_settings_error(
-						'prom_xml_importer_settings',
+						'f2cs_settings',
 						'update_error',
-						__( 'Error updating stock: ', 'prom-xml-importer' ) . $e->getMessage(),
+						__( 'Error updating stock: ', 'factorial2000-catalog-sync' ) . $e->getMessage(),
 						'error'
 					);
 				}
@@ -711,22 +720,22 @@ function prom_xml_importer_handle_action() {
 			}
 		} else {
 			add_settings_error(
-				'prom_xml_importer_settings',
+				'f2cs_settings',
 				'missing_url',
-				__( 'Please configure at least one XML URL first.', 'prom-xml-importer' ),
+				__( 'Please configure at least one XML URL first.', 'factorial2000-catalog-sync' ),
 				'error'
 			);
 		}
 	}
 
-	if ( isset( $_POST['prom_xml_importer_stop'] ) ) {
-		wp_clear_scheduled_hook( 'prom_update_stock_cron' );
-		wp_clear_scheduled_hook( 'prom_single_update_event' );
+	if ( isset( $_POST['f2cs_stop'] ) ) {
+		wp_clear_scheduled_hook( 'f2cs_update_stock_cron' );
+		wp_clear_scheduled_hook( 'f2cs_single_update_event' );
 
 		add_settings_error(
-			'prom_xml_importer_settings',
+			'f2cs_settings',
 			'settings_updated',
-			__( 'Cron jobs stopped.', 'prom-xml-importer' ),
+			__( 'Cron jobs stopped.', 'factorial2000-catalog-sync' ),
 			'updated'
 		);
 	}
@@ -735,13 +744,13 @@ function prom_xml_importer_handle_action() {
 	exit;
 }
 
-add_action( 'admin_post_prom_xml_importer_action', 'prom_xml_importer_handle_action' );
+add_action( 'admin_post_f2cs_action', 'f2cs_handle_action' );
 
 /**
  * Export settings page
  */
-function prom_xml_importer_export_page() {
-	if ( isset( $_POST['create_filtered_xml'], $_POST['prom_xml_export_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['prom_xml_export_nonce'] ) ), 'prom_xml_export_filter' ) ) {
+function f2cs_export_page() {
+	if ( isset( $_POST['create_filtered_xml'], $_POST['f2cs_export_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['f2cs_export_nonce'] ) ), 'f2cs_export_filter' ) ) {
 		$sku_prefix = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( wp_unslash( $_POST['sku_prefix'] ) ) : '';
 		
 		if ( isset( $_FILES['xml_file']['error'], $_FILES['xml_file']['name'], $_FILES['xml_file']['tmp_name'] ) && UPLOAD_ERR_OK === (int) $_FILES['xml_file']['error'] ) {
@@ -757,7 +766,7 @@ function prom_xml_importer_export_page() {
 			
 			if ( ! $is_xml_file ) {
 				add_settings_error(
-					'prom_xml_export',
+					'f2cs_export',
 					'export_error',
 					'❌ Помилка: Файл повинен мати розширення .xml.',
 					'error'
@@ -766,7 +775,7 @@ function prom_xml_importer_export_page() {
 				$min_price = isset( $_POST['min_price'] ) ? floatval( wp_unslash( $_POST['min_price'] ) ) : 0;
 				
 				require_once plugin_dir_path( __FILE__ ) . '../includes/class-xml-export-filter.php';
-				$export_filter = new XML_Export_Filter( $uploaded_tmp, $sku_prefix, $min_price );
+				$export_filter = new \F2CS\XML_Export_Filter( $uploaded_tmp, $sku_prefix, $min_price );
 				$result = $export_filter->create_filtered_xml();
 				
 				if ( $result['success'] ) {
@@ -777,14 +786,14 @@ function prom_xml_importer_export_page() {
 					$message .= '. <a href="' . $result['download_url'] . '" class="button button-primary">Завантажити XML</a>';
 					
 					add_settings_error(
-						'prom_xml_export',
+						'f2cs_export',
 						'export_success',
 						$message,
 						'updated'
 					);
 				} else {
 					add_settings_error(
-						'prom_xml_export',
+						'f2cs_export',
 						'export_error',
 						'❌ Помилка: ' . $result['error'],
 						'error'
@@ -793,7 +802,7 @@ function prom_xml_importer_export_page() {
 			}
 		} else {
 			add_settings_error(
-				'prom_xml_export',
+				'f2cs_export',
 				'export_error',
 				'❌ Помилка: Будь ласка, виберіть XML файл для завантаження',
 				'error'
@@ -801,26 +810,26 @@ function prom_xml_importer_export_page() {
 		}
 	}
 	
-	$current_xml_url = get_option( 'prom_xml_url', '' );
-	$current_sku_prefix = get_option( 'prom_sku_prefix', 'NEW_' );
+	$current_xml_url = get_option( 'f2cs_url', '' );
+	$current_sku_prefix = get_option( 'f2cs_sku_prefix', 'NEW_' );
 	?>
 	
 	<div class="wrap">
-		<h1><?php esc_html_e( 'Налаштування вигрузки', 'prom-xml-importer' ); ?></h1>
+		<h1><?php esc_html_e( 'Налаштування вигрузки', 'factorial2000-catalog-sync' ); ?></h1>
 		
-		<?php settings_errors( 'prom_xml_export' ); ?>
+		<?php settings_errors( 'f2cs_export' ); ?>
 		
 		<div class="card">
 			<h2>🔍 Фільтр XML вигрузки</h2>
 			<p>Створити новий XML файл без товарів, які вже є на сайті. Це дозволить імпортувати тільки нові товари.</p>
 			
 			<form method="post" action="" enctype="multipart/form-data">
-				<?php wp_nonce_field( 'prom_xml_export_filter', 'prom_xml_export_nonce' ); ?>
+				<?php wp_nonce_field( 'f2cs_export_filter', 'f2cs_export_nonce' ); ?>
 				
 				<table class="form-table">
 					<tr>
 						<th scope="row">
-							<label for="xml_file"><?php esc_html_e( 'XML файл', 'prom-xml-importer' ); ?></label>
+							<label for="xml_file"><?php esc_html_e( 'XML файл', 'factorial2000-catalog-sync' ); ?></label>
 						</th>
 						<td>
 							<input type="file" 
@@ -828,12 +837,12 @@ function prom_xml_importer_export_page() {
 								   name="xml_file" 
 								   accept=".xml" 
 								   required />
-							<p class="description"><?php esc_html_e( 'Завантажте XML файл з товарами', 'prom-xml-importer' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Завантажте XML файл з товарами', 'factorial2000-catalog-sync' ); ?></p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="sku_prefix"><?php esc_html_e( 'SKU префікс', 'prom-xml-importer' ); ?></label>
+							<label for="sku_prefix"><?php esc_html_e( 'SKU префікс', 'factorial2000-catalog-sync' ); ?></label>
 						</th>
 						<td>
 							<input type="text" 
@@ -842,12 +851,12 @@ function prom_xml_importer_export_page() {
 								   value="<?php echo esc_attr( $current_sku_prefix ); ?>" 
 								   class="regular-text" 
 								   placeholder="NEW_" />
-							<p class="description"><?php esc_html_e( 'Префікс SKU товарів на сайті (наприклад: NEW_)', 'prom-xml-importer' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Префікс SKU товарів на сайті (наприклад: NEW_)', 'factorial2000-catalog-sync' ); ?></p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="min_price"><?php esc_html_e( 'Мінімальна ціна', 'prom-xml-importer' ); ?></label>
+							<label for="min_price"><?php esc_html_e( 'Мінімальна ціна', 'factorial2000-catalog-sync' ); ?></label>
 						</th>
 						<td>
 							<input type="number" 
@@ -858,7 +867,7 @@ function prom_xml_importer_export_page() {
 								   step="0.01" 
 								   min="0" 
 								   placeholder="0.00" />
-							<p class="description"><?php esc_html_e( 'Мінімальна ціна товару для включення в вигрузку (залиште порожнім, щоб не фільтрувати за ціною)', 'prom-xml-importer' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Мінімальна ціна товару для включення в вигрузку (залиште порожнім, щоб не фільтрувати за ціною)', 'factorial2000-catalog-sync' ); ?></p>
 						</td>
 					</tr>
 				</table>
@@ -867,7 +876,7 @@ function prom_xml_importer_export_page() {
 					<input type="submit" 
 						   name="create_filtered_xml" 
 						   class="button button-primary" 
-						   value="<?php esc_attr_e( 'Створити очищений XML', 'prom-xml-importer' ); ?>" />
+						   value="<?php esc_attr_e( 'Створити очищений XML', 'factorial2000-catalog-sync' ); ?>" />
 				</p>
 			</form>
 		</div>

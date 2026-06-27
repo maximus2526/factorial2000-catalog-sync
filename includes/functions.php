@@ -8,9 +8,9 @@ defined( 'ABSPATH' ) || exit;
  * @param int    $retry_count Number of retries (default: 2)
  * @return bool Success status
  */
-function prom_send_telegram_notification( $message, $retry_count = 2 ) {
-	$token    = get_option( 'telegram_token_id', '' );
-	$user_ids = get_option( 'telegram_user_ids', '' );
+function f2cs_send_telegram_notification( $message, $retry_count = 2 ) {
+	$token    = get_option( 'f2cs_telegram_token_id', '' );
+	$user_ids = get_option( 'f2cs_telegram_user_ids', '' );
 
 	if ( empty( $token ) || empty( $user_ids ) ) {
 		return false;
@@ -74,12 +74,12 @@ function prom_send_telegram_notification( $message, $retry_count = 2 ) {
  * @param string $level Log level (info, warning, error)
  * @return void
  */
-function prom_log( $message, $level = 'info' ) {
+function f2cs_log( $message, $level = 'info' ) {
 	if ( WP_DEBUG && WP_DEBUG_LOG ) {
 		// Add memory usage to log for debugging performance issues
 		$memory_usage      = round( memory_get_usage() / 1024 / 1024, 2 );
 		$formatted_message = sprintf(
-			'[%s] Prom XML Importer [%s] [Memory: %sMB]: %s',
+			'[%s] Factorial2000 Catalog Sync [%s] [Memory: %sMB]: %s',
 			gmdate( 'Y-m-d H:i:s' ),
 			strtoupper( $level ),
 			$memory_usage,
@@ -95,8 +95,8 @@ function prom_log( $message, $level = 'info' ) {
  *
  * @return string Admin URL for plugin settings
  */
-function prom_get_settings_url() {
-	return admin_url( 'admin.php?page=prom-xml-importer-update' );
+function f2cs_get_settings_url() {
+	return admin_url( 'admin.php?page=f2cs-update' );
 }
 
 /**
@@ -104,9 +104,9 @@ function prom_get_settings_url() {
  *
  * @return bool True if configured, false otherwise
  */
-function prom_is_configured() {
+function f2cs_is_configured() {
 	for ( $i = 1; $i <= 5; $i++ ) {
-		$xml_url = get_option( 'prom_xml_url' . ( $i === 1 ? '' : '_' . $i ), '' );
+		$xml_url = get_option( 'f2cs_url' . ( $i === 1 ? '' : '_' . $i ), '' );
 		if ( ! empty( $xml_url ) ) {
 			return true;
 		}
@@ -120,7 +120,7 @@ function prom_is_configured() {
  * @param bool $aggressive Whether to perform aggressive cleanup
  * @return void
  */
-function prom_cleanup_wc_transients( $aggressive = false ) {
+function f2cs_cleanup_wc_transients( $aggressive = false ) {
 	global $wpdb;
 
 	// Delete specific WooCommerce transients that might be using memory
@@ -160,7 +160,7 @@ function prom_cleanup_wc_transients( $aggressive = false ) {
  *
  * @return array Status information
  */
-function prom_check_server_resources() {
+function f2cs_check_server_resources() {
 	$memory_limit        = ini_get( 'memory_limit' );
 	$max_execution_time  = ini_get( 'max_execution_time' );
 	$post_max_size       = ini_get( 'post_max_size' );
@@ -181,7 +181,7 @@ function prom_check_server_resources() {
  * @param string $stock_status Stock status value.
  * @return void
  */
-function prom_bulk_sync_lookup_stock_status( array $product_ids, $stock_status = 'outofstock' ) {
+function f2cs_bulk_sync_lookup_stock_status( array $product_ids, $stock_status = 'outofstock' ) {
 	global $wpdb;
 
 	if ( empty( $product_ids ) || empty( $wpdb->wc_product_meta_lookup ) ) {
@@ -219,8 +219,8 @@ function prom_bulk_sync_lookup_stock_status( array $product_ids, $stock_status =
  *
  * @return int
  */
-function prom_get_variable_low_instock_threshold() {
-	$max = absint( get_option( 'prom_xml_variable_low_instock_max', 2 ) );
+function f2cs_get_variable_low_instock_threshold() {
+	$max = absint( get_option( 'f2cs_variable_low_instock_max', 2 ) );
 
 	return $max;
 }
@@ -230,8 +230,8 @@ function prom_get_variable_low_instock_threshold() {
  *
  * @return array{updated: int, examples: array<int, array{id: int, title: string, sku: string, instock_count: int}>}
  */
-function prom_apply_variable_low_instock_rule() {
-	if ( get_option( 'prom_xml_hide_variable_low_instock', '0' ) !== '1' ) {
+function f2cs_apply_variable_low_instock_rule() {
+	if ( get_option( 'f2cs_hide_variable_low_instock', '0' ) !== '1' ) {
 		return array(
 			'updated'  => 0,
 			'examples' => array(),
@@ -240,7 +240,7 @@ function prom_apply_variable_low_instock_rule() {
 
 	global $wpdb;
 
-	$max_instock = prom_get_variable_low_instock_threshold();
+	$max_instock = f2cs_get_variable_low_instock_threshold();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live aggregate over variations; cache would be stale.
 	$parent_ids = $wpdb->get_col(
@@ -328,7 +328,7 @@ function prom_apply_variable_low_instock_rule() {
 		}
 	}
 
-	prom_bulk_sync_lookup_stock_status( $lookup_sync_ids, 'outofstock' );
+	f2cs_bulk_sync_lookup_stock_status( $lookup_sync_ids, 'outofstock' );
 
 	foreach ( array_unique( $transient_ids ) as $product_id ) {
 		wc_delete_product_transients( $product_id );
@@ -343,12 +343,12 @@ function prom_apply_variable_low_instock_rule() {
 /**
  * Format sample products changed by the low-instock rule for logs and notifications.
  *
- * @param array $examples Product examples from prom_apply_variable_low_instock_rule().
+ * @param array $examples Product examples from f2cs_apply_variable_low_instock_rule().
  * @param int   $total    Total number of changed products.
  * @param int   $limit    Maximum examples to include.
  * @return string
  */
-function prom_format_variable_low_instock_examples( array $examples, $total, $limit = 15 ) {
+function f2cs_format_variable_low_instock_examples( array $examples, $total, $limit = 15 ) {
 	if ( empty( $examples ) ) {
 		return '';
 	}
@@ -380,14 +380,14 @@ function prom_format_variable_low_instock_examples( array $examples, $total, $li
  *
  * @return void
  */
-function prom_after_stock_update_complete() {
-	$result  = prom_apply_variable_low_instock_rule();
+function f2cs_after_stock_update_complete() {
+	$result  = f2cs_apply_variable_low_instock_rule();
 	$updated = (int) ( $result['updated'] ?? 0 );
 
 	if ( $updated > 0 ) {
-		$max_instock = prom_get_variable_low_instock_threshold();
+		$max_instock = f2cs_get_variable_low_instock_threshold();
 		$examples    = $result['examples'] ?? array();
-		$sample_text = prom_format_variable_low_instock_examples( $examples, $updated );
+		$sample_text = f2cs_format_variable_low_instock_examples( $examples, $updated );
 
 		$telegram_message = sprintf(
 			"Variable-товарів переведено в «Немає в наявності» (≤ %d варіацій в наявності): %d",
@@ -399,7 +399,7 @@ function prom_after_stock_update_complete() {
 			$telegram_message .= "\n\nПриклади:\n" . $sample_text;
 		}
 
-		prom_send_telegram_notification( $telegram_message );
+		f2cs_send_telegram_notification( $telegram_message );
 
 		$log_message = sprintf(
 			"Variable low-instock rule applied: threshold=%d, updated=%d",
@@ -411,7 +411,7 @@ function prom_after_stock_update_complete() {
 			$log_message .= "\nExamples:\n" . $sample_text;
 		}
 
-		prom_log( $log_message, 'info' );
+		f2cs_log( $log_message, 'info' );
 	}
 }
 
@@ -422,18 +422,18 @@ function prom_after_stock_update_complete() {
  * @param string $sku_prefix SKU prefix for this XML source
  * @return bool Whether sync was started
  */
-function prom_trigger_background_sync( $xml_url, $sku_prefix = '' ) {
+function f2cs_trigger_background_sync( $xml_url, $sku_prefix = '' ) {
 	if ( empty( $xml_url ) ) {
 		return false;
 	}
 
-	if ( ! wp_next_scheduled( 'prom_update_stock_cron' ) ) {
-		Cron_Job::activate();
+	if ( ! wp_next_scheduled( 'f2cs_update_stock_cron' ) ) {
+		\F2CS\Cron_Job::activate();
 	}
 
 	// Schedule the update to happen in the background in 30 seconds
-	if ( ! wp_next_scheduled( 'prom_single_update_event', array( $xml_url, $sku_prefix ) ) ) {
-		wp_schedule_single_event( time() + 30, 'prom_single_update_event', array( $xml_url, $sku_prefix ) );
+	if ( ! wp_next_scheduled( 'f2cs_single_update_event', array( $xml_url, $sku_prefix ) ) ) {
+		wp_schedule_single_event( time() + 30, 'f2cs_single_update_event', array( $xml_url, $sku_prefix ) );
 		return true;
 	}
 
@@ -441,25 +441,25 @@ function prom_trigger_background_sync( $xml_url, $sku_prefix = '' ) {
 }
 
 add_action(
-	'prom_single_update_event',
+	'f2cs_single_update_event',
 	function ( $xml_url, $sku_prefix = '' ) {
 		if ( ! empty( $xml_url ) ) {
-			prom_cleanup_wc_transients();
+			f2cs_cleanup_wc_transients();
 			// Try to detect which slot this URL belongs to, to read the skip-price flag.
 			$skip_price_flag = false;
 			for ( $i = 1; $i <= 5; $i++ ) {
-				$cfg_url = get_option( 'prom_xml_url' . ( $i === 1 ? '' : '_' . $i ), '' );
+				$cfg_url = get_option( 'f2cs_url' . ( $i === 1 ? '' : '_' . $i ), '' );
 				if ( $cfg_url === $xml_url ) {
-					$skip_price = get_option( 'prom_xml_skip_price_' . $i, '0' );
+					$skip_price = get_option( 'f2cs_skip_price_' . $i, '0' );
 					$skip_price_flag = ( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' );
 					break;
 				}
 			}
 
-			$updater = new XML_Stock_Updater( $xml_url, $sku_prefix, $skip_price_flag );
+			$updater = new \F2CS\XML_Stock_Updater( $xml_url, $sku_prefix, $skip_price_flag );
 			$updater->update_products_stock_status();
-			prom_after_stock_update_complete();
-			prom_cleanup_wc_transients( true );
+			f2cs_after_stock_update_complete();
+			f2cs_cleanup_wc_transients( true );
 		}
 	}
 );

@@ -1,14 +1,14 @@
 (function () {
 	'use strict';
 
-	var root = document.getElementById('prom-xml-support');
-	if (!root || typeof promXmlSupport === 'undefined') {
+	var root = document.getElementById('f2cs-support');
+	if (!root || typeof f2csSupport === 'undefined') {
 		return;
 	}
 
-	var closeBtn = root.querySelector('[data-prom-support-close]');
-	var fabBtn = root.querySelector('[data-prom-support-open]');
-	var copyBtn = root.querySelector('[data-prom-support-copy]');
+	var closeBtn = root.querySelector('[data-f2cs-support-close]');
+	var fabBtn = root.querySelector('[data-f2cs-support-open]');
+	var copyBtn = root.querySelector('[data-f2cs-support-copy]');
 
 	function setCollapsed(collapsed) {
 		root.classList.toggle('is-collapsed', collapsed);
@@ -52,11 +52,11 @@
 
 	if (copyBtn) {
 		copyBtn.addEventListener('click', function () {
-			var cardNumber = promXmlSupport.cardNumber || '';
+			var cardNumber = f2csSupport.cardNumber || '';
 
 			copyText(cardNumber).then(function () {
 				var originalText = copyBtn.textContent;
-				copyBtn.textContent = promXmlSupport.copiedLabel || 'Copied';
+				copyBtn.textContent = f2csSupport.copiedLabel || 'Copied';
 				copyBtn.classList.add('is-copied');
 
 				window.setTimeout(function () {

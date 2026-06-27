@@ -1,5 +1,10 @@
 <?php
 
+namespace F2CS;
+
+use Exception;
+use SimpleXMLElement;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -162,38 +167,37 @@ class XML_Export_Filter {
 	 */
 	private function fetch_xml_content() {
 		if ( file_exists( $this->xml_url ) ) {
-			$content = file_get_contents( $this->xml_url );
-			if ( $content !== false ) {
-				return $content;
+			global $wp_filesystem;
+
+			if ( empty( $wp_filesystem ) ) {
+				require_once ABSPATH . 'wp-admin/includes/file.php';
+				WP_Filesystem();
 			}
+
+			if ( $wp_filesystem ) {
+				$content = $wp_filesystem->get_contents( $this->xml_url );
+				if ( false !== $content ) {
+					return $content;
+				}
+			}
+
+			return false;
 		}
 
 		if ( filter_var( $this->xml_url, FILTER_VALIDATE_URL ) ) {
-			// Try to open directly first
-			$context = stream_context_create( array(
-				'http' => array(
-					'timeout' => 30,
-					'user_agent' => 'WordPress XML Importer'
+			$response = wp_remote_get(
+				$this->xml_url,
+				array(
+					'timeout'    => 30,
+					'user-agent' => 'WordPress XML Importer',
 				)
-			) );
+			);
 
-			$content = @file_get_contents( $this->xml_url, false, $context );
-			
-			if ( $content === false ) {
-				// Try with wp_remote_get as fallback
-				$response = wp_remote_get( $this->xml_url, array(
-					'timeout' => 30,
-					'user_agent' => 'WordPress XML Importer'
-				) );
-
-				if ( is_wp_error( $response ) ) {
-					return false;
-				}
-
-				$content = wp_remote_retrieve_body( $response );
+			if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+				return false;
 			}
 
-			return $content;
+			return wp_remote_retrieve_body( $response );
 		}
 
 		return false;
@@ -364,7 +368,7 @@ class XML_Export_Filter {
 	 */
 	private function save_filtered_xml( string $filtered_content ) {
 		$upload_dir = wp_upload_dir();
-		$export_dir = $upload_dir['basedir'] . '/prom-xml-exports';
+		$export_dir = $upload_dir['basedir'] . '/f2cs-exports';
 		
 		if ( ! file_exists( $export_dir ) ) {
 			wp_mkdir_p( $export_dir );
@@ -404,15 +408,15 @@ class XML_Export_Filter {
 		$remaining_count = count( $this->site_skus ) - $this->removed_count;
 		
 		$message = sprintf(
-			'🔍 XML фільтрація завершена\n' .
-			'📊 Видалено: %d товарів\n' .
+			'🔍 XML фільтрація завершена' .
+			'📊 Видалено: %d товарів' .
 			'📁 Файл: %s',
 			$this->removed_count,
 			basename( $this->filtered_xml_path )
 		);
 
-		$telegram_token = get_option( 'telegram_token_id', '' );
-		$telegram_users = get_option( 'telegram_user_ids', '' );
+		$telegram_token = get_option( 'f2cs_telegram_token_id', '' );
+		$telegram_users = get_option( 'f2cs_telegram_user_ids', '' );
 		
 		if ( ! empty( $telegram_token ) && ! empty( $telegram_users ) ) {
 			$user_ids = array_map( 'trim', explode( ',', $telegram_users ) );
@@ -428,7 +432,7 @@ class XML_Export_Filter {
 		}
 
 		if ( $this->removed_count > 0 ) {
-			prom_log( $message );
+			f2cs_log( $message );
 		}
 	}
 }

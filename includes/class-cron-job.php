@@ -1,5 +1,9 @@
 <?php
 
+namespace F2CS;
+
+use Exception;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -14,7 +18,7 @@ class Cron_Job {
 	 *
 	 * @var string
 	 */
-	const CRON_HOOK = 'prom_update_stock_cron';
+	const CRON_HOOK = 'f2cs_update_stock_cron';
 
 	/**
 	 * Activates the cron job.
@@ -22,7 +26,7 @@ class Cron_Job {
 	 * @return void
 	 */
 	public static function activate() {
-		$interval = get_option( 'prom_xml_update_interval', 'hourly' );
+		$interval = get_option( 'f2cs_update_interval', 'hourly' );
 		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
 			wp_schedule_event( time(), $interval, self::CRON_HOOK );
 			add_action( self::CRON_HOOK, array( __CLASS__, 'update_stock' ) );
@@ -47,27 +51,27 @@ class Cron_Job {
 	public static function add_custom_cron_schedule( $schedules ) {
 		$schedules['5_minute'] = array(
 			'interval' => 300,
-			'display'  => __( 'Every 5 Minutes', 'prom-xml-importer' ),
+			'display'  => __( 'Every 5 Minutes', 'factorial2000-catalog-sync' ),
 		);
 
 		if ( ! isset( $schedules['hourly'] ) ) {
 			$schedules['hourly'] = array(
 				'interval' => 3600,
-				'display'  => __( 'Every Hour', 'prom-xml-importer' ),
+				'display'  => __( 'Every Hour', 'factorial2000-catalog-sync' ),
 			);
 		}
 
 		if ( ! isset( $schedules['twicedaily'] ) ) {
 			$schedules['twicedaily'] = array(
 				'interval' => 43200,
-				'display'  => __( 'Twice Daily', 'prom-xml-importer' ),
+				'display'  => __( 'Twice Daily', 'factorial2000-catalog-sync' ),
 			);
 		}
 
 		if ( ! isset( $schedules['daily'] ) ) {
 			$schedules['daily'] = array(
 				'interval' => 86400,
-				'display'  => __( 'Once Daily', 'prom-xml-importer' ),
+				'display'  => __( 'Once Daily', 'factorial2000-catalog-sync' ),
 			);
 		}
 
@@ -82,7 +86,7 @@ class Cron_Job {
 	public static function update_stock() {
 		$xml_urls = array();
 		for ( $i = 1; $i <= 5; $i++ ) {
-			$url = get_option( 'prom_xml_url' . ( $i === 1 ? '' : '_' . $i ), '' );
+			$url = get_option( 'f2cs_url' . ( $i === 1 ? '' : '_' . $i ), '' );
 			if ( ! empty( $url ) ) {
 				$xml_urls[ $i ] = $url;
 			}
@@ -90,12 +94,12 @@ class Cron_Job {
 
 		if ( ! empty( $xml_urls ) ) {
 			// Clean up transients before starting the update process
-			prom_cleanup_wc_transients();
+			f2cs_cleanup_wc_transients();
 
 			foreach ( $xml_urls as $index => $xml_url ) {
 				try {
-					$sku_prefix = get_option( 'prom_xml_sku_prefix_' . $index, '' );
-					$skip_price = get_option( 'prom_xml_skip_price_' . $index, '0' );
+					$sku_prefix = get_option( 'f2cs_sku_prefix_' . $index, '' );
+					$skip_price = get_option( 'f2cs_skip_price_' . $index, '0' );
 					$updater    = new XML_Stock_Updater( $xml_url, $sku_prefix, ( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' ) );
 					$updater->update_products_stock_status();
 				} catch ( Exception $e ) {
@@ -103,13 +107,13 @@ class Cron_Job {
 				}
 			}
 
-			prom_after_stock_update_complete();
+			f2cs_after_stock_update_complete();
 
-			prom_cleanup_wc_transients();
+			f2cs_cleanup_wc_transients();
 		} else {
 			// No XML URLs configured - silent
 		}
 	}
 }
 
-add_filter( 'cron_schedules', array( 'Cron_Job', 'add_custom_cron_schedule' ) );
+add_filter( 'cron_schedules', array( Cron_Job::class, 'add_custom_cron_schedule' ) );

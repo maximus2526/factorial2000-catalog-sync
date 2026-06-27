@@ -1,4 +1,4 @@
-.prom-xml-support {
+.f2cs-support {
 	position: fixed;
 	right: 20px;
 	bottom: 20px;
@@ -8,17 +8,17 @@
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
 
-.prom-xml-support__panel {
+.f2cs-support__panel {
 	background: #fff;
 	border: 1px solid #dcdcde;
 	border-radius: 12px;
 	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
 	overflow: hidden;
 	transform-origin: bottom right;
-	animation: prom-xml-support-in 0.25s ease-out;
+	animation: f2cs-support-in 0.25s ease-out;
 }
 
-@keyframes prom-xml-support-in {
+@keyframes f2cs-support-in {
 	from {
 		opacity: 0;
 		transform: translateY(12px) scale(0.96);
@@ -29,7 +29,7 @@
 	}
 }
 
-.prom-xml-support__header {
+.f2cs-support__header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -38,14 +38,14 @@
 	background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
 }
 
-.prom-xml-support__header .prom-xml-support__title {
+.f2cs-support__header .f2cs-support__title {
 	color: #fff;
 	margin: 0;
 	font-size: 14px;
 	font-weight: 600;
 }
 
-.prom-xml-support__close {
+.f2cs-support__close {
 	flex-shrink: 0;
 	width: 28px;
 	height: 28px;
@@ -59,25 +59,25 @@
 	transition: background 0.15s ease;
 }
 
-.prom-xml-support__close:hover {
+.f2cs-support__close:hover {
 	background: rgba(255, 255, 255, 0.28);
 }
 
-.prom-xml-support__body {
+.f2cs-support__body {
 	padding: 16px;
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
 }
 
-.prom-xml-support__text {
+.f2cs-support__text {
 	margin: 0;
 	color: #50575e;
 	font-size: 13px;
 	line-height: 1.5;
 }
 
-.prom-xml-support__card {
+.f2cs-support__card {
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
@@ -87,7 +87,7 @@
 	border: 1px solid #e2e4e7;
 }
 
-.prom-xml-support__card-label {
+.f2cs-support__card-label {
 	font-size: 11px;
 	font-weight: 600;
 	text-transform: uppercase;
@@ -95,14 +95,14 @@
 	color: #787c82;
 }
 
-.prom-xml-support__card-value {
+.f2cs-support__card-value {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 8px;
 }
 
-.prom-xml-support__card-number {
+.f2cs-support__card-number {
 	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 	font-size: 14px;
 	font-weight: 600;
@@ -110,7 +110,7 @@
 	letter-spacing: 0.02em;
 }
 
-.prom-xml-support__copy {
+.f2cs-support__copy {
 	flex-shrink: 0;
 	border: 1px solid #2271b1;
 	border-radius: 6px;
@@ -123,24 +123,24 @@
 	transition: all 0.15s ease;
 }
 
-.prom-xml-support__copy:hover {
+.f2cs-support__copy:hover {
 	background: #2271b1;
 	color: #fff;
 }
 
-.prom-xml-support__copy.is-copied {
+.f2cs-support__copy.is-copied {
 	background: #00a32a;
 	border-color: #00a32a;
 	color: #fff;
 }
 
-.prom-xml-support__actions {
+.f2cs-support__actions {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 }
 
-.prom-xml-support__btn {
+.f2cs-support__btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -154,33 +154,33 @@
 	transition: all 0.15s ease;
 }
 
-.prom-xml-support__btn--primary {
+.f2cs-support__btn--primary {
 	background: #2271b1;
 	border: 1px solid #2271b1;
 	color: #fff;
 }
 
-.prom-xml-support__btn--primary:hover,
-.prom-xml-support__btn--primary:focus {
+.f2cs-support__btn--primary:hover,
+.f2cs-support__btn--primary:focus {
 	background: #135e96;
 	border-color: #135e96;
 	color: #fff;
 }
 
-.prom-xml-support__btn--ghost {
+.f2cs-support__btn--ghost {
 	background: transparent;
 	border: 1px solid #dcdcde;
 	color: #2271b1;
 }
 
-.prom-xml-support__btn--ghost:hover,
-.prom-xml-support__btn--ghost:focus {
+.f2cs-support__btn--ghost:hover,
+.f2cs-support__btn--ghost:focus {
 	background: #f0f6fc;
 	border-color: #2271b1;
 	color: #135e96;
 }
 
-.prom-xml-support__fab {
+.f2cs-support__fab {
 	display: none;
 	align-items: center;
 	gap: 8px;
@@ -196,21 +196,21 @@
 	transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.prom-xml-support__fab:hover {
+.f2cs-support__fab:hover {
 	transform: translateY(-2px);
 	box-shadow: 0 12px 28px rgba(34, 113, 177, 0.4);
 }
 
-.prom-xml-support.is-collapsed .prom-xml-support__panel {
+.f2cs-support.is-collapsed .f2cs-support__panel {
 	display: none;
 }
 
-.prom-xml-support.is-collapsed .prom-xml-support__fab {
+.f2cs-support.is-collapsed .f2cs-support__fab {
 	display: inline-flex;
 }
 
 @media (max-width: 782px) {
-	.prom-xml-support {
+	.f2cs-support {
 		right: 12px;
 		bottom: 12px;
 		width: calc(100vw - 24px);

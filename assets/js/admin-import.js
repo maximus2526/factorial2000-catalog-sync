@@ -1,11 +1,11 @@
 (function ($) {
 	'use strict';
 
-	if (typeof promXmlImport === 'undefined') {
+	if (typeof f2csImport === 'undefined') {
 		return;
 	}
 
-	var i18n = promXmlImport.i18n || {};
+	var i18n = f2csImport.i18n || {};
 	var stopImport = false;
 	var groupsData = {};
 
@@ -30,11 +30,11 @@
 		var $target = $('#calculated_count_' + groupId);
 
 		if (!group || !group.selected_attributes || group.selected_attributes.length === 0) {
-			$target.removeClass('prom-xml-group-calculated--warning').html('');
+			$target.removeClass('f2cs-group-calculated--warning').html('');
 			return;
 		}
 
-		$target.removeClass('prom-xml-group-calculated--warning');
+		$target.removeClass('f2cs-group-calculated--warning');
 
 		var totalVariations = 1;
 		var attrInfo = [];
@@ -52,7 +52,7 @@
 			$target.html('<strong>' + t('variationsWillCreate') + '</strong> ' + totalVariations);
 		} else {
 			$target
-				.addClass('prom-xml-group-calculated--warning')
+				.addClass('f2cs-group-calculated--warning')
 				.html('<strong>' + t('variationsWarning') + '</strong>');
 		}
 	}
@@ -63,34 +63,34 @@
 
 		Object.keys(groups).forEach(function (groupId) {
 			var group = groups[groupId];
-			var $groupBox = $('<div>').addClass('prom-xml-group-box');
-			var $header = $('<div>').addClass('prom-xml-group-header');
+			var $groupBox = $('<div>').addClass('f2cs-group-box');
+			var $header = $('<div>').addClass('f2cs-group-header');
 
 			if (group.image) {
 				$header.append(
 					$('<img>')
-						.addClass('prom-xml-group-image')
+						.addClass('f2cs-group-image')
 						.attr('src', group.image)
 						.attr('alt', group.name || '')
 				);
 			}
 
 			var $info = $('<div>');
-			$info.append($('<h4>').addClass('prom-xml-group-title').text(group.name));
+			$info.append($('<h4>').addClass('f2cs-group-title').text(group.name));
 			$info.append(
 				$('<p>')
-					.addClass('prom-xml-group-meta')
+					.addClass('f2cs-group-meta')
 					.html('<strong>' + t('groupId') + '</strong> ' + groupId)
 			);
 
 			var $variationsInfo = $('<p>')
-				.addClass('prom-xml-group-variations')
+				.addClass('f2cs-group-variations')
 				.attr('id', 'variations_count_' + groupId)
 				.html('<strong>' + t('variationsInXml') + '</strong> ' + group.variations_count);
 			$info.append($variationsInfo);
 
 			var $calculatedInfo = $('<p>')
-				.addClass('prom-xml-group-calculated')
+				.addClass('f2cs-group-calculated')
 				.attr('id', 'calculated_count_' + groupId);
 			$info.append($calculatedInfo);
 
@@ -100,10 +100,10 @@
 			if (group.attributes && group.attributes.length > 0) {
 				$groupBox.append(
 					$('<p>')
-						.addClass('prom-xml-group-attr-label')
+						.addClass('f2cs-group-attr-label')
 						.html('<strong>' + t('selectAttributes') + '</strong>')
 				);
-				$groupBox.append($('<p>').addClass('prom-xml-group-hint').text(t('attributesHint')));
+				$groupBox.append($('<p>').addClass('f2cs-group-hint').text(t('attributesHint')));
 
 				if (!groupsData[groupId].selected_attributes) {
 					var firstVaryingAttr = group.attributes.find(function (attr) {
@@ -119,7 +119,7 @@
 					var checkboxId = 'attr_' + groupId + '_' + index;
 					var isDefaultSelected =
 						attr.is_varying && groupsData[groupId].selected_attributes.includes(attr.name);
-					var $checkboxWrapper = $('<div>').addClass('prom-xml-group-checkbox');
+					var $checkboxWrapper = $('<div>').addClass('f2cs-group-checkbox');
 					var $checkbox = $('<input>').attr({
 						type: 'checkbox',
 						name: 'group_attr_' + groupId + '[]',
@@ -139,7 +139,7 @@
 					});
 
 					var $label = $('<label>')
-						.addClass('prom-xml-group-label' + (attr.is_varying ? '' : ' prom-xml-group-label--disabled'))
+						.addClass('f2cs-group-label' + (attr.is_varying ? '' : ' f2cs-group-label--disabled'))
 						.attr('for', checkboxId)
 						.text(attr.name + buildVaryingLabel(attr.is_varying) + ' (' + attr.values.join(', ') + ')');
 
@@ -147,7 +147,7 @@
 					$groupBox.append($checkboxWrapper);
 				});
 			} else {
-				$groupBox.append($('<p>').addClass('prom-xml-group-empty').text(t('noAttributes')));
+				$groupBox.append($('<p>').addClass('f2cs-group-empty').text(t('noAttributes')));
 			}
 
 			$container.append($groupBox);
@@ -248,7 +248,7 @@
 		stopImport = false;
 
 		var formData = new FormData($('#xml-import-form')[0]);
-		formData.append('action', 'prom_xml_import_action');
+		formData.append('action', 'f2cs_import_action');
 		formData.append('new_category', $('#new_category').is(':checked') ? '1' : '0');
 		formData.append('import_variations', withSelection ? '1' : '0');
 		formData.append('sku_prefix', skuPrefix);
@@ -302,7 +302,7 @@
 			}
 
 			var formData = new FormData($('#xml-import-form')[0]);
-			formData.append('action', 'prom_xml_analyze_groups');
+			formData.append('action', 'f2cs_analyze_groups');
 			formData.append('sku_prefix', skuPrefix);
 
 			$('#analysis-status').html('<p>' + t('analyzing') + '</p>');
@@ -321,7 +321,7 @@
 						groupsData = response.data.groups;
 						displayGroups(response.data.groups);
 						$('#analysis-status').html(
-							'<p class="prom-xml-status-message--success">' +
+							'<p class="f2cs-status-message--success">' +
 								t('analysisDone') +
 								' ' +
 								Object.keys(groupsData).length +
@@ -330,7 +330,7 @@
 						$('#start-import-with-selection').show();
 					} else {
 						$('#analysis-status').html(
-							'<p class="prom-xml-status-message--error">' + response.data.message + '</p>'
+							'<p class="f2cs-status-message--error">' + response.data.message + '</p>'
 						);
 					}
 
@@ -338,7 +338,7 @@
 				},
 				error: function () {
 					$('#analysis-status').html(
-						'<p class="prom-xml-status-message--error">' + t('analysisError') + '</p>'
+						'<p class="f2cs-status-message--error">' + t('analysisError') + '</p>'
 					);
 					$button.prop('disabled', false);
 				},

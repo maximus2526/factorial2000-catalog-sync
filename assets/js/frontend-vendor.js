@@ -28,8 +28,8 @@
 	function showCopyFeedback(element) {
 		var originalText = element.textContent;
 		var copiedLabel =
-			typeof promXmlVendor !== 'undefined' && promXmlVendor.copiedLabel
-				? promXmlVendor.copiedLabel
+			typeof f2csVendor !== 'undefined' && f2csVendor.copiedLabel
+				? f2csVendor.copiedLabel
 				: '✓ Скопійовано!';
 
 		element.textContent = copiedLabel;
