@@ -1,6 +1,6 @@
 <?php
 
-namespace F2CS;
+namespace F2000CS;
 
 use Exception;
 use XMLReader;
@@ -34,8 +34,8 @@ class XML_Parser {
 	 */
 	public function __construct( string $file_path, bool $new_category, string $sku_prefix = '' ) {
 		$this->xml_url           = $file_path;
-		$this->telegram_token_id = get_option( 'f2cs_telegram_token_id', '' );
-		$this->telegram_user_ids = array_map( 'trim', explode( ',', get_option( 'f2cs_telegram_user_ids', '' ) ) );
+		$this->telegram_token_id = get_option( 'f2000cs_telegram_token_id', '' );
+		$this->telegram_user_ids = array_map( 'trim', explode( ',', get_option( 'f2000cs_telegram_user_ids', '' ) ) );
 		$this->new_category      = $new_category;
 		$this->sku_prefix        = $sku_prefix;
 	}
@@ -327,7 +327,7 @@ class XML_Parser {
 		}
 
 		// Check if variable products import is enabled (from transient during import session)
-		$import_variations_transient = get_transient( 'f2cs_import_variations_temp' );
+		$import_variations_transient = get_transient( 'f2000cs_import_variations_temp' );
 		$import_variations           = $import_variations_transient === '1';
 
 		$reader = new XMLReader();
@@ -701,7 +701,7 @@ class XML_Parser {
 			$attributes_info[] = $attr_name . ' (' . count( $attr_values ) . ' values)';
 		}
 
-		f2cs_log(
+		f2000cs_log(
 			sprintf(
 				'Creating variable product: group_id=%s, parent_name="%s", variations_count=%d, attributes=%s',
 				$group_id,
@@ -774,7 +774,7 @@ class XML_Parser {
 		}
 
 		// Check for manually selected attributes
-		$selected_attributes_map = get_transient( 'f2cs_selected_attributes_temp' );
+		$selected_attributes_map = get_transient( 'f2000cs_selected_attributes_temp' );
 		if ( ! empty( $selected_attributes_map ) && isset( $selected_attributes_map[ $group_id ] ) ) {
 			$selected_attrs = $selected_attributes_map[ $group_id ];
 
@@ -1019,7 +1019,7 @@ class XML_Parser {
 				}
 			}
 
-			f2cs_log(
+			f2000cs_log(
 				sprintf(
 					'Set %d total attributes for variable product ID %d (variation: %d, non-variation: %d)',
 					count( $product_attributes ),
@@ -1029,7 +1029,7 @@ class XML_Parser {
 				)
 			);
 		} else {
-			f2cs_log( sprintf( 'No attributes to set for variable product ID %d', $parent_id ) );
+			f2000cs_log( sprintf( 'No attributes to set for variable product ID %d', $parent_id ) );
 		}
 	}
 
@@ -1048,7 +1048,7 @@ class XML_Parser {
 			// Check if variation already exists (передаємо SKU без префіксу)
 			$existing_variation = $this->get_product_ids_by_skus( array( $original_sku ) );
 			if ( ! empty( $existing_variation ) && isset( $existing_variation[ $original_sku ] ) ) {
-				f2cs_log( sprintf( 'Skipping variation with SKU %s - already exists (ID: %d)', $original_sku, $existing_variation[ $original_sku ] ) );
+				f2000cs_log( sprintf( 'Skipping variation with SKU %s - already exists (ID: %d)', $original_sku, $existing_variation[ $original_sku ] ) );
 				continue; // Skip if exists
 			}
 
@@ -1294,7 +1294,7 @@ class XML_Parser {
 	private function handle_product_image( int $post_id, string $url ): void {
 		// Validate URL to prevent errors
 		if ( empty( $url ) || ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
-			f2cs_log( "Invalid image URL for product ID: $post_id", 'warning' );
+			f2000cs_log( "Invalid image URL for product ID: $post_id", 'warning' );
 			return;
 		}
 
@@ -1397,7 +1397,7 @@ class XML_Parser {
 			update_post_meta( $post_id, '_product_attributes', $product_attributes );
 			// Clear product transients to reflect attributes in UI
 			wc_delete_product_transients( $post_id );
-			f2cs_log( sprintf( 'Set %d attributes for product ID %d', count( $product_attributes ), $post_id ) );
+			f2000cs_log( sprintf( 'Set %d attributes for product ID %d', count( $product_attributes ), $post_id ) );
 		}
 	}
 
@@ -1578,7 +1578,7 @@ class XML_Parser {
 				}
 			}
 		} catch ( Exception $e ) {
-			f2cs_log( 'Error updating product #' . $product->get_id() . ': ' . $e->getMessage(), 'error' );
+			f2000cs_log( 'Error updating product #' . $product->get_id() . ': ' . $e->getMessage(), 'error' );
 		}
 	}
 

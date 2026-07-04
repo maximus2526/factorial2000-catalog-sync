@@ -5,16 +5,16 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Check whether current admin screen belongs to this plugin.
  */
-function f2cs_is_plugin_admin_screen() {
+function f2000cs_is_plugin_admin_screen() {
 	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 
-	return $screen && strpos( $screen->id, 'f2cs-' ) !== false;
+	return $screen && strpos( $screen->id, 'f2000cs-' ) !== false;
 }
 
 /**
  * Get current plugin admin page slug.
  */
-function f2cs_get_admin_page_slug() {
+function f2000cs_get_admin_page_slug() {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only check used only to decide which assets to enqueue.
 	return isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
 }
@@ -22,7 +22,7 @@ function f2cs_get_admin_page_slug() {
 /**
  * Translations for the import admin script.
  */
-function f2cs_get_import_i18n() {
+function f2000cs_get_import_i18n() {
 	return array(
 		'selectFile'           => __( 'Будь ласка, виберіть XML файл.', 'factorial2000-catalog-sync' ),
 		'enterSkuPrefix'       => __( 'Будь ласка, введіть SKU Prefix.', 'factorial2000-catalog-sync' ),
@@ -54,58 +54,58 @@ function f2cs_get_import_i18n() {
 /**
  * Enqueue admin styles and scripts for plugin pages.
  */
-function f2cs_enqueue_admin_assets( $_hook_suffix ) {
-	if ( ! f2cs_is_plugin_admin_screen() ) {
+function f2000cs_enqueue_admin_assets( $_hook_suffix ) {
+	if ( ! f2000cs_is_plugin_admin_screen() ) {
 		return;
 	}
 
 	wp_enqueue_style(
-		'f2cs-admin-settings',
-		F2CS_URL . 'assets/css/admin-settings.css',
+		'f2000cs-admin-settings',
+		F2000CS_URL . 'assets/css/admin-settings.css',
 		array(),
-		F2CS_VERSION
+		F2000CS_VERSION
 	);
 
 	wp_enqueue_style(
-		'f2cs-admin-support',
-		F2CS_URL . 'assets/css/admin-support.css',
+		'f2000cs-admin-support',
+		F2000CS_URL . 'assets/css/admin-support.css',
 		array(),
-		F2CS_VERSION
+		F2000CS_VERSION
 	);
 
 	wp_enqueue_script(
-		'f2cs-admin-support',
-		F2CS_URL . 'assets/js/admin-support.js',
+		'f2000cs-admin-support',
+		F2000CS_URL . 'assets/js/admin-support.js',
 		array(),
-		F2CS_VERSION,
+		F2000CS_VERSION,
 		true
 	);
 
 	wp_localize_script(
-		'f2cs-admin-support',
-		'f2csSupport',
+		'f2000cs-admin-support',
+		'f2000csSupport',
 		array(
 			'cardNumber'  => '4874100038712884',
 			'copiedLabel' => __( 'Скопійовано', 'factorial2000-catalog-sync' ),
 		)
 	);
 
-	if ( f2cs_get_admin_page_slug() === 'f2cs-import' ) {
+	if ( f2000cs_get_admin_page_slug() === 'f2000cs-import' ) {
 		wp_enqueue_script(
-			'f2cs-admin-import',
-			F2CS_URL . 'assets/js/admin-import.js',
+			'f2000cs-admin-import',
+			F2000CS_URL . 'assets/js/admin-import.js',
 			array( 'jquery' ),
-			F2CS_VERSION,
+			F2000CS_VERSION,
 			true
 		);
 
 		wp_localize_script(
-			'f2cs-admin-import',
-			'f2csImport',
+			'f2000cs-admin-import',
+			'f2000csImport',
 			array(
-				'i18n' => f2cs_get_import_i18n(),
+				'i18n' => f2000cs_get_import_i18n(),
 			)
 		);
 	}
 }
-add_action( 'admin_enqueue_scripts', 'f2cs_enqueue_admin_assets' );
+add_action( 'admin_enqueue_scripts', 'f2000cs_enqueue_admin_assets' );

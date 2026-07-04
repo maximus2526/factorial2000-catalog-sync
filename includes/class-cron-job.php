@@ -1,6 +1,6 @@
 <?php
 
-namespace F2CS;
+namespace F2000CS;
 
 use Exception;
 
@@ -18,7 +18,7 @@ class Cron_Job {
 	 *
 	 * @var string
 	 */
-	const CRON_HOOK = 'f2cs_update_stock_cron';
+	const CRON_HOOK = 'f2000cs_update_stock_cron';
 
 	/**
 	 * Activates the cron job.
@@ -26,7 +26,7 @@ class Cron_Job {
 	 * @return void
 	 */
 	public static function activate() {
-		$interval = get_option( 'f2cs_update_interval', 'hourly' );
+		$interval = get_option( 'f2000cs_update_interval', 'hourly' );
 		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
 			wp_schedule_event( time(), $interval, self::CRON_HOOK );
 			add_action( self::CRON_HOOK, array( __CLASS__, 'update_stock' ) );
@@ -86,7 +86,7 @@ class Cron_Job {
 	public static function update_stock() {
 		$xml_urls = array();
 		for ( $i = 1; $i <= 5; $i++ ) {
-			$url = get_option( 'f2cs_url' . ( $i === 1 ? '' : '_' . $i ), '' );
+			$url = get_option( 'f2000cs_url' . ( $i === 1 ? '' : '_' . $i ), '' );
 			if ( ! empty( $url ) ) {
 				$xml_urls[ $i ] = $url;
 			}
@@ -94,12 +94,12 @@ class Cron_Job {
 
 		if ( ! empty( $xml_urls ) ) {
 			// Clean up transients before starting the update process
-			f2cs_cleanup_wc_transients();
+			f2000cs_cleanup_wc_transients();
 
 			foreach ( $xml_urls as $index => $xml_url ) {
 				try {
-					$sku_prefix = get_option( 'f2cs_sku_prefix_' . $index, '' );
-					$skip_price = get_option( 'f2cs_skip_price_' . $index, '0' );
+					$sku_prefix = get_option( 'f2000cs_sku_prefix_' . $index, '' );
+					$skip_price = get_option( 'f2000cs_skip_price_' . $index, '0' );
 					$updater    = new XML_Stock_Updater( $xml_url, $sku_prefix, ( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' ) );
 					$updater->update_products_stock_status();
 				} catch ( Exception $e ) {
@@ -107,9 +107,9 @@ class Cron_Job {
 				}
 			}
 
-			f2cs_after_stock_update_complete();
+			f2000cs_after_stock_update_complete();
 
-			f2cs_cleanup_wc_transients();
+			f2000cs_cleanup_wc_transients();
 		} else {
 			// No XML URLs configured - silent
 		}

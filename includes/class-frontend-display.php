@@ -1,6 +1,6 @@
 <?php
 
-namespace F2CS;
+namespace F2000CS;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -32,23 +32,23 @@ class Frontend_Display {
 		}
 
 		wp_enqueue_style(
-			'f2cs-frontend-vendor',
-			F2CS_URL . 'assets/css/frontend-vendor.css',
+			'f2000cs-frontend-vendor',
+			F2000CS_URL . 'assets/css/frontend-vendor.css',
 			array(),
-			F2CS_VERSION
+			F2000CS_VERSION
 		);
 
 		wp_enqueue_script(
-			'f2cs-frontend-vendor',
-			F2CS_URL . 'assets/js/frontend-vendor.js',
+			'f2000cs-frontend-vendor',
+			F2000CS_URL . 'assets/js/frontend-vendor.js',
 			array(),
-			F2CS_VERSION,
+			F2000CS_VERSION,
 			true
 		);
 
 		wp_localize_script(
-			'f2cs-frontend-vendor',
-			'f2csVendor',
+			'f2000cs-frontend-vendor',
+			'f2000csVendor',
 			array(
 				'copiedLabel' => __( '✓ Скопійовано!', 'factorial2000-catalog-sync' ),
 			)
@@ -94,7 +94,7 @@ class Frontend_Display {
 		$variations_with_vendor = array();
 
 		foreach ( $variation_ids as $variation_id ) {
-			$vendor_code = get_post_meta( $variation_id, 'f2cs-updater-vendor', true );
+			$vendor_code = get_post_meta( $variation_id, 'f2000cs-updater-vendor', true );
 
 			if ( empty( $vendor_code ) ) {
 				continue;
@@ -112,7 +112,7 @@ class Frontend_Display {
 		}
 
 		if ( empty( $variations_with_vendor ) ) {
-			$parent_vendor = get_post_meta( $product->get_id(), 'f2cs-updater-vendor', true );
+			$parent_vendor = get_post_meta( $product->get_id(), 'f2000cs-updater-vendor', true );
 			if ( empty( $parent_vendor ) ) {
 				return;
 			}
@@ -124,14 +124,14 @@ class Frontend_Display {
 		}
 
 		?>
-		<div class="f2cs-vendor-code-footer f2cs-vendor-code-footer--variable">
-			<div class="f2cs-vendor-code-footer__inner">
-				<h4 class="f2cs-vendor-code-footer__title">
+		<div class="f2000cs-vendor-code-footer f2000cs-vendor-code-footer--variable">
+			<div class="f2000cs-vendor-code-footer__inner">
+				<h4 class="f2000cs-vendor-code-footer__title">
 					<?php esc_html_e( 'Інформація для менеджерів (vendorCode) - клікніть для копіювання', 'factorial2000-catalog-sync' ); ?>
 				</h4>
-				<div class="f2cs-vendor-code-footer__list">
+				<div class="f2000cs-vendor-code-footer__list">
 					<?php foreach ( $variations_with_vendor as $variation_info ) : ?>
-						<div class="f2cs-vendor-code-footer__item">
+						<div class="f2000cs-vendor-code-footer__item">
 							<strong><?php echo wp_kses_post( $variation_info['attributes'] ); ?>:</strong>
 							<span
 								class="vendor-code-copy vendor-code-copy--variation"
@@ -154,16 +154,16 @@ class Frontend_Display {
 	 * @param int $product_id Product ID.
 	 */
 	private static function render_simple_vendor_footer( $product_id ) {
-		$vendor_code = get_post_meta( $product_id, 'f2cs-updater-vendor', true );
+		$vendor_code = get_post_meta( $product_id, 'f2000cs-updater-vendor', true );
 
 		if ( empty( $vendor_code ) ) {
 			return;
 		}
 
 		?>
-		<div class="f2cs-vendor-code-footer f2cs-vendor-code-footer--simple">
-			<div class="f2cs-vendor-code-footer__inner f2cs-vendor-code-footer__inner--simple">
-				<strong class="f2cs-vendor-code-footer__title f2cs-vendor-code-footer__title--simple">
+		<div class="f2000cs-vendor-code-footer f2000cs-vendor-code-footer--simple">
+			<div class="f2000cs-vendor-code-footer__inner f2000cs-vendor-code-footer__inner--simple">
+				<strong class="f2000cs-vendor-code-footer__title f2000cs-vendor-code-footer__title--simple">
 					<?php esc_html_e( 'Інформація для менеджерів - клікніть для копіювання', 'factorial2000-catalog-sync' ); ?>
 				</strong>
 				<span

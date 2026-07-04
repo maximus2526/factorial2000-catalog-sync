@@ -1,6 +1,6 @@
 <?php
 
-namespace F2CS;
+namespace F2000CS;
 
 use Exception;
 use SimpleXMLElement;
@@ -368,7 +368,7 @@ class XML_Export_Filter {
 	 */
 	private function save_filtered_xml( string $filtered_content ) {
 		$upload_dir = wp_upload_dir();
-		$export_dir = $upload_dir['basedir'] . '/f2cs-exports';
+		$export_dir = $upload_dir['basedir'] . '/f2000cs-exports';
 		
 		if ( ! file_exists( $export_dir ) ) {
 			wp_mkdir_p( $export_dir );
@@ -415,8 +415,8 @@ class XML_Export_Filter {
 			basename( $this->filtered_xml_path )
 		);
 
-		$telegram_token = get_option( 'f2cs_telegram_token_id', '' );
-		$telegram_users = get_option( 'f2cs_telegram_user_ids', '' );
+		$telegram_token = get_option( 'f2000cs_telegram_token_id', '' );
+		$telegram_users = get_option( 'f2000cs_telegram_user_ids', '' );
 		
 		if ( ! empty( $telegram_token ) && ! empty( $telegram_users ) ) {
 			$user_ids = array_map( 'trim', explode( ',', $telegram_users ) );
@@ -432,7 +432,7 @@ class XML_Export_Filter {
 		}
 
 		if ( $this->removed_count > 0 ) {
-			f2cs_log( $message );
+			f2000cs_log( $message );
 		}
 	}
 }

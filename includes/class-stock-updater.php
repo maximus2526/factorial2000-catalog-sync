@@ -1,6 +1,6 @@
 <?php
 
-namespace F2CS;
+namespace F2000CS;
 
 use Exception;
 use XMLReader;
@@ -71,8 +71,8 @@ class XML_Stock_Updater {
 	 */
 	public function __construct( $xml_url, $sku_prefix = '', $skip_price_updates = false ) {
 		$this->xml_url            = $xml_url;
-		$this->telegram_token_id  = get_option( 'f2cs_telegram_token_id', '' );
-		$this->telegram_user_ids  = array_map( 'trim', explode( ',', get_option( 'f2cs_telegram_user_ids', '' ) ) );
+		$this->telegram_token_id  = get_option( 'f2000cs_telegram_token_id', '' );
+		$this->telegram_user_ids  = array_map( 'trim', explode( ',', get_option( 'f2000cs_telegram_user_ids', '' ) ) );
 		$this->sku_prefix         = $sku_prefix;
 		$this->skip_price_updates = (bool) $skip_price_updates;
 
@@ -179,7 +179,7 @@ class XML_Stock_Updater {
 		}
 		gc_collect_cycles();
 
-		f2cs_cleanup_wc_transients();
+		f2000cs_cleanup_wc_transients();
 	}
 
 	/**
@@ -201,7 +201,7 @@ class XML_Stock_Updater {
 					throw new Exception( 'Failed to retrieve XML data' );
 				}
 
-				$temp_file = wp_tempnam( 'f2cs_' );
+				$temp_file = wp_tempnam( 'f2000cs_' );
 				if ( file_put_contents( $temp_file, $xml_data ) ) {
 					$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING );
 				} else {
@@ -352,9 +352,9 @@ class XML_Stock_Updater {
 					}
 
 					if ( ! empty( $product_data['vendor_code'] ) ) {
-						$current_vendor = get_post_meta( $product_id, 'f2cs-updater-vendor', true );
+						$current_vendor = get_post_meta( $product_id, 'f2000cs-updater-vendor', true );
 						if ( empty( $current_vendor ) ) {
-							update_post_meta( $product_id, 'f2cs-updater-vendor', $product_data['vendor_code'] );
+							update_post_meta( $product_id, 'f2000cs-updater-vendor', $product_data['vendor_code'] );
 						}
 					}
 
@@ -396,7 +396,7 @@ class XML_Stock_Updater {
 		);
 
 		if ( ( $updated_in_stock + $updated_out_of_stock ) > 0 || $updated_price > 0 ) {
-			f2cs_log(
+			f2000cs_log(
 				sprintf(
 					'Update completed. Total: %d, Stock changed: %d, Price changed: %d, Unchanged: %d, Not found: %d',
 					$total,
@@ -562,7 +562,7 @@ class XML_Stock_Updater {
 		}
 
 		// Use the helper function from functions.php
-		f2cs_send_telegram_notification( $message );
+		f2000cs_send_telegram_notification( $message );
 	}
 
 	/**
