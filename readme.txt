@@ -91,6 +91,11 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 
 == Changelog ==
 
+= 0.3 =
+* First release on WordPress.org.
+* Renamed functions, options, hooks, and assets to the f2000cs_ prefix for consistency.
+* Bumped version and aligned plugin branding for the directory listing.
+
 = 0.2 =
 * Prepared the plugin for the WordPress.org directory: code now follows WordPress coding and security standards.
 * Security: added nonce verification, capability checks, input sanitization and output escaping across all admin actions.
