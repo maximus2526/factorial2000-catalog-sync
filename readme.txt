@@ -5,7 +5,7 @@ Tags: woocommerce, import, xml, stock, prom
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.3
+Stable tag: 0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -54,7 +54,7 @@ The plugin supports Prom.ua YML/XML export format with `offer`, `group_id`, `pri
 
 = Can I connect multiple suppliers? =
 
-Yes. You can configure up to 5 XML URLs. Each feed can have its own SKU prefix and optional rule to skip price updates.
+Yes. You can configure up to 5 XML URLs. Each feed can have its own SKU prefix, an optional rule to skip price updates, and (when price updates are enabled) a price adjustment: margin %, markup % (add or subtract), or a fixed amount (add or subtract) applied to supplier prices before they are saved.
 
 = What happens to products missing from the XML feed? =
 
@@ -90,6 +90,9 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 4. XML export filter for creating a clean feed with new products only.
 
 == Changelog ==
+
+= 0.4 =
+* Replaced the simple per-supplier margin (%) field with a price adjustment switcher: choose between Маржа (margin, always added, 0-99%), Націнка (markup %, can be added or subtracted) or Фіксована сума (a flat currency amount, can be added or subtracted). Available when price updates are allowed for that supplier.
 
 = 0.3 =
 * First release on WordPress.org.

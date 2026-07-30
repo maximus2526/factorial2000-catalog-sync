@@ -98,9 +98,15 @@ class Cron_Job {
 
 			foreach ( $xml_urls as $index => $xml_url ) {
 				try {
-					$sku_prefix = get_option( 'f2000cs_sku_prefix_' . $index, '' );
-					$skip_price = get_option( 'f2000cs_skip_price_' . $index, '0' );
-					$updater    = new XML_Stock_Updater( $xml_url, $sku_prefix, ( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' ) );
+					$sku_prefix   = get_option( 'f2000cs_sku_prefix_' . $index, '' );
+					$skip_price   = get_option( 'f2000cs_skip_price_' . $index, '0' );
+					$price_adjust = f2000cs_get_price_adjust_settings( $index );
+					$updater      = new XML_Stock_Updater(
+						$xml_url,
+						$sku_prefix,
+						( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' ),
+						$price_adjust
+					);
 					$updater->update_products_stock_status();
 				} catch ( Exception $e ) {
 					// Silent error handling

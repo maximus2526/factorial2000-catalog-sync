@@ -90,6 +90,16 @@ function f2000cs_enqueue_admin_assets( $_hook_suffix ) {
 		)
 	);
 
+	if ( f2000cs_get_admin_page_slug() === 'f2000cs-update' ) {
+		wp_enqueue_script(
+			'f2000cs-admin-settings',
+			F2000CS_URL . 'assets/js/admin-settings.js',
+			array(),
+			F2000CS_VERSION,
+			true
+		);
+	}
+
 	if ( f2000cs_get_admin_page_slug() === 'f2000cs-import' ) {
 		wp_enqueue_script(
 			'f2000cs-admin-import',

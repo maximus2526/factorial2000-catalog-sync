@@ -100,6 +100,20 @@ function f2000cs_get_settings_url() {
 }
 
 /**
+ * Get the price adjustment settings (type, direction, value) for a supplier slot.
+ *
+ * @param int $index Supplier slot index (1-5).
+ * @return array{type: string, direction: string, value: float}
+ */
+function f2000cs_get_price_adjust_settings( $index ) {
+	return array(
+		'type'      => get_option( 'f2000cs_price_adjust_type_' . $index, 'markup' ),
+		'direction' => get_option( 'f2000cs_price_adjust_direction_' . $index, 'add' ),
+		'value'     => (float) get_option( 'f2000cs_price_adjust_value_' . $index, '0' ),
+	);
+}
+
+/**
  * Check if all required settings are configured
  *
  * @return bool True if configured, false otherwise
@@ -445,18 +459,24 @@ add_action(
 	function ( $xml_url, $sku_prefix = '' ) {
 		if ( ! empty( $xml_url ) ) {
 			f2000cs_cleanup_wc_transients();
-			// Try to detect which slot this URL belongs to, to read the skip-price flag.
+			// Try to detect which slot this URL belongs to, to read the skip-price flag and price adjustment.
 			$skip_price_flag = false;
+			$price_adjust    = array(
+				'type'      => 'markup',
+				'direction' => 'add',
+				'value'     => 0,
+			);
 			for ( $i = 1; $i <= 5; $i++ ) {
 				$cfg_url = get_option( 'f2000cs_url' . ( $i === 1 ? '' : '_' . $i ), '' );
 				if ( $cfg_url === $xml_url ) {
 					$skip_price = get_option( 'f2000cs_skip_price_' . $i, '0' );
 					$skip_price_flag = ( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' );
+					$price_adjust    = f2000cs_get_price_adjust_settings( $i );
 					break;
 				}
 			}
 
-			$updater = new \F2000CS\XML_Stock_Updater( $xml_url, $sku_prefix, $skip_price_flag );
+			$updater = new \F2000CS\XML_Stock_Updater( $xml_url, $sku_prefix, $skip_price_flag, $price_adjust );
 			$updater->update_products_stock_status();
 			f2000cs_after_stock_update_complete();
 			f2000cs_cleanup_wc_transients( true );

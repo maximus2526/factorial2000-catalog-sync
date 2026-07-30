@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Factorial2000 Catalog Sync for Prom.ua
  * Description:       Плагін для імпорту XML даних та оновлення статусу запасів із платформи Prom.ua.
- * Version:           0.3
+ * Version:           0.4
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            KMax (Maxim Kliakhin)
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'F2000CS_VERSION', '0.3' );
+define( 'F2000CS_VERSION', '0.4' );
 define( 'F2000CS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'F2000CS_URL', plugin_dir_url( __FILE__ ) );
 define( 'F2000CS_BASENAME', plugin_basename( __FILE__ ) );

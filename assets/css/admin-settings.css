@@ -163,3 +163,27 @@
 .f2000cs-group-empty {
 	color: #d63638;
 }
+
+.f2000cs-price-adjust {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.f2000cs-price-adjust__direction {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.f2000cs-price-adjust__direction label {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	white-space: nowrap;
+}
+
+.f2000cs-price-adjust__unit {
+	color: #666;
+}

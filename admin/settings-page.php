@@ -194,6 +194,24 @@ function f2000cs_settings_init() {
 			return ( $value === '1' || $value === 'yes' || $value === 'on' ) ? '1' : '0';
 		},
 	);
+	$price_adjust_type_args = array(
+		'sanitize_callback' => function ( $value ) {
+			$allowed = array( 'margin', 'markup', 'fixed' );
+			return in_array( $value, $allowed, true ) ? $value : 'markup';
+		},
+	);
+	$price_adjust_direction_args = array(
+		'sanitize_callback' => function ( $value ) {
+			return 'subtract' === $value ? 'subtract' : 'add';
+		},
+	);
+	$price_adjust_value_args = array(
+		'sanitize_callback' => function ( $value ) {
+			$value = is_numeric( $value ) ? (float) $value : 0;
+			$value = max( 0, min( 1000000, $value ) );
+			return (string) round( $value, 2 );
+		},
+	);
 
 	register_setting( 'f2000cs_settings', 'f2000cs_url', $url_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_url_1', $url_args );
@@ -203,14 +221,29 @@ function f2000cs_settings_init() {
 	register_setting( 'f2000cs_settings', 'f2000cs_url_5', $url_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_sku_prefix_1', $text_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_skip_price_1', $skip_price_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_type_1', $price_adjust_type_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_direction_1', $price_adjust_direction_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_value_1', $price_adjust_value_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_sku_prefix_2', $text_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_skip_price_2', $skip_price_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_type_2', $price_adjust_type_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_direction_2', $price_adjust_direction_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_value_2', $price_adjust_value_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_sku_prefix_3', $text_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_skip_price_3', $skip_price_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_type_3', $price_adjust_type_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_direction_3', $price_adjust_direction_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_value_3', $price_adjust_value_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_sku_prefix_4', $text_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_skip_price_4', $skip_price_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_type_4', $price_adjust_type_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_direction_4', $price_adjust_direction_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_value_4', $price_adjust_value_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_sku_prefix_5', $text_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_skip_price_5', $skip_price_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_type_5', $price_adjust_type_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_direction_5', $price_adjust_direction_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_value_5', $price_adjust_value_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_update_interval', $text_args );
 	register_setting(
 		'f2000cs_settings',
@@ -238,18 +271,23 @@ function f2000cs_settings_init() {
 	add_settings_field( 'f2000cs_url', __( 'URL XML файлу 1', 'factorial2000-catalog-sync' ), 'f2000cs_url_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_sku_prefix_1', __( 'SKU Prefix 1', 'factorial2000-catalog-sync' ), 'f2000cs_sku_prefix_1_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_skip_price_1', __( 'Не оновлювати ціну 1', 'factorial2000-catalog-sync' ), 'f2000cs_skip_price_1_render', 'f2000cs', 'f2000cs_section' );
+	add_settings_field( 'f2000cs_price_adjust_1', __( 'Коригування ціни 1', 'factorial2000-catalog-sync' ), 'f2000cs_price_adjust_1_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_url_2', __( 'URL XML файлу 2', 'factorial2000-catalog-sync' ), 'f2000cs_url_2_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_sku_prefix_2', __( 'SKU Prefix 2', 'factorial2000-catalog-sync' ), 'f2000cs_sku_prefix_2_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_skip_price_2', __( 'Не оновлювати ціну 2', 'factorial2000-catalog-sync' ), 'f2000cs_skip_price_2_render', 'f2000cs', 'f2000cs_section' );
+	add_settings_field( 'f2000cs_price_adjust_2', __( 'Коригування ціни 2', 'factorial2000-catalog-sync' ), 'f2000cs_price_adjust_2_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_url_3', __( 'URL XML файлу 3', 'factorial2000-catalog-sync' ), 'f2000cs_url_3_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_sku_prefix_3', __( 'SKU Prefix 3', 'factorial2000-catalog-sync' ), 'f2000cs_sku_prefix_3_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_skip_price_3', __( 'Не оновлювати ціну 3', 'factorial2000-catalog-sync' ), 'f2000cs_skip_price_3_render', 'f2000cs', 'f2000cs_section' );
+	add_settings_field( 'f2000cs_price_adjust_3', __( 'Коригування ціни 3', 'factorial2000-catalog-sync' ), 'f2000cs_price_adjust_3_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_url_4', __( 'URL XML файлу 4', 'factorial2000-catalog-sync' ), 'f2000cs_url_4_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_sku_prefix_4', __( 'SKU Prefix 4', 'factorial2000-catalog-sync' ), 'f2000cs_sku_prefix_4_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_skip_price_4', __( 'Не оновлювати ціну 4', 'factorial2000-catalog-sync' ), 'f2000cs_skip_price_4_render', 'f2000cs', 'f2000cs_section' );
+	add_settings_field( 'f2000cs_price_adjust_4', __( 'Коригування ціни 4', 'factorial2000-catalog-sync' ), 'f2000cs_price_adjust_4_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_url_5', __( 'URL XML файлу 5', 'factorial2000-catalog-sync' ), 'f2000cs_url_5_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_sku_prefix_5', __( 'SKU Prefix 5', 'factorial2000-catalog-sync' ), 'f2000cs_sku_prefix_5_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_skip_price_5', __( 'Не оновлювати ціну 5', 'factorial2000-catalog-sync' ), 'f2000cs_skip_price_5_render', 'f2000cs', 'f2000cs_section' );
+	add_settings_field( 'f2000cs_price_adjust_5', __( 'Коригування ціни 5', 'factorial2000-catalog-sync' ), 'f2000cs_price_adjust_5_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_update_interval', __( 'Інтервал оновлення', 'factorial2000-catalog-sync' ), 'f2000cs_interval_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_hide_variable_low_instock', __( 'Variable-товари з малою наявністю', 'factorial2000-catalog-sync' ), 'f2000cs_hide_variable_low_instock_render', 'f2000cs', 'f2000cs_section' );
 	add_settings_field( 'f2000cs_variable_low_instock_max', __( 'Поріг варіацій в наявності', 'factorial2000-catalog-sync' ), 'f2000cs_variable_low_instock_max_render', 'f2000cs', 'f2000cs_section' );
@@ -276,11 +314,16 @@ function f2000cs_sku_prefix_1_render() {
 function f2000cs_skip_price_1_render() {
 	$val = get_option( 'f2000cs_skip_price_1', '0' );
 	?>
+	<input type="hidden" name="f2000cs_skip_price_1" value="0">
 	<label>
-		<input type="checkbox" name="f2000cs_skip_price_1" value="1" <?php checked( $val, '1' ); ?>>
+		<input type="checkbox" name="f2000cs_skip_price_1" id="f2000cs_skip_price_1" value="1" <?php checked( $val, '1' ); ?>>
 		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'factorial2000-catalog-sync' ); ?>
 	</label>
 	<?php
+}
+
+function f2000cs_price_adjust_1_render() {
+	f2000cs_render_price_adjust_fields( 1 );
 }
 
 function f2000cs_url_2_render() {
@@ -301,11 +344,16 @@ function f2000cs_sku_prefix_2_render() {
 function f2000cs_skip_price_2_render() {
 	$val = get_option( 'f2000cs_skip_price_2', '0' );
 	?>
+	<input type="hidden" name="f2000cs_skip_price_2" value="0">
 	<label>
-		<input type="checkbox" name="f2000cs_skip_price_2" value="1" <?php checked( $val, '1' ); ?>>
+		<input type="checkbox" name="f2000cs_skip_price_2" id="f2000cs_skip_price_2" value="1" <?php checked( $val, '1' ); ?>>
 		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'factorial2000-catalog-sync' ); ?>
 	</label>
 	<?php
+}
+
+function f2000cs_price_adjust_2_render() {
+	f2000cs_render_price_adjust_fields( 2 );
 }
 
 function f2000cs_url_3_render() {
@@ -326,11 +374,16 @@ function f2000cs_sku_prefix_3_render() {
 function f2000cs_skip_price_3_render() {
 	$val = get_option( 'f2000cs_skip_price_3', '0' );
 	?>
+	<input type="hidden" name="f2000cs_skip_price_3" value="0">
 	<label>
-		<input type="checkbox" name="f2000cs_skip_price_3" value="1" <?php checked( $val, '1' ); ?>>
+		<input type="checkbox" name="f2000cs_skip_price_3" id="f2000cs_skip_price_3" value="1" <?php checked( $val, '1' ); ?>>
 		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'factorial2000-catalog-sync' ); ?>
 	</label>
 	<?php
+}
+
+function f2000cs_price_adjust_3_render() {
+	f2000cs_render_price_adjust_fields( 3 );
 }
 
 function f2000cs_url_4_render() {
@@ -351,11 +404,16 @@ function f2000cs_sku_prefix_4_render() {
 function f2000cs_skip_price_4_render() {
 	$val = get_option( 'f2000cs_skip_price_4', '0' );
 	?>
+	<input type="hidden" name="f2000cs_skip_price_4" value="0">
 	<label>
-		<input type="checkbox" name="f2000cs_skip_price_4" value="1" <?php checked( $val, '1' ); ?>>
+		<input type="checkbox" name="f2000cs_skip_price_4" id="f2000cs_skip_price_4" value="1" <?php checked( $val, '1' ); ?>>
 		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'factorial2000-catalog-sync' ); ?>
 	</label>
 	<?php
+}
+
+function f2000cs_price_adjust_4_render() {
+	f2000cs_render_price_adjust_fields( 4 );
 }
 
 function f2000cs_url_5_render() {
@@ -376,10 +434,61 @@ function f2000cs_sku_prefix_5_render() {
 function f2000cs_skip_price_5_render() {
 	$val = get_option( 'f2000cs_skip_price_5', '0' );
 	?>
+	<input type="hidden" name="f2000cs_skip_price_5" value="0">
 	<label>
-		<input type="checkbox" name="f2000cs_skip_price_5" value="1" <?php checked( $val, '1' ); ?>>
+		<input type="checkbox" name="f2000cs_skip_price_5" id="f2000cs_skip_price_5" value="1" <?php checked( $val, '1' ); ?>>
 		<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'factorial2000-catalog-sync' ); ?>
 	</label>
+	<?php
+}
+
+function f2000cs_price_adjust_5_render() {
+	f2000cs_render_price_adjust_fields( 5 );
+}
+
+/**
+ * Render the price adjustment controls (type, direction, value) for one supplier slot.
+ *
+ * Three adjustment types are supported:
+ * - margin:  profit as a percentage of the final selling price (price = cost / (1 - margin/100)).
+ *            Always increases the price; the value cannot be negative.
+ * - markup:  percentage applied on top of the supplier cost (price = cost * (1 ± markup/100)).
+ *            Can be added or subtracted.
+ * - fixed:   a flat currency amount added to or subtracted from the supplier cost.
+ *
+ * @param int $index Supplier slot index (1-5).
+ * @return void
+ */
+function f2000cs_render_price_adjust_fields( $index ) {
+	$type      = get_option( 'f2000cs_price_adjust_type_' . $index, 'markup' );
+	$direction = get_option( 'f2000cs_price_adjust_direction_' . $index, 'add' );
+	$value     = get_option( 'f2000cs_price_adjust_value_' . $index, '0' );
+	$currency  = function_exists( 'get_woocommerce_currency_symbol' ) ? get_woocommerce_currency_symbol() : '';
+	?>
+	<div id="f2000cs_price_adjust_<?php echo esc_attr( $index ); ?>_wrap" class="f2000cs-price-adjust" data-percent-unit="%" data-currency-unit="<?php echo esc_attr( $currency ); ?>">
+		<select name="f2000cs_price_adjust_type_<?php echo esc_attr( $index ); ?>" id="f2000cs_price_adjust_type_<?php echo esc_attr( $index ); ?>" class="f2000cs-price-adjust__type">
+			<option value="markup" <?php selected( $type, 'markup' ); ?>><?php esc_html_e( 'Націнка (%)', 'factorial2000-catalog-sync' ); ?></option>
+			<option value="margin" <?php selected( $type, 'margin' ); ?>><?php esc_html_e( 'Маржа (%)', 'factorial2000-catalog-sync' ); ?></option>
+			<option value="fixed" <?php selected( $type, 'fixed' ); ?>><?php esc_html_e( 'Фіксована сума', 'factorial2000-catalog-sync' ); ?></option>
+		</select>
+
+		<span class="f2000cs-price-adjust__direction" id="f2000cs_price_adjust_direction_<?php echo esc_attr( $index ); ?>_wrap">
+			<label>
+				<input type="radio" name="f2000cs_price_adjust_direction_<?php echo esc_attr( $index ); ?>" value="add" <?php checked( $direction, 'add' ); ?>>
+				<?php esc_html_e( 'Додати', 'factorial2000-catalog-sync' ); ?>
+			</label>
+			<label>
+				<input type="radio" name="f2000cs_price_adjust_direction_<?php echo esc_attr( $index ); ?>" value="subtract" <?php checked( $direction, 'subtract' ); ?>>
+				<?php esc_html_e( 'Відняти', 'factorial2000-catalog-sync' ); ?>
+			</label>
+		</span>
+
+		<input type="number" name="f2000cs_price_adjust_value_<?php echo esc_attr( $index ); ?>" id="f2000cs_price_adjust_value_<?php echo esc_attr( $index ); ?>" value="<?php echo esc_attr( $value ); ?>" min="0" <?php echo 'margin' === $type ? 'max="99.99"' : ''; ?> step="0.01" style="width: 100px;">
+		<span class="f2000cs-price-adjust__unit" id="f2000cs_price_adjust_unit_<?php echo esc_attr( $index ); ?>"><?php echo esc_html( 'fixed' === $type ? $currency : '%' ); ?></span>
+	</div>
+	<p class="description">
+		<?php esc_html_e( 'Маржа — частка прибутку в кінцевій ціні (0–99%, лише збільшує ціну). Націнка — відсоток від закупівельної ціни постачальника, можна додати або відняти. Фіксована сума — конкретна сума, яку можна додати або відняти. Діє лише якщо оновлення цін дозволено (чекбокс вище вимкнений).', 'factorial2000-catalog-sync' ); ?>
+	</p>
 	<?php
 }
 
@@ -679,9 +788,10 @@ function f2000cs_handle_action() {
 
 					foreach ( $xml_urls as $index => $xml_url ) {
 						try {
-							$sku_prefix = get_option( 'f2000cs_sku_prefix_' . $index, '' );
-							$skip_price = get_option( 'f2000cs_skip_price_' . $index, '0' );
-							$updater    = new \F2000CS\XML_Stock_Updater( $xml_url, $sku_prefix, ( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' ) );
+							$sku_prefix   = get_option( 'f2000cs_sku_prefix_' . $index, '' );
+							$skip_price   = get_option( 'f2000cs_skip_price_' . $index, '0' );
+							$price_adjust = f2000cs_get_price_adjust_settings( $index );
+							$updater      = new \F2000CS\XML_Stock_Updater( $xml_url, $sku_prefix, ( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' ), $price_adjust );
 							$updater->update_products_stock_status();
 							++$success_count;
 						} catch ( Exception $e ) {

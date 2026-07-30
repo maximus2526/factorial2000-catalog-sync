@@ -25,6 +25,11 @@ function f2000cs_uninstall_cleanup() {
 	delete_option( 'f2000cs_skip_price_3' );
 	delete_option( 'f2000cs_skip_price_4' );
 	delete_option( 'f2000cs_skip_price_5' );
+	for ( $i = 1; $i <= 5; $i++ ) {
+		delete_option( 'f2000cs_price_adjust_type_' . $i );
+		delete_option( 'f2000cs_price_adjust_direction_' . $i );
+		delete_option( 'f2000cs_price_adjust_value_' . $i );
+	}
 	delete_option( 'f2000cs_update_interval' );
 	delete_option( 'f2000cs_hide_variable_low_instock' );
 	delete_option( 'f2000cs_variable_low_instock_max' );

@@ -64,17 +64,59 @@ class XML_Stock_Updater {
 	private $skip_price_updates = false;
 
 	/**
+	 * Price adjustment type: 'margin', 'markup' or 'fixed'.
+	 *
+	 * @var string
+	 */
+	private $price_adjust_type = 'markup';
+
+	/**
+	 * Price adjustment direction: 'add' or 'subtract'. Not used for 'margin'.
+	 *
+	 * @var string
+	 */
+	private $price_adjust_direction = 'add';
+
+	/**
+	 * Price adjustment magnitude. Percentage for 'margin'/'markup', currency amount for 'fixed'.
+	 *
+	 * @var float
+	 */
+	private $price_adjust_value = 0.0;
+
+	/**
 	 * XML_Stock_Updater constructor.
 	 *
 	 * @param string $xml_url URL for fetching XML data.
 	 * @param string $sku_prefix Prefix to add to SKU values.
+	 * @param bool   $skip_price_updates Whether to skip price updates for this source.
+	 * @param array  $price_adjust {
+	 *     Optional. Price adjustment settings applied to the supplier price.
+	 *
+	 *     @type string $type      'margin', 'markup' or 'fixed'. Default 'markup'.
+	 *     @type string $direction 'add' or 'subtract'. Ignored for 'margin'. Default 'add'.
+	 *     @type float  $value     Percentage (margin/markup) or currency amount (fixed). Default 0.
+	 * }
 	 */
-	public function __construct( $xml_url, $sku_prefix = '', $skip_price_updates = false ) {
+	public function __construct( $xml_url, $sku_prefix = '', $skip_price_updates = false, $price_adjust = array() ) {
 		$this->xml_url            = $xml_url;
 		$this->telegram_token_id  = get_option( 'f2000cs_telegram_token_id', '' );
 		$this->telegram_user_ids  = array_map( 'trim', explode( ',', get_option( 'f2000cs_telegram_user_ids', '' ) ) );
 		$this->sku_prefix         = $sku_prefix;
 		$this->skip_price_updates = (bool) $skip_price_updates;
+
+		$price_adjust = wp_parse_args(
+			$price_adjust,
+			array(
+				'type'      => 'markup',
+				'direction' => 'add',
+				'value'     => 0,
+			)
+		);
+
+		$this->price_adjust_type      = in_array( $price_adjust['type'], array( 'margin', 'markup', 'fixed' ), true ) ? $price_adjust['type'] : 'markup';
+		$this->price_adjust_direction = 'subtract' === $price_adjust['direction'] ? 'subtract' : 'add';
+		$this->price_adjust_value     = max( 0, (float) $price_adjust['value'] );
 
 		// Get the current PHP max execution time and set our limit slightly below it
 		$current_limit            = ini_get( 'max_execution_time' );
@@ -225,6 +267,11 @@ class XML_Stock_Updater {
 					$price     = isset( $offer_xml->price ) ? (float) $offer_xml->price : 0;
 					$old_price = isset( $offer_xml->oldprice ) ? (float) $offer_xml->oldprice : 0;
 
+					if ( ! $this->skip_price_updates && $this->price_adjust_value > 0 ) {
+						$price     = $this->apply_price_adjustment( $price );
+						$old_price = $this->apply_price_adjustment( $old_price );
+					}
+
 					$vendor_code = isset( $offer_xml->vendorCode ) ? (string) $offer_xml->vendorCode : '';
 
 					$stock_status = 'true' === $available ? 'instock' : 'outofstock';
@@ -257,6 +304,46 @@ class XML_Stock_Updater {
 		}
 
 		return $updates;
+	}
+
+	/**
+	 * Apply the configured price adjustment (margin, markup or fixed amount) to a supplier price.
+	 *
+	 * Margin is the profit as a percentage of the final selling price:
+	 *     sell_price = cost / (1 - margin / 100)
+	 * Markup is a percentage applied on top of the supplier cost:
+	 *     sell_price = cost * (1 + markup / 100)
+	 * Fixed adds/subtracts a flat currency amount.
+	 *
+	 * @param float $price Original price from XML.
+	 * @return float Adjusted price, rounded to 2 decimals.
+	 */
+	private function apply_price_adjustment( $price ) {
+		if ( $price <= 0 || $this->price_adjust_value <= 0 ) {
+			return $price;
+		}
+
+		$value = $this->price_adjust_value;
+		$sign  = ( 'subtract' === $this->price_adjust_direction ) ? -1 : 1;
+
+		switch ( $this->price_adjust_type ) {
+			case 'margin':
+				// Margin can only ever increase the price and must stay below 100%.
+				$margin = min( 99.99, $value );
+				$price  = $price / ( 1 - ( $margin / 100 ) );
+				break;
+
+			case 'fixed':
+				$price = $price + ( $sign * $value );
+				break;
+
+			case 'markup':
+			default:
+				$price = $price * ( 1 + ( $sign * $value / 100 ) );
+				break;
+		}
+
+		return round( max( 0, $price ), 2 );
 	}
 
 	private function sync_parent_stock_status( $parent_id ) {
