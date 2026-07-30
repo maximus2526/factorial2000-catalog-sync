@@ -28,8 +28,8 @@ class Cron_Job {
 	public static function activate() {
 		$interval = get_option( 'f2000cs_update_interval', 'hourly' );
 		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
+			// The hook itself is already attached to update_stock() on every request via f2000cs_init().
 			wp_schedule_event( time(), $interval, self::CRON_HOOK );
-			add_action( self::CRON_HOOK, array( __CLASS__, 'update_stock' ) );
 		}
 	}
 
@@ -123,3 +123,24 @@ class Cron_Job {
 }
 
 add_filter( 'cron_schedules', array( Cron_Job::class, 'add_custom_cron_schedule' ) );
+
+/**
+ * Reschedule the cron job whenever the update interval setting changes,
+ * so the new interval takes effect immediately instead of after the next
+ * manual stop/start.
+ *
+ * @param mixed $old_value Previous option value.
+ * @param mixed $new_value New option value.
+ * @return void
+ */
+function f2000cs_reschedule_cron_on_interval_change( $old_value, $new_value ) {
+	if ( $old_value === $new_value ) {
+		return;
+	}
+
+	if ( wp_next_scheduled( Cron_Job::CRON_HOOK ) ) {
+		Cron_Job::deactivate();
+		Cron_Job::activate();
+	}
+}
+add_action( 'update_option_f2000cs_update_interval', 'F2000CS\f2000cs_reschedule_cron_on_interval_change', 10, 2 );

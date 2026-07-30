@@ -447,11 +447,106 @@ function f2000cs_trigger_background_sync( $xml_url, $sku_prefix = '' ) {
 
 	// Schedule the update to happen in the background in 30 seconds
 	if ( ! wp_next_scheduled( 'f2000cs_single_update_event', array( $xml_url, $sku_prefix ) ) ) {
+		// One more job added to the pending batch; only increment once this event is
+		// actually newly scheduled, so the counter always matches the number of events
+		// that will really fire.
+		f2000cs_increment_background_batch_counter( 1 );
 		wp_schedule_single_event( time() + 30, 'f2000cs_single_update_event', array( $xml_url, $sku_prefix ) );
 		return true;
 	}
 
 	return false;
+}
+
+/**
+ * Track how many background sync jobs are still pending in the current batch,
+ * so post-processing (low-instock rule, Telegram summary) runs only once,
+ * after the last job in the batch finishes rather than after every single job.
+ *
+ * @param int $count Number of jobs to add to the pending counter.
+ * @return void
+ */
+function f2000cs_increment_background_batch_counter( $count ) {
+	$remaining = (int) get_transient( 'f2000cs_bg_batch_remaining' );
+	set_transient( 'f2000cs_bg_batch_remaining', $remaining + $count, HOUR_IN_SECONDS );
+}
+
+/**
+ * Decrement the pending background batch counter.
+ *
+ * @return int Remaining jobs after decrementing (0 or less means the batch is done).
+ */
+function f2000cs_decrement_background_batch_counter() {
+	$remaining = (int) get_transient( 'f2000cs_bg_batch_remaining' ) - 1;
+
+	if ( $remaining > 0 ) {
+		set_transient( 'f2000cs_bg_batch_remaining', $remaining, HOUR_IN_SECONDS );
+	} else {
+		delete_transient( 'f2000cs_bg_batch_remaining' );
+	}
+
+	return $remaining;
+}
+
+/**
+ * Find the next pending 'f2000cs_single_update_event' regardless of its scheduled arguments.
+ *
+ * wp_next_scheduled() only matches events scheduled with the exact same arguments, but our
+ * background events are always scheduled with a unique (url, sku_prefix) pair, so checking
+ * with no arguments would never find them. This scans the cron array directly instead.
+ *
+ * @return int|false Timestamp of the next pending event, or false if none is scheduled.
+ */
+function f2000cs_get_next_background_event() {
+	$crons = _get_cron_array();
+
+	if ( empty( $crons ) ) {
+		return false;
+	}
+
+	foreach ( $crons as $timestamp => $hooks ) {
+		// The cron array also carries a non-numeric 'version' key alongside timestamp keys; skip it.
+		if ( ! is_array( $hooks ) ) {
+			continue;
+		}
+
+		if ( ! empty( $hooks['f2000cs_single_update_event'] ) ) {
+			return (int) $timestamp;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Clear all pending 'f2000cs_single_update_event' cron events, regardless of their
+ * scheduled arguments, and reset the background batch counter.
+ *
+ * wp_clear_scheduled_hook( 'f2000cs_single_update_event' ) without an $args parameter only
+ * removes events scheduled with an *empty* args array. Since our background events are
+ * always scheduled with a unique (url, sku_prefix) pair, that call is a no-op and leaves
+ * the events (and the eventual duplicate execution) in place. This walks the cron array
+ * directly and unschedules every matching entry regardless of its arguments.
+ *
+ * @return void
+ */
+function f2000cs_clear_all_background_events() {
+	$crons = _get_cron_array();
+
+	if ( ! empty( $crons ) ) {
+		foreach ( $crons as $timestamp => $hooks ) {
+			if ( ! is_array( $hooks ) || empty( $hooks['f2000cs_single_update_event'] ) ) {
+				continue;
+			}
+
+			foreach ( $hooks['f2000cs_single_update_event'] as $event ) {
+				$args = isset( $event['args'] ) && is_array( $event['args'] ) ? $event['args'] : array();
+				wp_unschedule_event( $timestamp, 'f2000cs_single_update_event', $args );
+			}
+		}
+	}
+
+	delete_transient( 'f2000cs_bg_batch_remaining' );
 }
 
 add_action(
@@ -478,8 +573,15 @@ add_action(
 
 			$updater = new \F2000CS\XML_Stock_Updater( $xml_url, $sku_prefix, $skip_price_flag, $price_adjust );
 			$updater->update_products_stock_status();
-			f2000cs_after_stock_update_complete();
+
+			// Only run post-processing (low-instock rule, Telegram summary) once the whole batch is done.
+			if ( f2000cs_decrement_background_batch_counter() <= 0 ) {
+				f2000cs_after_stock_update_complete();
+			}
+
 			f2000cs_cleanup_wc_transients( true );
 		}
-	}
+	},
+	10,
+	2
 );

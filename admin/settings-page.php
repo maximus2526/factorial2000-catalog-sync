@@ -91,7 +91,7 @@ function f2000cs_update_page() {
 		<?php
 		$next_run   = wp_next_scheduled( 'f2000cs_update_stock_cron' );
 		$interval   = get_option( 'f2000cs_update_interval', 'hourly' );
-		$bg_pending = wp_next_scheduled( 'f2000cs_single_update_event' );
+		$bg_pending = f2000cs_get_next_background_event();
 
 		echo '<div class="f2000cs-status">';
 		echo '<h3>' . esc_html__( 'Status', 'factorial2000-catalog-sync' ) . '</h3>';
@@ -840,7 +840,10 @@ function f2000cs_handle_action() {
 
 	if ( isset( $_POST['f2000cs_stop'] ) ) {
 		wp_clear_scheduled_hook( 'f2000cs_update_stock_cron' );
-		wp_clear_scheduled_hook( 'f2000cs_single_update_event' );
+		// wp_clear_scheduled_hook() alone would not remove background events, since they
+		// are always scheduled with non-empty (url, sku_prefix) args; this also resets
+		// the pending-batch counter so a stray leftover value doesn't block the next run.
+		f2000cs_clear_all_background_events();
 
 		add_settings_error(
 			'f2000cs_settings',

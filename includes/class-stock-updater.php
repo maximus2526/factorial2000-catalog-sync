@@ -236,7 +236,15 @@ class XML_Stock_Updater {
 		try {
 			$reader = new XMLReader();
 
-			if ( ! $reader->open( $this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING ) ) {
+			// LIBXML_NOERROR/LIBXML_NOWARNING only silence libxml parse warnings, not the
+			// PHP-level stream-wrapper warnings (SSL failures, DNS errors, timeouts, etc.)
+			// that XMLReader::open() emits for a bad/unreachable URL. Since the return value
+			// is already checked and failures are handled below (fallback + exception +
+			// Telegram notification), these are intentionally silenced to avoid spamming the
+			// PHP error log or leaking warning output before wp_safe_redirect() on hosts with
+			// display_errors enabled.
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Failure path is fully handled via the return-value check and fallback below.
+			if ( ! @$reader->open( $this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING ) ) {
 				// If direct URL open fails, try to download the file first
 				$xml_data = $this->fetch_xml_data();
 				if ( ! $xml_data ) {
@@ -245,7 +253,8 @@ class XML_Stock_Updater {
 
 				$temp_file = wp_tempnam( 'f2000cs_' );
 				if ( file_put_contents( $temp_file, $xml_data ) ) {
-					$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING );
+					// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Local temp file open failure is caught by the subsequent read() check below.
+					@$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING );
 				} else {
 					throw new Exception( 'Failed to create temporary XML file' );
 				}
