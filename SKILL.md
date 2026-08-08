@@ -1,6 +1,6 @@
 # Factorial2000 Catalog Sync — Агентський скіл
 
-> Остання актуальна версія: **0.6.0**
+> Остання актуальна версія: **0.6.1**
 > Тестове покриття: **162 тести / 820 асертів**, PHPCS чистий у всіх файлах.
 
 Цей документ — **обов'язковий до прочитання** перед будь-якими змінами в репозиторії.
@@ -281,17 +281,17 @@ npx gulp full             # phpcs → phpunit → +patch → release
 ### CI (GitHub Actions)
 
 - **`.github/workflows/test.yml`** — запускається на push/PR: PHPUnit + PHPCS + gulp phpcs/phpunit на PHP 7.4 і 8.2.
-- **`.github/workflows/release.yml`** — push тега `v*` (або manual `workflow_dispatch`): PHPUnit → `gulp release` → GitHub Release zip → деплой на Freemius (`buttonizer/freemius-deploy`). За замовчуванням Freemius статус = `pending` (треба вручну поставити Released у дашборді, або обрати `released`/`beta` у manual run).
+- **`.github/workflows/release.yml`** — push тега `v*` (або manual `workflow_dispatch`): PHPUnit → `gulp release` → GitHub Release zip → деплой на Freemius через `bin/freemius-deploy.php` (падає при помилці API). За замовчуванням Freemius статус = `pending`.
 
-**GitHub Secrets** (Settings → Secrets and variables → Actions) — з Freemius Developer Dashboard (Profile / API keys), не plugin public key:
+**GitHub Secrets** (Settings → Secrets and variables → Actions) — з Freemius **My Profile → Keys** (developer scope), **НЕ** Keys плагіна:
 
 | Secret | Що це |
 |--------|--------|
-| `FREEMIUS_DEV_ID` | Developer ID |
-| `FREEMIUS_PUBLIC_KEY` | Developer public key |
-| `FREEMIUS_SECRET_KEY` | Developer secret key |
+| `FREEMIUS_DEV_ID` | Developer ID (число з My Profile) |
+| `FREEMIUS_PUBLIC_KEY` | Developer `pk_…` з My Profile |
+| `FREEMIUS_SECRET_KEY` | Developer `sk_…` з My Profile |
 
-Plugin ID `36366` і slug `factorial2000-catalog-sync-for-promua` зашиті в workflow.
+Plugin public key (`pk_fa191e…` у коді) сюди **не** підходить. Plugin ID `36366` зашитий у workflow.
 
 **Реліз-флоу:**
 1. `npx gulp version:up --level=patch` — бамп версії

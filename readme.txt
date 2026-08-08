@@ -5,7 +5,7 @@ Tags: woocommerce, import, xml, stock, prom
 Requires at least: 5.8
 Tested up to: 7.0.2
 Requires PHP: 7.4
-Stable tag: 0.6.0
+Stable tag: 0.6.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -103,6 +103,9 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 4. XML export filter for creating a clean feed with new products only.
 
 == Changelog ==
+
+= 0.6.1 =
+* Fixed: Freemius GitHub deploy now fails loudly on API errors (custom deploy script).
 
 = 0.6.0 =
 * Added: Freemius freemium packaging with GitHub Actions deploy on `v*` tags.

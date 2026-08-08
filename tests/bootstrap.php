@@ -61,7 +61,7 @@ require_once __DIR__ . '/../includes/class-image-processor.php';
 require_once __DIR__ . '/../includes/class-frontend-display.php';
 
 if ( ! defined( 'F2000CS_VERSION' ) ) {
-	define( 'F2000CS_VERSION', '0.6.0' );
+	define( 'F2000CS_VERSION', '0.6.1' );
 }
 
 if ( ! defined( 'F2000CS_DB_VERSION' ) ) {
