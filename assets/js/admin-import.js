@@ -8,17 +8,100 @@
 	var i18n = f2000csImport.i18n || {};
 	var stopImport = false;
 	var groupsData = {};
+	var importSession = '';
 
 	function t(key) {
 		return i18n[key] || '';
 	}
 
+	function getImportSource() {
+		return $('input[name="import_source"]:checked').val() || 'url';
+	}
+
+	function toggleImportSource(source) {
+		var isUrl = source === 'url';
+
+		$('#import-source-url-row').prop('hidden', !isUrl).toggleClass('is-hidden', !isUrl);
+		$('#import-source-file-row').prop('hidden', isUrl).toggleClass('is-hidden', isUrl);
+
+		if (isUrl) {
+			$('#import_xml_file').val('');
+		} else {
+			$('#import_xml_url').val('');
+		}
+
+		importSession = '';
+	}
+
+	function switchImportTab(tab) {
+		$('.f2000cs-import-tabs__tab').each(function () {
+			var isActive = $(this).data('f2000cs-tab') === tab;
+			$(this).toggleClass('is-active', isActive).attr('aria-selected', isActive ? 'true' : 'false');
+		});
+
+		$('[data-f2000cs-panel]').each(function () {
+			var isActive = $(this).data('f2000cs-panel') === tab;
+			$(this).toggleClass('is-hidden', !isActive).prop('hidden', !isActive);
+		});
+	}
+
+	function validateImportSource() {
+		var source = getImportSource();
+
+		if (source === 'url') {
+			if (!$('#import_xml_url').val().trim()) {
+				alert(t('enterUrl'));
+				$('#import_xml_url').focus();
+				return false;
+			}
+			return true;
+		}
+
+		var fileInput = $('#import_xml_file')[0];
+		if (!fileInput || !fileInput.files.length) {
+			alert(t('selectFile'));
+			return false;
+		}
+
+		return true;
+	}
+
+	function setVisible( $el, visible ) {
+		$el.toggleClass( 'is-hidden', ! visible ).prop( 'hidden', ! visible );
+		if ( visible ) {
+			$el.show();
+		} else {
+			$el.hide();
+		}
+	}
+
+	function showImportProgress() {
+		var $box = $( '#import-progress-container' );
+		// Remove [hidden] fully — UA stylesheet uses display:none !important on it.
+		$box
+			.addClass( 'is-active' )
+			.removeClass( 'is-complete is-hidden' )
+			.removeAttr( 'hidden' )
+			.prop( 'hidden', false )
+			.css( 'display', '' );
+		updateImportProgress( 0 );
+		$( '#import-status' ).text( '' );
+	}
+
+	function updateImportProgress( percent ) {
+		var value = Math.max( 0, Math.min( 100, Math.round( percent ) ) );
+		$( '#import-progress' ).val( value );
+		$( '#import-progress-percent' ).text( value + '%' );
+		$( '#import-progress-container' ).toggleClass( 'is-complete', value >= 100 );
+	}
+
 	function toggleImportMode(mode) {
 		var isVariable = mode === 'variable';
 
-		$('#analyze-xml').toggle(isVariable);
-		$('#start-import').toggle(!isVariable);
-		$('#groups-analysis-container').hide();
+		setVisible( $( '#analyze-xml' ), isVariable );
+		setVisible( $( '#start-import' ), ! isVariable );
+		$( '#groups-analysis-container' ).hide();
+		setVisible( $( '#start-import-with-selection' ), false );
 	}
 
 	function buildVaryingLabel(isVarying) {
@@ -36,20 +119,27 @@
 
 		$target.removeClass('f2000cs-group-calculated--warning');
 
-		var totalVariations = 1;
 		var attrInfo = [];
 
 		group.attributes.forEach(function (attr) {
 			if (group.selected_attributes.includes(attr.name) && attr.is_varying) {
-				totalVariations *= attr.values.length;
 				attrInfo.push(attr.name + ': ' + attr.values.length);
 			}
 		});
 
-		if (attrInfo.length > 1) {
-			$target.html('<strong>' + t('variationsWillCreate') + '</strong> ' + totalVariations + ' (' + attrInfo.join(' × ') + ')');
-		} else if (attrInfo.length === 1) {
-			$target.html('<strong>' + t('variationsWillCreate') + '</strong> ' + totalVariations);
+		// Import creates one WC variation per offer in XML, not a cartesian product.
+		var offersCount = parseInt(group.variations_count, 10) || 0;
+
+		if (attrInfo.length > 0) {
+			$target.html(
+				'<strong>' +
+					t('variationsWillCreate') +
+					'</strong> ' +
+					offersCount +
+					' (' +
+					attrInfo.join(', ') +
+					')'
+			);
 		} else {
 			$target
 				.addClass('f2000cs-group-calculated--warning')
@@ -80,7 +170,8 @@
 			$info.append(
 				$('<p>')
 					.addClass('f2000cs-group-meta')
-					.html('<strong>' + t('groupId') + '</strong> ' + groupId)
+					.append($('<strong>').text(t('groupId') + ' '))
+					.append(document.createTextNode(String(groupId)))
 			);
 
 			var $variationsInfo = $('<p>')
@@ -156,9 +247,11 @@
 	}
 
 	function runImportChunk(formData, options) {
+		var stopButton = options.stopButtonId || '#stop-import';
+
 		if (stopImport) {
-			$('#import-status').text(t('importStopped'));
-			$('#stop-import').hide();
+			$('#import-status').text(options.stoppedMessage || t('importStopped'));
+			setVisible( $( stopButton ), false );
 			options.onFinish();
 			return;
 		}
@@ -172,19 +265,26 @@
 			success: function (response) {
 				if (!response.success) {
 					alert(t('errorPrefix') + ' ' + response.data.message);
-					$('#stop-import').hide();
+					setVisible( $( stopButton ), false );
 					options.onFinish();
 					return;
+				}
+
+				if (response.data.import_session) {
+					importSession = response.data.import_session;
+					formData.set('import_session', importSession);
 				}
 
 				var imported = response.data.imported;
 				var total = response.data.total;
 				var progress = total > 0 ? (imported / total) * 100 : 0;
 
-				$('#import-progress').val(progress);
+				updateImportProgress( response.data.finished ? 100 : progress );
 
-				if (options.withSelection) {
-					$('#import-status').html(t('importedLabel') + ' ' + imported + ' / ' + total);
+				if (options.onProgress) {
+					options.onProgress(response.data, imported, total);
+				} else if (options.withSelection) {
+					$('#import-status').text(t('importedLabel') + ' ' + imported + ' / ' + total);
 				} else {
 					$('#import-status').text(imported + ' / ' + total + ' ' + t('productsImported'));
 				}
@@ -195,18 +295,23 @@
 					return;
 				}
 
-				if (options.withSelection) {
-					$('#import-status').html(t('importFinishedCount') + ' ' + imported + ' ' + t('productsLabel'));
+				updateImportProgress( 100 );
+
+				if (options.onFinishStatus) {
+					options.onFinishStatus(response.data, imported);
+				} else if (options.withSelection) {
+					$('#import-status').text(t('importFinishedCount') + ' ' + imported + ' ' + t('productsLabel'));
 				} else {
 					$('#import-status').text(t('importFinished'));
 				}
 
-				$('#stop-import').hide();
+				importSession = '';
+				setVisible( $( stopButton ), false );
 				options.onFinish();
 			},
 			error: function () {
 				alert(t('importFailed'));
-				$('#stop-import').hide();
+				setVisible( $( stopButton ), false );
 				options.onFinish();
 			},
 		});
@@ -214,6 +319,10 @@
 
 	function startImport(withSelection) {
 		var skuPrefix = $('#import_sku_prefix').val().trim();
+
+		if (!validateImportSource()) {
+			return;
+		}
 
 		if (!skuPrefix) {
 			alert(withSelection ? t('enterSkuPrefix') : t('enterSkuBeforeImport'));
@@ -254,13 +363,17 @@
 		formData.append('sku_prefix', skuPrefix);
 		formData.set('offset', '0');
 
+		if (importSession) {
+			formData.set('import_session', importSession);
+		}
+
 		if (withSelection) {
 			formData.append('selected_attributes', JSON.stringify(selectedAttributes));
 			$('#groups-analysis-container').hide();
 		}
 
-		$('#import-progress-container').show();
-		$('#stop-import').show();
+		showImportProgress();
+		setVisible( $( '#stop-import' ), true );
 
 		if (withSelection) {
 			$('#start-import-with-selection').prop('disabled', true);
@@ -280,18 +393,91 @@
 		});
 	}
 
+	function startUpdateFields() {
+		var skuPrefix = $('#import_sku_prefix').val().trim();
+		var stats = { updated: 0, notFound: 0 };
+
+		if (!validateImportSource()) {
+			return;
+		}
+
+		if (!skuPrefix) {
+			alert(t('enterSkuBeforeUpdate'));
+			$('#import_sku_prefix').focus();
+			return;
+		}
+
+		if ($('.f2000cs-update-field:checked').length === 0) {
+			alert(t('selectUpdateField'));
+			return;
+		}
+
+		stopImport = false;
+
+		var formData = new FormData($('#xml-import-form')[0]);
+		formData.append('action', 'f2000cs_update_fields_action');
+		formData.append('sku_prefix', skuPrefix);
+		formData.set('offset', '0');
+
+		if (importSession) {
+			formData.set('import_session', importSession);
+		}
+
+		showImportProgress();
+		setVisible( $( '#stop-update-fields' ), true );
+		$('#start-update-fields').prop('disabled', true);
+
+		runImportChunk(formData, {
+			stopButtonId: '#stop-update-fields',
+			stoppedMessage: t('updateFieldsStopped'),
+			onProgress: function (data, imported, total) {
+				stats.updated += parseInt(data.updated, 10) || 0;
+				stats.notFound += parseInt(data.not_found, 10) || 0;
+				$('#import-status').text(imported + ' / ' + total + ' ' + t('fieldsProcessed'));
+			},
+			onFinishStatus: function () {
+				var summary = t('updateFieldsSummary')
+					.replace('%1$d', String(stats.updated))
+					.replace('%2$d', String(stats.notFound));
+				$('#import-status').text(t('updateFieldsFinished') + ' ' + summary);
+			},
+			onFinish: function () {
+				$('#start-update-fields').prop('disabled', false);
+			},
+		});
+	}
+
 	$(function () {
+		toggleImportSource(getImportSource());
+		toggleImportMode($('input[name="import_mode"]:checked').val() || 'simple');
+
+		$('input[name="import_source"]').on('change', function () {
+			toggleImportSource($(this).val());
+		});
+
+		$('.f2000cs-import-tabs__tab').on('click', function () {
+			switchImportTab($(this).data('f2000cs-tab'));
+		});
+
+		$('#update_fields_select_all').on('change', function () {
+			$('.f2000cs-update-field').prop('checked', $(this).is(':checked'));
+		});
+
+		$('.f2000cs-update-field').on('change', function () {
+			var $fields = $('.f2000cs-update-field');
+			var allChecked = $fields.length > 0 && $fields.filter(':checked').length === $fields.length;
+			$('#update_fields_select_all').prop('checked', allChecked);
+		});
+
 		$('input[name="import_mode"]').on('change', function () {
 			toggleImportMode($(this).val());
 		});
 
 		$('#analyze-xml').on('click', function () {
-			var fileInput = $('#import_xml_file')[0];
 			var skuPrefix = $('#import_sku_prefix').val().trim();
 			var $button = $(this);
 
-			if (!fileInput.files.length) {
-				alert(t('selectFile'));
+			if (!validateImportSource()) {
 				return;
 			}
 
@@ -300,6 +486,8 @@
 				$('#import_sku_prefix').focus();
 				return;
 			}
+
+			importSession = '';
 
 			var formData = new FormData($('#xml-import-form')[0]);
 			formData.append('action', 'f2000cs_analyze_groups');
@@ -319,6 +507,9 @@
 				success: function (response) {
 					if (response.success) {
 						groupsData = response.data.groups;
+						if (response.data.import_session) {
+							importSession = response.data.import_session;
+						}
 						displayGroups(response.data.groups);
 						$('#analysis-status').html(
 							'<p class="f2000cs-status-message--success">' +
@@ -327,7 +518,7 @@
 								Object.keys(groupsData).length +
 								'</p>'
 						);
-						$('#start-import-with-selection').show();
+						setVisible( $( '#start-import-with-selection' ), true );
 					} else {
 						$('#analysis-status').html(
 							'<p class="f2000cs-status-message--error">' + response.data.message + '</p>'
@@ -356,5 +547,90 @@
 		$('#stop-import').on('click', function () {
 			stopImport = true;
 		});
+
+		$('#start-update-fields').on('click', function () {
+			startUpdateFields();
+		});
+
+		$('#stop-update-fields').on('click', function () {
+			stopImport = true;
+		});
 	});
+
+	// ----------------------------------------------------------------
+	// Import resumption
+	// ----------------------------------------------------------------
+
+	var $resume = $('.f2000cs-import-resume');
+
+	if ($resume.length) {
+		var pending = $resume.data('f2000cs-resume') || {};
+
+		$resume.find('.f2000cs-import-resume__btn').on('click', function () {
+			if (!pending.session) {
+				return;
+			}
+
+			// Pre-fill the form with the saved context so the user sees
+			// what they're resuming.
+			$('#import_sku_prefix').val(pending.context.sku_prefix || '');
+			$('input[name="import_mode"][value="' +
+				(pending.context.import_variations ? 'variable' : 'simple') + '"]')
+				.prop('checked', true);
+			$('#new_category').prop('checked', !!pending.context.new_category);
+
+			// Lock the form so the source can't be changed mid-resume.
+			$('#xml-import-form input, #xml-import-form select, #xml-import-form button:not(.f2000cs-import-resume__btn)')
+				.prop('disabled', true).addClass('f2000cs-import--resume-locked');
+
+			// Rebuild FormData for chunked resume via runImportChunk.
+			importSession = pending.session;
+			stopImport    = false;
+
+			var formData = new FormData();
+			formData.set('action',               'f2000cs_import_action');
+			formData.set('import_session',       pending.session);
+			formData.set('offset',               String(pending.offset || 0));
+			formData.set('sku_prefix',           pending.context.sku_prefix || '');
+			formData.set('import_variations',    pending.context.import_variations ? '1' : '0');
+			formData.set('new_category',         pending.context.new_category ? '1' : '0');
+			formData.set('selected_attributes',  JSON.stringify(pending.context.selected_attributes || {}));
+			formData.set('f2000cs_import_nonce', $('[name="f2000cs_import_nonce"]').val() || $resume.data('f2000cs-nonce') || '');
+
+			if (pending.context.source) {
+				formData.set('import_source', 'url');
+				formData.set('import_xml_url', pending.context.source);
+			}
+
+			$resume.remove();
+			showImportProgress();
+			if (pending.offset > 0 && pending.total > 0) {
+				updateImportProgress( ( pending.offset / pending.total ) * 100 );
+				$('#import-status').text(pending.offset + ' / ' + pending.total + ' ' + t('productsImported'));
+			}
+			setVisible($('#start-import'), false);
+			setVisible($('#stop-import'), true);
+
+			runImportChunk(formData, {
+				withSelection: !!pending.context.import_variations,
+				onFinish: function () {
+					setVisible($('#stop-import'), false);
+					$('#xml-import-form input, #xml-import-form select, #xml-import-form button')
+						.prop('disabled', false)
+						.removeClass('f2000cs-import--resume-locked');
+				},
+			});
+		});
+
+		$resume.find('.f2000cs-import-resume__discard').on('click', function () {
+			if (pending.session && pending.session.length) {
+				$.post(ajaxurl, {
+					action:             'f2000cs_import_discard',
+					import_session:     pending.session,
+					f2000cs_import_nonce: $resume.data('f2000cs-nonce')
+				});
+			}
+			$resume.remove();
+		});
+	}
 })(jQuery);

@@ -1,0 +1,20 @@
+{
+  "name": "factorial2000-catalog-sync",
+  "version": "0.5.9",
+  "private": true,
+  "description": "Gulp build system: release/SVN packaging, version bumping, phpcs + phpunit runs.",
+  "devDependencies": {
+    "archiver": "^7.0.1",
+    "gulp": "^5.0.0",
+    "inquirer": "^10.2.2",
+    "semver": "^7.7.1"
+  },
+  "scripts": {
+    "build": "gulp",
+    "release": "gulp release",
+    "version:up": "gulp version:up",
+    "version:down": "gulp version:down",
+    "phpcs": "gulp phpcs",
+    "test": "gulp phpunit"
+  }
+}

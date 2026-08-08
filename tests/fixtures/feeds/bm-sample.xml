@@ -1,0 +1,441 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<yml_catalog date="sample">
+<shop>
+<currencies>
+<currency id="UAH" rate="1"/>
+</currencies>
+<categories>
+<category id="195" buymeCategoryId="195">Військторг</category>
+<category id="197" parentId="195" buymeCategoryId="197">тактичне взуття</category>
+<category id="198" parentId="195" buymeCategoryId="198">мілітарі одяг</category>
+<category id="211" parentId="195" portal_id="3082002" portal_url="https://prom.ua/ua/Razgruzochnye-zhilety" buymeCategoryId="211">РПС / Плитоноски</category>
+<category id="222" parentId="198" buymeCategoryId="222">мілітарі куртки</category>
+<category id="223" parentId="198" portal_id="30807" portal_url="https://prom.ua/ua/Voennaya-forma" buymeCategoryId="223">мілітарі костюми</category>
+<category id="225" parentId="198" buymeCategoryId="225">Тактичні штани</category>
+<category id="232" parentId="195" buymeCategoryId="232">Тактичні рюкзаки/сумки та аксесуари</category>
+<category id="235" parentId="198" buymeCategoryId="235">Тактичні Флісовки/Кофти</category>
+<category id="238" parentId="198" buymeCategoryId="238">тактичні футболки</category>
+<category id="283" parentId="198" buymeCategoryId="283">Убакс/Бойова сорочка</category>
+<category id="510" parentId="195" buymeCategoryId="510">полювання риболовля</category>
+<category id="511" parentId="510" buymeCategoryId="511">мисливські костюми</category>
+<category id="1168" parentId="198" buymeCategoryId="1168">Тактичні шорти</category>
+</categories>
+<offers>
+<offer id="9845" available="true" group_id="9845" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/9845</url>
+        <name>Демисезонная тактическая куртка софтшел masad  олива</name>
+        <name_ua>Демісезонна тактична куртка софтшел masad олива</name_ua>
+        <description>&lt;p&gt;материал софтшел&amp;nbsp;&lt;/p&gt;&lt;p&gt;размеры полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;капюшон не отстегивается&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы&amp;nbsp;&lt;/p&gt;&lt;p&gt;резной крой для удобной посадки&amp;nbsp;&lt;/p&gt;&lt;p&gt;хс&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 46&lt;/p&gt;&lt;p&gt;грудь 51&lt;/p&gt;&lt;p&gt;рукав 58&lt;/p&gt;&lt;p&gt;длина 68&lt;/p&gt;&lt;p&gt;с&lt;/p&gt;&lt;p&gt;плечи 50&lt;/p&gt;&lt;p&gt;грудь 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;длина 69&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечи 51&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 60&lt;/p&gt;&lt;p&gt;длина 71&lt;br&gt;л&lt;/p&gt;&lt;p&gt;плечи 52&lt;/p&gt;&lt;p&gt;грудь 61&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;длина 73&lt;/p&gt;&lt;p&gt;ХЛ&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 63&lt;/p&gt;&lt;p&gt;грудь 54&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;длина 78&lt;/p&gt;&lt;p&gt;2хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 63&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 79&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 64&lt;/p&gt;&lt;p&gt;грудь 63&lt;/p&gt;&lt;p&gt;рукав 65&lt;/p&gt;&lt;p&gt;длина 80&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;матеріал софтшел&amp;nbsp;&lt;/p&gt;&lt;p&gt;розміри повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;капюшон не відстібається&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактичні кишені&amp;nbsp;&lt;/p&gt;&lt;p&gt;різьблений крій для зручної посадки&lt;/p&gt;&lt;p&gt;&amp;lt; p&amp;gt;хс&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 46&lt;/p&gt;&lt;p&gt;груди 51&lt;/p&gt;&lt;p&gt;рукав 58&lt;/p&gt;&lt;p&gt;довжина 68&lt;/p&gt;&lt;p&gt;з&lt;/p&gt;&lt;p&gt;плечі 50&lt;/p&gt;&lt;p&gt;груди 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;довжина 69&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечі 51&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 60&lt;/p&gt;&lt;p&gt;довжина 71&lt;br&gt;л&lt;/p&gt;&lt;p&gt;плечі 52&lt;/p&gt;&lt;p&gt;груди 61&amp;lt; /p&amp;gt;&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;довжина 73&lt;/p&gt;&lt;p&gt;ХЛ&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 63&lt;/p&gt;&lt;p&gt;груди 54&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;&amp;lt; p&amp;gt;довжина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;2хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 63&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 79&lt;/p&gt;&lt;p&gt;p&amp;gt;&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 64&lt;/p&gt;&lt;p&gt;груди 63&lt;/p&gt;&lt;p&gt;рукав 65&lt;/p&gt;&lt;p&gt;довжина 80&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>36</quantity_in_stock>
+        <vendorCode>11968</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522813/conversions/GRK_3420-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522805/conversions/1755291978-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522806/conversions/1755291988-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522807/conversions/1755291996-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522808/conversions/1755292004-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522809/conversions/1755292011-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522810/conversions/1755292089-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522811/conversions/1755292098-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522812/conversions/1755292104-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">S</param>
+      </offer>
+<offer id="9845s1" available="true" group_id="9845" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/9845</url>
+        <name>Демисезонная тактическая куртка софтшел masad  олива</name>
+        <name_ua>Демісезонна тактична куртка софтшел masad олива</name_ua>
+        <description>&lt;p&gt;материал софтшел&amp;nbsp;&lt;/p&gt;&lt;p&gt;размеры полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;капюшон не отстегивается&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы&amp;nbsp;&lt;/p&gt;&lt;p&gt;резной крой для удобной посадки&amp;nbsp;&lt;/p&gt;&lt;p&gt;хс&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 46&lt;/p&gt;&lt;p&gt;грудь 51&lt;/p&gt;&lt;p&gt;рукав 58&lt;/p&gt;&lt;p&gt;длина 68&lt;/p&gt;&lt;p&gt;с&lt;/p&gt;&lt;p&gt;плечи 50&lt;/p&gt;&lt;p&gt;грудь 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;длина 69&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечи 51&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 60&lt;/p&gt;&lt;p&gt;длина 71&lt;br&gt;л&lt;/p&gt;&lt;p&gt;плечи 52&lt;/p&gt;&lt;p&gt;грудь 61&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;длина 73&lt;/p&gt;&lt;p&gt;ХЛ&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 63&lt;/p&gt;&lt;p&gt;грудь 54&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;длина 78&lt;/p&gt;&lt;p&gt;2хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 63&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 79&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 64&lt;/p&gt;&lt;p&gt;грудь 63&lt;/p&gt;&lt;p&gt;рукав 65&lt;/p&gt;&lt;p&gt;длина 80&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;матеріал софтшел&amp;nbsp;&lt;/p&gt;&lt;p&gt;розміри повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;капюшон не відстібається&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактичні кишені&amp;nbsp;&lt;/p&gt;&lt;p&gt;різьблений крій для зручної посадки&lt;/p&gt;&lt;p&gt;&amp;lt; p&amp;gt;хс&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 46&lt;/p&gt;&lt;p&gt;груди 51&lt;/p&gt;&lt;p&gt;рукав 58&lt;/p&gt;&lt;p&gt;довжина 68&lt;/p&gt;&lt;p&gt;з&lt;/p&gt;&lt;p&gt;плечі 50&lt;/p&gt;&lt;p&gt;груди 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;довжина 69&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечі 51&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 60&lt;/p&gt;&lt;p&gt;довжина 71&lt;br&gt;л&lt;/p&gt;&lt;p&gt;плечі 52&lt;/p&gt;&lt;p&gt;груди 61&amp;lt; /p&amp;gt;&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;довжина 73&lt;/p&gt;&lt;p&gt;ХЛ&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 63&lt;/p&gt;&lt;p&gt;груди 54&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;&amp;lt; p&amp;gt;довжина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;2хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 63&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 79&lt;/p&gt;&lt;p&gt;p&amp;gt;&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 64&lt;/p&gt;&lt;p&gt;груди 63&lt;/p&gt;&lt;p&gt;рукав 65&lt;/p&gt;&lt;p&gt;довжина 80&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>45</quantity_in_stock>
+        <vendorCode>11968</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522813/conversions/GRK_3420-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522805/conversions/1755291978-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522806/conversions/1755291988-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522807/conversions/1755291996-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522808/conversions/1755292004-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522809/conversions/1755292011-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522810/conversions/1755292089-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522811/conversions/1755292098-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522812/conversions/1755292104-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">M</param>
+      </offer>
+<offer id="9845s2" available="true" group_id="9845" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/9845</url>
+        <name>Демисезонная тактическая куртка софтшел masad  олива</name>
+        <name_ua>Демісезонна тактична куртка софтшел masad олива</name_ua>
+        <description>&lt;p&gt;материал софтшел&amp;nbsp;&lt;/p&gt;&lt;p&gt;размеры полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;капюшон не отстегивается&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы&amp;nbsp;&lt;/p&gt;&lt;p&gt;резной крой для удобной посадки&amp;nbsp;&lt;/p&gt;&lt;p&gt;хс&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 46&lt;/p&gt;&lt;p&gt;грудь 51&lt;/p&gt;&lt;p&gt;рукав 58&lt;/p&gt;&lt;p&gt;длина 68&lt;/p&gt;&lt;p&gt;с&lt;/p&gt;&lt;p&gt;плечи 50&lt;/p&gt;&lt;p&gt;грудь 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;длина 69&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечи 51&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 60&lt;/p&gt;&lt;p&gt;длина 71&lt;br&gt;л&lt;/p&gt;&lt;p&gt;плечи 52&lt;/p&gt;&lt;p&gt;грудь 61&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;длина 73&lt;/p&gt;&lt;p&gt;ХЛ&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 63&lt;/p&gt;&lt;p&gt;грудь 54&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;длина 78&lt;/p&gt;&lt;p&gt;2хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 63&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 79&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 64&lt;/p&gt;&lt;p&gt;грудь 63&lt;/p&gt;&lt;p&gt;рукав 65&lt;/p&gt;&lt;p&gt;длина 80&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;матеріал софтшел&amp;nbsp;&lt;/p&gt;&lt;p&gt;розміри повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;капюшон не відстібається&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактичні кишені&amp;nbsp;&lt;/p&gt;&lt;p&gt;різьблений крій для зручної посадки&lt;/p&gt;&lt;p&gt;&amp;lt; p&amp;gt;хс&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 46&lt;/p&gt;&lt;p&gt;груди 51&lt;/p&gt;&lt;p&gt;рукав 58&lt;/p&gt;&lt;p&gt;довжина 68&lt;/p&gt;&lt;p&gt;з&lt;/p&gt;&lt;p&gt;плечі 50&lt;/p&gt;&lt;p&gt;груди 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;довжина 69&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечі 51&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 60&lt;/p&gt;&lt;p&gt;довжина 71&lt;br&gt;л&lt;/p&gt;&lt;p&gt;плечі 52&lt;/p&gt;&lt;p&gt;груди 61&amp;lt; /p&amp;gt;&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;довжина 73&lt;/p&gt;&lt;p&gt;ХЛ&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 63&lt;/p&gt;&lt;p&gt;груди 54&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;&amp;lt; p&amp;gt;довжина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;2хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 63&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 79&lt;/p&gt;&lt;p&gt;p&amp;gt;&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 64&lt;/p&gt;&lt;p&gt;груди 63&lt;/p&gt;&lt;p&gt;рукав 65&lt;/p&gt;&lt;p&gt;довжина 80&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>44</quantity_in_stock>
+        <vendorCode>11968</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522813/conversions/GRK_3420-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522805/conversions/1755291978-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522806/conversions/1755291988-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522807/conversions/1755291996-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522808/conversions/1755292004-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522809/conversions/1755292011-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522810/conversions/1755292089-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522811/conversions/1755292098-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522812/conversions/1755292104-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">L</param>
+      </offer>
+<offer id="9845s3" available="true" group_id="9845" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/9845</url>
+        <name>Демисезонная тактическая куртка софтшел masad  олива</name>
+        <name_ua>Демісезонна тактична куртка софтшел masad олива</name_ua>
+        <description>&lt;p&gt;материал софтшел&amp;nbsp;&lt;/p&gt;&lt;p&gt;размеры полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;капюшон не отстегивается&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы&amp;nbsp;&lt;/p&gt;&lt;p&gt;резной крой для удобной посадки&amp;nbsp;&lt;/p&gt;&lt;p&gt;хс&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 46&lt;/p&gt;&lt;p&gt;грудь 51&lt;/p&gt;&lt;p&gt;рукав 58&lt;/p&gt;&lt;p&gt;длина 68&lt;/p&gt;&lt;p&gt;с&lt;/p&gt;&lt;p&gt;плечи 50&lt;/p&gt;&lt;p&gt;грудь 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;длина 69&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечи 51&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 60&lt;/p&gt;&lt;p&gt;длина 71&lt;br&gt;л&lt;/p&gt;&lt;p&gt;плечи 52&lt;/p&gt;&lt;p&gt;грудь 61&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;длина 73&lt;/p&gt;&lt;p&gt;ХЛ&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 63&lt;/p&gt;&lt;p&gt;грудь 54&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;длина 78&lt;/p&gt;&lt;p&gt;2хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 63&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 79&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 64&lt;/p&gt;&lt;p&gt;грудь 63&lt;/p&gt;&lt;p&gt;рукав 65&lt;/p&gt;&lt;p&gt;длина 80&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;матеріал софтшел&amp;nbsp;&lt;/p&gt;&lt;p&gt;розміри повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;капюшон не відстібається&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактичні кишені&amp;nbsp;&lt;/p&gt;&lt;p&gt;різьблений крій для зручної посадки&lt;/p&gt;&lt;p&gt;&amp;lt; p&amp;gt;хс&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 46&lt;/p&gt;&lt;p&gt;груди 51&lt;/p&gt;&lt;p&gt;рукав 58&lt;/p&gt;&lt;p&gt;довжина 68&lt;/p&gt;&lt;p&gt;з&lt;/p&gt;&lt;p&gt;плечі 50&lt;/p&gt;&lt;p&gt;груди 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;довжина 69&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечі 51&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 60&lt;/p&gt;&lt;p&gt;довжина 71&lt;br&gt;л&lt;/p&gt;&lt;p&gt;плечі 52&lt;/p&gt;&lt;p&gt;груди 61&amp;lt; /p&amp;gt;&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;довжина 73&lt;/p&gt;&lt;p&gt;ХЛ&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 63&lt;/p&gt;&lt;p&gt;груди 54&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;&amp;lt; p&amp;gt;довжина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;2хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 63&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 79&lt;/p&gt;&lt;p&gt;p&amp;gt;&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 64&lt;/p&gt;&lt;p&gt;груди 63&lt;/p&gt;&lt;p&gt;рукав 65&lt;/p&gt;&lt;p&gt;довжина 80&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>31</quantity_in_stock>
+        <vendorCode>11968</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522813/conversions/GRK_3420-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522805/conversions/1755291978-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522806/conversions/1755291988-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522807/conversions/1755291996-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522808/conversions/1755292004-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522809/conversions/1755292011-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522810/conversions/1755292089-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522811/conversions/1755292098-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522812/conversions/1755292104-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">XL</param>
+      </offer>
+<offer id="9845s4" available="true" group_id="9845" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/9845</url>
+        <name>Демисезонная тактическая куртка софтшел masad  олива</name>
+        <name_ua>Демісезонна тактична куртка софтшел masad олива</name_ua>
+        <description>&lt;p&gt;материал софтшел&amp;nbsp;&lt;/p&gt;&lt;p&gt;размеры полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;капюшон не отстегивается&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы&amp;nbsp;&lt;/p&gt;&lt;p&gt;резной крой для удобной посадки&amp;nbsp;&lt;/p&gt;&lt;p&gt;хс&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 46&lt;/p&gt;&lt;p&gt;грудь 51&lt;/p&gt;&lt;p&gt;рукав 58&lt;/p&gt;&lt;p&gt;длина 68&lt;/p&gt;&lt;p&gt;с&lt;/p&gt;&lt;p&gt;плечи 50&lt;/p&gt;&lt;p&gt;грудь 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;длина 69&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечи 51&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 60&lt;/p&gt;&lt;p&gt;длина 71&lt;br&gt;л&lt;/p&gt;&lt;p&gt;плечи 52&lt;/p&gt;&lt;p&gt;грудь 61&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;длина 73&lt;/p&gt;&lt;p&gt;ХЛ&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 63&lt;/p&gt;&lt;p&gt;грудь 54&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;длина 78&lt;/p&gt;&lt;p&gt;2хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 63&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 79&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 64&lt;/p&gt;&lt;p&gt;грудь 63&lt;/p&gt;&lt;p&gt;рукав 65&lt;/p&gt;&lt;p&gt;длина 80&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;матеріал софтшел&amp;nbsp;&lt;/p&gt;&lt;p&gt;розміри повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;капюшон не відстібається&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактичні кишені&amp;nbsp;&lt;/p&gt;&lt;p&gt;різьблений крій для зручної посадки&lt;/p&gt;&lt;p&gt;&amp;lt; p&amp;gt;хс&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 46&lt;/p&gt;&lt;p&gt;груди 51&lt;/p&gt;&lt;p&gt;рукав 58&lt;/p&gt;&lt;p&gt;довжина 68&lt;/p&gt;&lt;p&gt;з&lt;/p&gt;&lt;p&gt;плечі 50&lt;/p&gt;&lt;p&gt;груди 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;довжина 69&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечі 51&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 60&lt;/p&gt;&lt;p&gt;довжина 71&lt;br&gt;л&lt;/p&gt;&lt;p&gt;плечі 52&lt;/p&gt;&lt;p&gt;груди 61&amp;lt; /p&amp;gt;&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;довжина 73&lt;/p&gt;&lt;p&gt;ХЛ&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 63&lt;/p&gt;&lt;p&gt;груди 54&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;&amp;lt; p&amp;gt;довжина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;2хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 63&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 79&lt;/p&gt;&lt;p&gt;p&amp;gt;&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 64&lt;/p&gt;&lt;p&gt;груди 63&lt;/p&gt;&lt;p&gt;рукав 65&lt;/p&gt;&lt;p&gt;довжина 80&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>32</quantity_in_stock>
+        <vendorCode>11968</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522813/conversions/GRK_3420-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522805/conversions/1755291978-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522806/conversions/1755291988-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522807/conversions/1755291996-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522808/conversions/1755292004-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522809/conversions/1755292011-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522810/conversions/1755292089-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522811/conversions/1755292098-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522812/conversions/1755292104-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">XXL</param>
+      </offer>
+<offer id="10486" available="true" group_id="10486" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/10486</url>
+        <name>Весенняя тактическая куртка masad пиксель</name>
+        <name_ua>Весняна тактична куртка masad піксель</name_ua>
+        <description>&lt;p&gt;Практичная и качественная куртка по технологии SoftShell состоит из нескольких мембранных слоёв, которые прочно соединены друг с другом методом наслаивания. Внешний слой (для защиты от ветра и непогоды), состоит из прочной, водоотталкивающей и устойчивой к нагрузкам ткани. Внутренний слой имеет воздух&amp;nbsp;и паропроницаемые свойства.Soft Shell - это ветрозащита, высокая паропроницаемость ткани,теплоизоляционные свойства, малый вес. Где бы Вы не находились, чем бы Вы не занимались – главная задача этой куртки – обеспечить телу максимальный комфорт при любых условиях&lt;/p&gt;&lt;p&gt;липучки под шевроны&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы на молнии&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжеты на хлястиках&lt;/p&gt;&lt;p&gt;размеры полномерные&lt;/p&gt;&lt;p&gt;полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;с&lt;/p&gt;&lt;p&gt;плечи 49&lt;/p&gt;&lt;p&gt;грудь 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;длина 72&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечи 50&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;длина 74&lt;/p&gt;&lt;p&gt;л&lt;/p&gt;&lt;p&gt;плечи 53&lt;/p&gt;&lt;p&gt;грудь 62&lt;/p&gt;&lt;p&gt;рукав 62&lt;/p&gt;&lt;p&gt;длина 75&lt;/p&gt;&lt;p&gt;хл&lt;/p&gt;&lt;p&gt;плечи 57&lt;/p&gt;&lt;p&gt;грудь 66&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;длина 73&lt;/p&gt;&lt;p&gt;ххл&lt;/p&gt;&lt;p&gt;плечи 61&lt;/p&gt;&lt;p&gt;грудь 71&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 77&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 65&lt;/p&gt;&lt;p&gt;грудь 75&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;Практична та якісна куртка за технологією SoftShell складається з декількох мембранних шарів, які міцно з'єднані один з одним методом нашарування. Зовнішній шар (для захисту від вітру та негоди), складається з міцної, водовідштовхувальної та стійкої до навантажень тканини. Внутрішній шар має повітря і паропроникні властивості. Soft Shell - це вітрозахист, висока паропроникність тканини, теплоізоляційні властивості, мала вага. Де б Ви не знаходилися, чим би Ви не займалися – головне завдання цієї куртки – забезпечити тілу максимальний комфорт за будь-яких умов липучки під шеврони тактичні кишені на блискавці p&amp;gt;манжети на хлястиках&lt;/p&gt;&lt;p&gt;розміри повномірні&lt;/p&gt;&lt;p&gt;повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;з&lt;/p&gt;&lt;p&gt;плечі 49&lt;/p&gt;&lt;p&gt;груди 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;довжина 72&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечі 50&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;довжина 74&lt;/p&gt;&lt;p&gt;л&lt;/p&gt;&lt;p&gt;плечі 53&lt;/p&gt;&lt;p&gt;груди 62&lt;/p&gt;&lt;p&gt;рукав 62&lt;/p&gt;&lt;p&gt;&amp;lt; довжина 75&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;хл&lt;/p&gt;&lt;p&gt;плечі 57&lt;/p&gt;&lt;p&gt;груди 66&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;довжина 73&lt;/p&gt;&lt;p&gt;&amp;lt; pххл&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 61&lt;/p&gt;&lt;p&gt;груди 71&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 77&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 65&lt;/p&gt;&lt;p&gt;груди 75&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>43</quantity_in_stock>
+        <vendorCode>12777</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522804/conversions/GRK_3430-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522797/conversions/1755291855-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522798/conversions/1755291865-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522799/conversions/1755291874-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522800/conversions/1755291880-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522801/conversions/1755291892-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522802/conversions/1755291900-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522803/conversions/1755291910-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">S</param>
+      </offer>
+<offer id="10486s1" available="true" group_id="10486" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/10486</url>
+        <name>Весенняя тактическая куртка masad пиксель</name>
+        <name_ua>Весняна тактична куртка masad піксель</name_ua>
+        <description>&lt;p&gt;Практичная и качественная куртка по технологии SoftShell состоит из нескольких мембранных слоёв, которые прочно соединены друг с другом методом наслаивания. Внешний слой (для защиты от ветра и непогоды), состоит из прочной, водоотталкивающей и устойчивой к нагрузкам ткани. Внутренний слой имеет воздух&amp;nbsp;и паропроницаемые свойства.Soft Shell - это ветрозащита, высокая паропроницаемость ткани,теплоизоляционные свойства, малый вес. Где бы Вы не находились, чем бы Вы не занимались – главная задача этой куртки – обеспечить телу максимальный комфорт при любых условиях&lt;/p&gt;&lt;p&gt;липучки под шевроны&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы на молнии&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжеты на хлястиках&lt;/p&gt;&lt;p&gt;размеры полномерные&lt;/p&gt;&lt;p&gt;полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;с&lt;/p&gt;&lt;p&gt;плечи 49&lt;/p&gt;&lt;p&gt;грудь 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;длина 72&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечи 50&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;длина 74&lt;/p&gt;&lt;p&gt;л&lt;/p&gt;&lt;p&gt;плечи 53&lt;/p&gt;&lt;p&gt;грудь 62&lt;/p&gt;&lt;p&gt;рукав 62&lt;/p&gt;&lt;p&gt;длина 75&lt;/p&gt;&lt;p&gt;хл&lt;/p&gt;&lt;p&gt;плечи 57&lt;/p&gt;&lt;p&gt;грудь 66&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;длина 73&lt;/p&gt;&lt;p&gt;ххл&lt;/p&gt;&lt;p&gt;плечи 61&lt;/p&gt;&lt;p&gt;грудь 71&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 77&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 65&lt;/p&gt;&lt;p&gt;грудь 75&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;Практична та якісна куртка за технологією SoftShell складається з декількох мембранних шарів, які міцно з'єднані один з одним методом нашарування. Зовнішній шар (для захисту від вітру та негоди), складається з міцної, водовідштовхувальної та стійкої до навантажень тканини. Внутрішній шар має повітря і паропроникні властивості. Soft Shell - це вітрозахист, висока паропроникність тканини, теплоізоляційні властивості, мала вага. Де б Ви не знаходилися, чим би Ви не займалися – головне завдання цієї куртки – забезпечити тілу максимальний комфорт за будь-яких умов липучки під шеврони тактичні кишені на блискавці p&amp;gt;манжети на хлястиках&lt;/p&gt;&lt;p&gt;розміри повномірні&lt;/p&gt;&lt;p&gt;повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;з&lt;/p&gt;&lt;p&gt;плечі 49&lt;/p&gt;&lt;p&gt;груди 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;довжина 72&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечі 50&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;довжина 74&lt;/p&gt;&lt;p&gt;л&lt;/p&gt;&lt;p&gt;плечі 53&lt;/p&gt;&lt;p&gt;груди 62&lt;/p&gt;&lt;p&gt;рукав 62&lt;/p&gt;&lt;p&gt;&amp;lt; довжина 75&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;хл&lt;/p&gt;&lt;p&gt;плечі 57&lt;/p&gt;&lt;p&gt;груди 66&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;довжина 73&lt;/p&gt;&lt;p&gt;&amp;lt; pххл&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 61&lt;/p&gt;&lt;p&gt;груди 71&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 77&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 65&lt;/p&gt;&lt;p&gt;груди 75&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>39</quantity_in_stock>
+        <vendorCode>12777</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522804/conversions/GRK_3430-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522797/conversions/1755291855-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522798/conversions/1755291865-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522799/conversions/1755291874-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522800/conversions/1755291880-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522801/conversions/1755291892-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522802/conversions/1755291900-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522803/conversions/1755291910-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">M</param>
+      </offer>
+<offer id="10486s2" available="true" group_id="10486" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/10486</url>
+        <name>Весенняя тактическая куртка masad пиксель</name>
+        <name_ua>Весняна тактична куртка masad піксель</name_ua>
+        <description>&lt;p&gt;Практичная и качественная куртка по технологии SoftShell состоит из нескольких мембранных слоёв, которые прочно соединены друг с другом методом наслаивания. Внешний слой (для защиты от ветра и непогоды), состоит из прочной, водоотталкивающей и устойчивой к нагрузкам ткани. Внутренний слой имеет воздух&amp;nbsp;и паропроницаемые свойства.Soft Shell - это ветрозащита, высокая паропроницаемость ткани,теплоизоляционные свойства, малый вес. Где бы Вы не находились, чем бы Вы не занимались – главная задача этой куртки – обеспечить телу максимальный комфорт при любых условиях&lt;/p&gt;&lt;p&gt;липучки под шевроны&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы на молнии&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжеты на хлястиках&lt;/p&gt;&lt;p&gt;размеры полномерные&lt;/p&gt;&lt;p&gt;полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;с&lt;/p&gt;&lt;p&gt;плечи 49&lt;/p&gt;&lt;p&gt;грудь 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;длина 72&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечи 50&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;длина 74&lt;/p&gt;&lt;p&gt;л&lt;/p&gt;&lt;p&gt;плечи 53&lt;/p&gt;&lt;p&gt;грудь 62&lt;/p&gt;&lt;p&gt;рукав 62&lt;/p&gt;&lt;p&gt;длина 75&lt;/p&gt;&lt;p&gt;хл&lt;/p&gt;&lt;p&gt;плечи 57&lt;/p&gt;&lt;p&gt;грудь 66&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;длина 73&lt;/p&gt;&lt;p&gt;ххл&lt;/p&gt;&lt;p&gt;плечи 61&lt;/p&gt;&lt;p&gt;грудь 71&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 77&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 65&lt;/p&gt;&lt;p&gt;грудь 75&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;Практична та якісна куртка за технологією SoftShell складається з декількох мембранних шарів, які міцно з'єднані один з одним методом нашарування. Зовнішній шар (для захисту від вітру та негоди), складається з міцної, водовідштовхувальної та стійкої до навантажень тканини. Внутрішній шар має повітря і паропроникні властивості. Soft Shell - це вітрозахист, висока паропроникність тканини, теплоізоляційні властивості, мала вага. Де б Ви не знаходилися, чим би Ви не займалися – головне завдання цієї куртки – забезпечити тілу максимальний комфорт за будь-яких умов липучки під шеврони тактичні кишені на блискавці p&amp;gt;манжети на хлястиках&lt;/p&gt;&lt;p&gt;розміри повномірні&lt;/p&gt;&lt;p&gt;повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;з&lt;/p&gt;&lt;p&gt;плечі 49&lt;/p&gt;&lt;p&gt;груди 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;довжина 72&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечі 50&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;довжина 74&lt;/p&gt;&lt;p&gt;л&lt;/p&gt;&lt;p&gt;плечі 53&lt;/p&gt;&lt;p&gt;груди 62&lt;/p&gt;&lt;p&gt;рукав 62&lt;/p&gt;&lt;p&gt;&amp;lt; довжина 75&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;хл&lt;/p&gt;&lt;p&gt;плечі 57&lt;/p&gt;&lt;p&gt;груди 66&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;довжина 73&lt;/p&gt;&lt;p&gt;&amp;lt; pххл&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 61&lt;/p&gt;&lt;p&gt;груди 71&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 77&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 65&lt;/p&gt;&lt;p&gt;груди 75&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>40</quantity_in_stock>
+        <vendorCode>12777</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522804/conversions/GRK_3430-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522797/conversions/1755291855-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522798/conversions/1755291865-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522799/conversions/1755291874-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522800/conversions/1755291880-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522801/conversions/1755291892-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522802/conversions/1755291900-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522803/conversions/1755291910-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">L</param>
+      </offer>
+<offer id="10486s3" available="true" group_id="10486" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/10486</url>
+        <name>Весенняя тактическая куртка masad пиксель</name>
+        <name_ua>Весняна тактична куртка masad піксель</name_ua>
+        <description>&lt;p&gt;Практичная и качественная куртка по технологии SoftShell состоит из нескольких мембранных слоёв, которые прочно соединены друг с другом методом наслаивания. Внешний слой (для защиты от ветра и непогоды), состоит из прочной, водоотталкивающей и устойчивой к нагрузкам ткани. Внутренний слой имеет воздух&amp;nbsp;и паропроницаемые свойства.Soft Shell - это ветрозащита, высокая паропроницаемость ткани,теплоизоляционные свойства, малый вес. Где бы Вы не находились, чем бы Вы не занимались – главная задача этой куртки – обеспечить телу максимальный комфорт при любых условиях&lt;/p&gt;&lt;p&gt;липучки под шевроны&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы на молнии&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжеты на хлястиках&lt;/p&gt;&lt;p&gt;размеры полномерные&lt;/p&gt;&lt;p&gt;полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;с&lt;/p&gt;&lt;p&gt;плечи 49&lt;/p&gt;&lt;p&gt;грудь 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;длина 72&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечи 50&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;длина 74&lt;/p&gt;&lt;p&gt;л&lt;/p&gt;&lt;p&gt;плечи 53&lt;/p&gt;&lt;p&gt;грудь 62&lt;/p&gt;&lt;p&gt;рукав 62&lt;/p&gt;&lt;p&gt;длина 75&lt;/p&gt;&lt;p&gt;хл&lt;/p&gt;&lt;p&gt;плечи 57&lt;/p&gt;&lt;p&gt;грудь 66&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;длина 73&lt;/p&gt;&lt;p&gt;ххл&lt;/p&gt;&lt;p&gt;плечи 61&lt;/p&gt;&lt;p&gt;грудь 71&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 77&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 65&lt;/p&gt;&lt;p&gt;грудь 75&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;Практична та якісна куртка за технологією SoftShell складається з декількох мембранних шарів, які міцно з'єднані один з одним методом нашарування. Зовнішній шар (для захисту від вітру та негоди), складається з міцної, водовідштовхувальної та стійкої до навантажень тканини. Внутрішній шар має повітря і паропроникні властивості. Soft Shell - це вітрозахист, висока паропроникність тканини, теплоізоляційні властивості, мала вага. Де б Ви не знаходилися, чим би Ви не займалися – головне завдання цієї куртки – забезпечити тілу максимальний комфорт за будь-яких умов липучки під шеврони тактичні кишені на блискавці p&amp;gt;манжети на хлястиках&lt;/p&gt;&lt;p&gt;розміри повномірні&lt;/p&gt;&lt;p&gt;повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;з&lt;/p&gt;&lt;p&gt;плечі 49&lt;/p&gt;&lt;p&gt;груди 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;довжина 72&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечі 50&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;довжина 74&lt;/p&gt;&lt;p&gt;л&lt;/p&gt;&lt;p&gt;плечі 53&lt;/p&gt;&lt;p&gt;груди 62&lt;/p&gt;&lt;p&gt;рукав 62&lt;/p&gt;&lt;p&gt;&amp;lt; довжина 75&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;хл&lt;/p&gt;&lt;p&gt;плечі 57&lt;/p&gt;&lt;p&gt;груди 66&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;довжина 73&lt;/p&gt;&lt;p&gt;&amp;lt; pххл&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 61&lt;/p&gt;&lt;p&gt;груди 71&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 77&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 65&lt;/p&gt;&lt;p&gt;груди 75&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>40</quantity_in_stock>
+        <vendorCode>12777</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522804/conversions/GRK_3430-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522797/conversions/1755291855-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522798/conversions/1755291865-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522799/conversions/1755291874-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522800/conversions/1755291880-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522801/conversions/1755291892-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522802/conversions/1755291900-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522803/conversions/1755291910-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">XL</param>
+      </offer>
+<offer id="10486s4" available="true" group_id="10486" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/10486</url>
+        <name>Весенняя тактическая куртка masad пиксель</name>
+        <name_ua>Весняна тактична куртка masad піксель</name_ua>
+        <description>&lt;p&gt;Практичная и качественная куртка по технологии SoftShell состоит из нескольких мембранных слоёв, которые прочно соединены друг с другом методом наслаивания. Внешний слой (для защиты от ветра и непогоды), состоит из прочной, водоотталкивающей и устойчивой к нагрузкам ткани. Внутренний слой имеет воздух&amp;nbsp;и паропроницаемые свойства.Soft Shell - это ветрозащита, высокая паропроницаемость ткани,теплоизоляционные свойства, малый вес. Где бы Вы не находились, чем бы Вы не занимались – главная задача этой куртки – обеспечить телу максимальный комфорт при любых условиях&lt;/p&gt;&lt;p&gt;липучки под шевроны&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы на молнии&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжеты на хлястиках&lt;/p&gt;&lt;p&gt;размеры полномерные&lt;/p&gt;&lt;p&gt;полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;с&lt;/p&gt;&lt;p&gt;плечи 49&lt;/p&gt;&lt;p&gt;грудь 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;длина 72&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечи 50&lt;/p&gt;&lt;p&gt;грудь 59&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;длина 74&lt;/p&gt;&lt;p&gt;л&lt;/p&gt;&lt;p&gt;плечи 53&lt;/p&gt;&lt;p&gt;грудь 62&lt;/p&gt;&lt;p&gt;рукав 62&lt;/p&gt;&lt;p&gt;длина 75&lt;/p&gt;&lt;p&gt;хл&lt;/p&gt;&lt;p&gt;плечи 57&lt;/p&gt;&lt;p&gt;грудь 66&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;длина 73&lt;/p&gt;&lt;p&gt;ххл&lt;/p&gt;&lt;p&gt;плечи 61&lt;/p&gt;&lt;p&gt;грудь 71&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 77&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечи 65&lt;/p&gt;&lt;p&gt;грудь 75&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;длина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;Практична та якісна куртка за технологією SoftShell складається з декількох мембранних шарів, які міцно з'єднані один з одним методом нашарування. Зовнішній шар (для захисту від вітру та негоди), складається з міцної, водовідштовхувальної та стійкої до навантажень тканини. Внутрішній шар має повітря і паропроникні властивості. Soft Shell - це вітрозахист, висока паропроникність тканини, теплоізоляційні властивості, мала вага. Де б Ви не знаходилися, чим би Ви не займалися – головне завдання цієї куртки – забезпечити тілу максимальний комфорт за будь-яких умов липучки під шеврони тактичні кишені на блискавці p&amp;gt;манжети на хлястиках&lt;/p&gt;&lt;p&gt;розміри повномірні&lt;/p&gt;&lt;p&gt;повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;з&lt;/p&gt;&lt;p&gt;плечі 49&lt;/p&gt;&lt;p&gt;груди 58&lt;/p&gt;&lt;p&gt;рукав 59&lt;/p&gt;&lt;p&gt;довжина 72&lt;/p&gt;&lt;p&gt;м&lt;/p&gt;&lt;p&gt;плечі 50&lt;/p&gt;&lt;p&gt;груди 59&lt;/p&gt;&lt;p&gt;рукав 61&lt;/p&gt;&lt;p&gt;довжина 74&lt;/p&gt;&lt;p&gt;л&lt;/p&gt;&lt;p&gt;плечі 53&lt;/p&gt;&lt;p&gt;груди 62&lt;/p&gt;&lt;p&gt;рукав 62&lt;/p&gt;&lt;p&gt;&amp;lt; довжина 75&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;хл&lt;/p&gt;&lt;p&gt;плечі 57&lt;/p&gt;&lt;p&gt;груди 66&lt;/p&gt;&lt;p&gt;рукав 63&lt;/p&gt;&lt;p&gt;довжина 73&lt;/p&gt;&lt;p&gt;&amp;lt; pххл&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 61&lt;/p&gt;&lt;p&gt;груди 71&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 77&lt;/p&gt;&lt;p&gt;3хл&amp;nbsp;&lt;/p&gt;&lt;p&gt;плечі 65&lt;/p&gt;&lt;p&gt;груди 75&lt;/p&gt;&lt;p&gt;рукав 64&lt;/p&gt;&lt;p&gt;довжина 78&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>45</quantity_in_stock>
+        <vendorCode>12777</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522804/conversions/GRK_3430-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522797/conversions/1755291855-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522798/conversions/1755291865-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522799/conversions/1755291874-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522800/conversions/1755291880-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522801/conversions/1755291892-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522802/conversions/1755291900-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522803/conversions/1755291910-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">XXL</param>
+      </offer>
+<offer id="10504" available="true" group_id="10504" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/10504</url>
+        <name>Тактическая куртка softshell masad черная</name>
+        <name_ua>Тактична куртка softshell masad чорна</name_ua>
+        <description>&lt;p&gt;Материал плащевка softsheel&lt;/p&gt;&lt;p&gt;липучки под шевроны&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы на молнии&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжеты на хлястиках&lt;/p&gt;&lt;p&gt;размеры полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;s&lt;/p&gt;&lt;p&gt;длина 72&lt;br&gt;рукав 60&lt;br&gt;плечи 48&lt;br&gt;грудь 58&lt;/p&gt;&lt;p&gt;m&lt;/p&gt;&lt;p&gt;длина 74&lt;br&gt;рукав 62&lt;br&gt;плечи 50&lt;br&gt;грудь 60&lt;/p&gt;&lt;p&gt;l&lt;/p&gt;&lt;p&gt;длина 76&lt;br&gt;рукав 64&lt;br&gt;плечи 52&lt;br&gt;грудь 62&lt;/p&gt;&lt;p&gt;xl&lt;/p&gt;&lt;p&gt;длина 78&lt;br&gt;рукав 66&lt;br&gt;плечи 54&lt;br&gt;грудь 64&lt;/p&gt;&lt;p&gt;xxl&lt;/p&gt;&lt;p&gt;длина 80&lt;br&gt;рукав 68&lt;br&gt;плечи 58&lt;br&gt;грудь 66&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;Матеріал плащівка softsheel&lt;/p&gt;&lt;p&gt;липучки під шеврони&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактичні кишені на блискавці&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжети на хлястиках&lt;/p&gt;&lt;p&gt;розміри повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;s&lt;/p&gt;&lt;p&gt;довжина 72&lt;br&gt;рукав 60&lt;br&gt;плечі 48&lt;br&gt;груди 58&lt;/p&gt;&lt;p&gt;m&lt;/p&gt;&lt;p&gt;довжина 74&lt;br&gt;рукав 62&amp;nbsp;&lt;br&gt;плечі 50&lt;br&gt;груди 60&lt;/p&gt;&lt;p&gt;l&lt;/p&gt;&lt;p&gt;довжина 76&lt;br&gt;рукав 64&lt;br&gt;плечі 52&lt;br&gt;груди 62&lt;/p&gt;&lt;p&gt;xl&lt;/p&gt;&lt;p&gt;довжина 78&lt;br&gt;рукав 66&lt;br&gt;плечі 54&lt;br&gt;груди 64&lt;/p&gt;&lt;p&gt;xxl&lt;/p&gt;&lt;p&gt;довжина 80&lt;br&gt;рукав 68&lt;br&gt;плечі 58&lt;br&gt;груди 66&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>26</quantity_in_stock>
+        <vendorCode>12796</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522796/conversions/GRK_3405-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522788/conversions/1755291651-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522789/conversions/1755291658-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522790/conversions/1755291665-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522791/conversions/1755291673-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522792/conversions/1755291682-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522793/conversions/1755291690-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522794/conversions/1755291696-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522795/conversions/1755291705-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">M</param>
+      </offer>
+<offer id="10504s1" available="true" group_id="10504" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/10504</url>
+        <name>Тактическая куртка softshell masad черная</name>
+        <name_ua>Тактична куртка softshell masad чорна</name_ua>
+        <description>&lt;p&gt;Материал плащевка softsheel&lt;/p&gt;&lt;p&gt;липучки под шевроны&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы на молнии&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжеты на хлястиках&lt;/p&gt;&lt;p&gt;размеры полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;s&lt;/p&gt;&lt;p&gt;длина 72&lt;br&gt;рукав 60&lt;br&gt;плечи 48&lt;br&gt;грудь 58&lt;/p&gt;&lt;p&gt;m&lt;/p&gt;&lt;p&gt;длина 74&lt;br&gt;рукав 62&lt;br&gt;плечи 50&lt;br&gt;грудь 60&lt;/p&gt;&lt;p&gt;l&lt;/p&gt;&lt;p&gt;длина 76&lt;br&gt;рукав 64&lt;br&gt;плечи 52&lt;br&gt;грудь 62&lt;/p&gt;&lt;p&gt;xl&lt;/p&gt;&lt;p&gt;длина 78&lt;br&gt;рукав 66&lt;br&gt;плечи 54&lt;br&gt;грудь 64&lt;/p&gt;&lt;p&gt;xxl&lt;/p&gt;&lt;p&gt;длина 80&lt;br&gt;рукав 68&lt;br&gt;плечи 58&lt;br&gt;грудь 66&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;Матеріал плащівка softsheel&lt;/p&gt;&lt;p&gt;липучки під шеврони&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактичні кишені на блискавці&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжети на хлястиках&lt;/p&gt;&lt;p&gt;розміри повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;s&lt;/p&gt;&lt;p&gt;довжина 72&lt;br&gt;рукав 60&lt;br&gt;плечі 48&lt;br&gt;груди 58&lt;/p&gt;&lt;p&gt;m&lt;/p&gt;&lt;p&gt;довжина 74&lt;br&gt;рукав 62&amp;nbsp;&lt;br&gt;плечі 50&lt;br&gt;груди 60&lt;/p&gt;&lt;p&gt;l&lt;/p&gt;&lt;p&gt;довжина 76&lt;br&gt;рукав 64&lt;br&gt;плечі 52&lt;br&gt;груди 62&lt;/p&gt;&lt;p&gt;xl&lt;/p&gt;&lt;p&gt;довжина 78&lt;br&gt;рукав 66&lt;br&gt;плечі 54&lt;br&gt;груди 64&lt;/p&gt;&lt;p&gt;xxl&lt;/p&gt;&lt;p&gt;довжина 80&lt;br&gt;рукав 68&lt;br&gt;плечі 58&lt;br&gt;груди 66&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>40</quantity_in_stock>
+        <vendorCode>12796</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522796/conversions/GRK_3405-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522788/conversions/1755291651-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522789/conversions/1755291658-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522790/conversions/1755291665-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522791/conversions/1755291673-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522792/conversions/1755291682-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522793/conversions/1755291690-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522794/conversions/1755291696-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522795/conversions/1755291705-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">L</param>
+      </offer>
+<offer id="10504s2" available="true" group_id="10504" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/10504</url>
+        <name>Тактическая куртка softshell masad черная</name>
+        <name_ua>Тактична куртка softshell masad чорна</name_ua>
+        <description>&lt;p&gt;Материал плащевка softsheel&lt;/p&gt;&lt;p&gt;липучки под шевроны&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы на молнии&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжеты на хлястиках&lt;/p&gt;&lt;p&gt;размеры полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;s&lt;/p&gt;&lt;p&gt;длина 72&lt;br&gt;рукав 60&lt;br&gt;плечи 48&lt;br&gt;грудь 58&lt;/p&gt;&lt;p&gt;m&lt;/p&gt;&lt;p&gt;длина 74&lt;br&gt;рукав 62&lt;br&gt;плечи 50&lt;br&gt;грудь 60&lt;/p&gt;&lt;p&gt;l&lt;/p&gt;&lt;p&gt;длина 76&lt;br&gt;рукав 64&lt;br&gt;плечи 52&lt;br&gt;грудь 62&lt;/p&gt;&lt;p&gt;xl&lt;/p&gt;&lt;p&gt;длина 78&lt;br&gt;рукав 66&lt;br&gt;плечи 54&lt;br&gt;грудь 64&lt;/p&gt;&lt;p&gt;xxl&lt;/p&gt;&lt;p&gt;длина 80&lt;br&gt;рукав 68&lt;br&gt;плечи 58&lt;br&gt;грудь 66&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;Матеріал плащівка softsheel&lt;/p&gt;&lt;p&gt;липучки під шеврони&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактичні кишені на блискавці&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжети на хлястиках&lt;/p&gt;&lt;p&gt;розміри повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;s&lt;/p&gt;&lt;p&gt;довжина 72&lt;br&gt;рукав 60&lt;br&gt;плечі 48&lt;br&gt;груди 58&lt;/p&gt;&lt;p&gt;m&lt;/p&gt;&lt;p&gt;довжина 74&lt;br&gt;рукав 62&amp;nbsp;&lt;br&gt;плечі 50&lt;br&gt;груди 60&lt;/p&gt;&lt;p&gt;l&lt;/p&gt;&lt;p&gt;довжина 76&lt;br&gt;рукав 64&lt;br&gt;плечі 52&lt;br&gt;груди 62&lt;/p&gt;&lt;p&gt;xl&lt;/p&gt;&lt;p&gt;довжина 78&lt;br&gt;рукав 66&lt;br&gt;плечі 54&lt;br&gt;груди 64&lt;/p&gt;&lt;p&gt;xxl&lt;/p&gt;&lt;p&gt;довжина 80&lt;br&gt;рукав 68&lt;br&gt;плечі 58&lt;br&gt;груди 66&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>44</quantity_in_stock>
+        <vendorCode>12796</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522796/conversions/GRK_3405-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522788/conversions/1755291651-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522789/conversions/1755291658-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522790/conversions/1755291665-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522791/conversions/1755291673-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522792/conversions/1755291682-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522793/conversions/1755291690-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522794/conversions/1755291696-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522795/conversions/1755291705-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">XL</param>
+      </offer>
+<offer id="10504s3" available="true" group_id="10504" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/10504</url>
+        <name>Тактическая куртка softshell masad черная</name>
+        <name_ua>Тактична куртка softshell masad чорна</name_ua>
+        <description>&lt;p&gt;Материал плащевка softsheel&lt;/p&gt;&lt;p&gt;липучки под шевроны&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы на молнии&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжеты на хлястиках&lt;/p&gt;&lt;p&gt;размеры полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;s&lt;/p&gt;&lt;p&gt;длина 72&lt;br&gt;рукав 60&lt;br&gt;плечи 48&lt;br&gt;грудь 58&lt;/p&gt;&lt;p&gt;m&lt;/p&gt;&lt;p&gt;длина 74&lt;br&gt;рукав 62&lt;br&gt;плечи 50&lt;br&gt;грудь 60&lt;/p&gt;&lt;p&gt;l&lt;/p&gt;&lt;p&gt;длина 76&lt;br&gt;рукав 64&lt;br&gt;плечи 52&lt;br&gt;грудь 62&lt;/p&gt;&lt;p&gt;xl&lt;/p&gt;&lt;p&gt;длина 78&lt;br&gt;рукав 66&lt;br&gt;плечи 54&lt;br&gt;грудь 64&lt;/p&gt;&lt;p&gt;xxl&lt;/p&gt;&lt;p&gt;длина 80&lt;br&gt;рукав 68&lt;br&gt;плечи 58&lt;br&gt;грудь 66&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;Матеріал плащівка softsheel&lt;/p&gt;&lt;p&gt;липучки під шеврони&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактичні кишені на блискавці&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжети на хлястиках&lt;/p&gt;&lt;p&gt;розміри повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;s&lt;/p&gt;&lt;p&gt;довжина 72&lt;br&gt;рукав 60&lt;br&gt;плечі 48&lt;br&gt;груди 58&lt;/p&gt;&lt;p&gt;m&lt;/p&gt;&lt;p&gt;довжина 74&lt;br&gt;рукав 62&amp;nbsp;&lt;br&gt;плечі 50&lt;br&gt;груди 60&lt;/p&gt;&lt;p&gt;l&lt;/p&gt;&lt;p&gt;довжина 76&lt;br&gt;рукав 64&lt;br&gt;плечі 52&lt;br&gt;груди 62&lt;/p&gt;&lt;p&gt;xl&lt;/p&gt;&lt;p&gt;довжина 78&lt;br&gt;рукав 66&lt;br&gt;плечі 54&lt;br&gt;груди 64&lt;/p&gt;&lt;p&gt;xxl&lt;/p&gt;&lt;p&gt;довжина 80&lt;br&gt;рукав 68&lt;br&gt;плечі 58&lt;br&gt;груди 66&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>31</quantity_in_stock>
+        <vendorCode>12796</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522796/conversions/GRK_3405-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522788/conversions/1755291651-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522789/conversions/1755291658-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522790/conversions/1755291665-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522791/conversions/1755291673-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522792/conversions/1755291682-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522793/conversions/1755291690-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522794/conversions/1755291696-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522795/conversions/1755291705-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">S</param>
+      </offer>
+<offer id="10504s4" available="true" group_id="10504" selling_type="r">
+        <url>https://web.buymeua.shop/product-details/10504</url>
+        <name>Тактическая куртка softshell masad черная</name>
+        <name_ua>Тактична куртка softshell masad чорна</name_ua>
+        <description>&lt;p&gt;Материал плащевка softsheel&lt;/p&gt;&lt;p&gt;липучки под шевроны&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактические карманы на молнии&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжеты на хлястиках&lt;/p&gt;&lt;p&gt;размеры полномерные&amp;nbsp;&lt;/p&gt;&lt;p&gt;s&lt;/p&gt;&lt;p&gt;длина 72&lt;br&gt;рукав 60&lt;br&gt;плечи 48&lt;br&gt;грудь 58&lt;/p&gt;&lt;p&gt;m&lt;/p&gt;&lt;p&gt;длина 74&lt;br&gt;рукав 62&lt;br&gt;плечи 50&lt;br&gt;грудь 60&lt;/p&gt;&lt;p&gt;l&lt;/p&gt;&lt;p&gt;длина 76&lt;br&gt;рукав 64&lt;br&gt;плечи 52&lt;br&gt;грудь 62&lt;/p&gt;&lt;p&gt;xl&lt;/p&gt;&lt;p&gt;длина 78&lt;br&gt;рукав 66&lt;br&gt;плечи 54&lt;br&gt;грудь 64&lt;/p&gt;&lt;p&gt;xxl&lt;/p&gt;&lt;p&gt;длина 80&lt;br&gt;рукав 68&lt;br&gt;плечи 58&lt;br&gt;грудь 66&lt;/p&gt;</description>
+        <description_ua>&lt;p&gt;Матеріал плащівка softsheel&lt;/p&gt;&lt;p&gt;липучки під шеврони&amp;nbsp;&lt;/p&gt;&lt;p&gt;тактичні кишені на блискавці&amp;nbsp;&lt;/p&gt;&lt;p&gt;манжети на хлястиках&lt;/p&gt;&lt;p&gt;розміри повномірні&amp;nbsp;&lt;/p&gt;&lt;p&gt;s&lt;/p&gt;&lt;p&gt;довжина 72&lt;br&gt;рукав 60&lt;br&gt;плечі 48&lt;br&gt;груди 58&lt;/p&gt;&lt;p&gt;m&lt;/p&gt;&lt;p&gt;довжина 74&lt;br&gt;рукав 62&amp;nbsp;&lt;br&gt;плечі 50&lt;br&gt;груди 60&lt;/p&gt;&lt;p&gt;l&lt;/p&gt;&lt;p&gt;довжина 76&lt;br&gt;рукав 64&lt;br&gt;плечі 52&lt;br&gt;груди 62&lt;/p&gt;&lt;p&gt;xl&lt;/p&gt;&lt;p&gt;довжина 78&lt;br&gt;рукав 66&lt;br&gt;плечі 54&lt;br&gt;груди 64&lt;/p&gt;&lt;p&gt;xxl&lt;/p&gt;&lt;p&gt;довжина 80&lt;br&gt;рукав 68&lt;br&gt;плечі 58&lt;br&gt;груди 66&lt;/p&gt;</description_ua>
+        <weight>1.000</weight>
+        <price>1300.0000</price>
+        <priceDrop>1300.0000</priceDrop>
+        <categoryId>222</categoryId>
+        <quantity_in_stock>27</quantity_in_stock>
+        <vendorCode>12796</vendorCode>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522796/conversions/GRK_3405-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522788/conversions/1755291651-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522789/conversions/1755291658-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522790/conversions/1755291665-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522791/conversions/1755291673-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522792/conversions/1755291682-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522793/conversions/1755291690-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522794/conversions/1755291696-optimized.jpg</picture>
+        <picture>https://cdn.buymeua.shop/buymeua/product/1522795/conversions/1755291705-optimized.jpg</picture>
+        <country_of_origin>Украина</country_of_origin>
+        <regions>
+          <region>Одесса</region>
+          <region>194015001</region>
+        </regions>
+        <param name="Розмір">XXL</param>
+      </offer>
+</offers>
+</shop>
+</yml_catalog>

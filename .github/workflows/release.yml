@@ -1,0 +1,146 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_mode:
+        description: 'Freemius release status after upload'
+        required: true
+        default: pending
+        type: choice
+        options:
+          - pending
+          - beta
+          - released
+
+jobs:
+  release:
+    name: Build, GitHub Release & Freemius
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    env:
+      # Freemius product (public product metadata — not secrets).
+      FREEMIUS_PLUGIN_ID: '36366'
+      FREEMIUS_PLUGIN_SLUG: factorial2000-catalog-sync-for-promua
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, xml, simplexml, curl, mbstring
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install Node dependencies
+        run: npm ci --no-audit
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION=$(php -r "
+              \$c = file_get_contents('factorial2000-catalog-sync.php');
+              preg_match('/Version:\s*([0-9.]+)/', \$c, \$m);
+              echo \$m[1];
+            ")
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: ${VERSION}"
+
+      - name: Verify version matches tag
+        if: github.ref_type == 'tag'
+        run: |
+          TAG_VERSION="${{ steps.version.outputs.version }}"
+          PLUGIN_VERSION=$(php -r "
+            \$c = file_get_contents('factorial2000-catalog-sync.php');
+            preg_match('/Version:\s*([0-9.]+)/', \$c, \$m);
+            echo \$m[1];
+          ")
+          if [ "$TAG_VERSION" != "$PLUGIN_VERSION" ]; then
+            echo "Tag $TAG_VERSION != plugin version $PLUGIN_VERSION"
+            exit 1
+          fi
+          echo "Version $PLUGIN_VERSION OK"
+
+      - name: PHPUnit
+        run: php vendor/bin/phpunit --configuration phpunit.xml.dist
+
+      - name: Build release
+        run: npx gulp release
+
+      - name: Prepare Freemius upload zip
+        id: zip
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SRC="release/factorial2000-catalog-sync-${VERSION}.zip"
+          DEST="factorial2000-catalog-sync-${VERSION}.zip"
+          if [ ! -f "$SRC" ]; then
+            echo "Missing build artifact: $SRC"
+            ls -la release/ || true
+            exit 1
+          fi
+          # buttonizer/freemius-deploy expects the zip in the repository root.
+          cp "$SRC" "$DEST"
+          echo "file_name=${DEST}" >> "$GITHUB_OUTPUT"
+          ls -lah "$DEST"
+
+      - name: Upload zip to GitHub Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/factorial2000-catalog-sync-*.zip
+          generate_release_notes: true
+
+      - name: Resolve Freemius release mode
+        id: freemius_mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            MODE="${{ inputs.release_mode }}"
+          else
+            MODE="pending"
+          fi
+          echo "mode=${MODE}" >> "$GITHUB_OUTPUT"
+          echo "Freemius release_mode=${MODE}"
+
+      - name: Deploy to Freemius
+        id: freemius
+        uses: buttonizer/freemius-deploy@v0.1.3
+        with:
+          file_name: ${{ steps.zip.outputs.file_name }}
+          version: ${{ steps.version.outputs.version }}
+          release_mode: ${{ steps.freemius_mode.outputs.mode }}
+          sandbox: false
+        env:
+          PUBLIC_KEY: ${{ secrets.FREEMIUS_PUBLIC_KEY }}
+          DEV_ID: ${{ secrets.FREEMIUS_DEV_ID }}
+          SECRET_KEY: ${{ secrets.FREEMIUS_SECRET_KEY }}
+          PLUGIN_SLUG: ${{ env.FREEMIUS_PLUGIN_SLUG }}
+          PLUGIN_ID: ${{ env.FREEMIUS_PLUGIN_ID }}
+
+      - name: Upload Freemius free/premium artifacts
+        if: steps.freemius.outputs.free_version != '' || steps.freemius.outputs.pro_version != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: freemius-${{ steps.version.outputs.version }}
+          path: |
+            ${{ steps.freemius.outputs.free_version }}
+            ${{ steps.freemius.outputs.pro_version }}
+          if-no-files-found: ignore

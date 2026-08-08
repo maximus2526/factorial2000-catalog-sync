@@ -1,0 +1,124 @@
+<?xml version="1.0"?>
+<ruleset name="Factorial2000 Catalog Sync Coding Standards">
+	<description>WordPress coding standards for the Factorial2000 Catalog Sync plugin.</description>
+
+	<!-- What to scan -->
+	<file>.</file>
+	<exclude-pattern>/vendor/</exclude-pattern>
+	<exclude-pattern>/node_modules/</exclude-pattern>
+	<exclude-pattern>/release/</exclude-pattern>
+	<exclude-pattern>/tests/</exclude-pattern>
+	<exclude-pattern>/freemius/</exclude-pattern>
+
+	<!-- How to scan -->
+	<arg value="sp"/>
+	<arg name="basepath" value="./"/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="8"/>
+
+	<!-- Rules: Check PHP version compatibility -->
+	<config name="testVersion" value="7.4-"/>
+	<rule ref="PHPCompatibilityWP"/>
+
+	<!-- Rules: WordPress Coding Standards -->
+	<config name="minimum_supported_wp_version" value="5.8"/>
+	<rule ref="WordPress"/>
+
+	<!-- Plugin prefixes -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="f2000cs"/>
+				<element value="F2000CS\"/>
+				<element value="factorial2000_catalog_sync"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Disable short prefix warning (allows "f2000cs" prefix) -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.ShortPrefixPassed">
+		<severity>0</severity>
+	</rule>
+
+	<!-- Text domain for i18n -->
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="factorial2000-catalog-sync"/>
+				<element value="woocommerce"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Register WooCommerce custom capabilities and roles -->
+	<rule ref="WordPress.WP.Capabilities">
+		<properties>
+			<property name="custom_capabilities" type="array">
+				<element value="shop_manager"/>
+				<element value="manage_woocommerce"/>
+				<element value="edit_products"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!--
+		Cosmetic sniffs disabled for this codebase.
+		These are formatting/doc style preferences that do not affect
+		correctness or wp.org plugin review.
+	-->
+	<rule ref="Generic.Files.LineEndings">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Squiz.Commenting.InlineComment.InvalidEndChar">
+		<severity>0</severity>
+	</rule>
+	<rule ref="WordPress.PHP.YodaConditions">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Squiz.Commenting.FunctionComment.Missing">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Squiz.Commenting.FunctionComment.ParamCommentFullStop">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Squiz.Commenting.FunctionCommentThrowTag.Missing">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Squiz.Commenting.FunctionComment.InvalidReturnVoid">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Squiz.Commenting.FunctionComment.MissingParamTag">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Generic.Commenting.DocComment.MissingShort">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Generic.Commenting.DocComment.LongNotCapital">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Squiz.Commenting.VariableComment.Missing">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Squiz.Commenting.VariableComment.WrongStyle">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Squiz.Commenting.FileComment.Missing">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Squiz.Commenting.FileComment.WrongStyle">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Squiz.Commenting.FileComment.MissingPackageTag">
+		<severity>0</severity>
+	</rule>
+
+	<!--
+		XMLReader / SimpleXMLElement expose native object properties
+		($nodeType, $localName, $vendorCode, $categoryId) that cannot be
+		renamed to snake_case; the plugin's own properties are snake_case.
+	-->
+	<rule ref="WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase">
+		<severity>0</severity>
+	</rule>
+</ruleset>

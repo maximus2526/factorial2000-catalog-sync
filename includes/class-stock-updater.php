@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- Legacy class name kept for backward compatibility with the loader in the main plugin file.
 
 namespace F2000CS;
 
@@ -64,6 +64,20 @@ class XML_Stock_Updater {
 	private $skip_price_updates = false;
 
 	/**
+	 * Whether to update stock quantity from XML (quantity / stock_quantity).
+	 *
+	 * @var bool
+	 */
+	private $update_stock_qty = false;
+
+	/**
+	 * Currency rates parsed from XML <currencies> section.
+	 *
+	 * @var array<string,float>
+	 */
+	private $currencies = array();
+
+	/**
 	 * Price adjustment type: 'margin', 'markup' or 'fixed'.
 	 *
 	 * @var string
@@ -97,13 +111,15 @@ class XML_Stock_Updater {
 	 *     @type string $direction 'add' or 'subtract'. Ignored for 'margin'. Default 'add'.
 	 *     @type float  $value     Percentage (margin/markup) or currency amount (fixed). Default 0.
 	 * }
+	 * @param bool   $update_stock_qty Whether to update stock quantity from XML.
 	 */
-	public function __construct( $xml_url, $sku_prefix = '', $skip_price_updates = false, $price_adjust = array() ) {
+	public function __construct( $xml_url, $sku_prefix = '', $skip_price_updates = false, $price_adjust = array(), $update_stock_qty = false ) {
 		$this->xml_url            = $xml_url;
 		$this->telegram_token_id  = get_option( 'f2000cs_telegram_token_id', '' );
 		$this->telegram_user_ids  = array_map( 'trim', explode( ',', get_option( 'f2000cs_telegram_user_ids', '' ) ) );
 		$this->sku_prefix         = $sku_prefix;
 		$this->skip_price_updates = (bool) $skip_price_updates;
+		$this->update_stock_qty   = (bool) $update_stock_qty;
 
 		$price_adjust = wp_parse_args(
 			$price_adjust,
@@ -136,8 +152,10 @@ class XML_Stock_Updater {
 		switch ( $unit ) {
 			case 'g':
 				$value *= 1024;
+				// no break
 			case 'm':
 				$value *= 1024;
+				// no break
 			case 'k':
 				$value *= 1024;
 		}
@@ -161,9 +179,16 @@ class XML_Stock_Updater {
 		$this->set_max_execution_time();
 		$this->increase_memory_limit();
 
-		$this->send_telegram_message( 'Starting stock and price update process for XML: ' . $this->xml_url . ( $this->skip_price_updates ? ' (ціни не оновлюються)' : '' ) );
+		$this->send_telegram_message(
+			'Starting stock and price update process for XML: ' . $this->xml_url
+			. ( $this->skip_price_updates ? ' (ціни не оновлюються)' : '' )
+			. ( $this->update_stock_qty ? ' (кількість оновлюється)' : '' )
+		);
 
 		try {
+			// Parse currency rates for conversion.
+			$this->currencies = $this->load_currencies_from_xml();
+
 			// Process XML in chunks to extract stock and price data
 			$updates = $this->extract_data_from_xml();
 
@@ -195,7 +220,7 @@ class XML_Stock_Updater {
 	 * Set maximum execution time for long-running process
 	 */
 	private function set_max_execution_time() {
-		if ( function_exists( 'set_time_limit' ) && ! ini_get( 'safe_mode' ) ) {
+		if ( function_exists( 'set_time_limit' ) ) {
 			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.NoSilencedErrors.Discouraged -- Needed to avoid timeouts on large catalogs; failure is non-fatal.
 			@set_time_limit( 600 );
 		}
@@ -222,6 +247,48 @@ class XML_Stock_Updater {
 		gc_collect_cycles();
 
 		f2000cs_cleanup_wc_transients();
+	}
+
+	/**
+	 * Parse <currencies> section from YML XML.
+	 *
+	 * @return array<string,float> Currency ID => rate mapping.
+	 */
+	private function load_currencies_from_xml(): array {
+		$currencies = array();
+		$reader     = new XMLReader();
+
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Fallback path catches open failure.
+		if ( ! @$reader->open( $this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING ) ) {
+			$xml_data = $this->fetch_xml_data();
+			if ( ! $xml_data ) {
+				return $currencies;
+			}
+
+			$temp_file = wp_tempnam( 'f2000cs_curr_' );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Temp file for XMLReader.
+			if ( ! file_put_contents( $temp_file, $xml_data ) ) {
+				return $currencies;
+			}
+
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Local temp open failure returns empty map.
+			if ( ! @$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING ) ) {
+				return $currencies;
+			}
+		}
+
+		while ( $reader->read() ) {
+			if ( XMLReader::ELEMENT === $reader->nodeType && 'currency' === $reader->name ) {
+				$currency_id = $reader->getAttribute( 'id' );
+				$rate        = $reader->getAttribute( 'rate' );
+				if ( $currency_id && is_numeric( $rate ) && (float) $rate > 0 ) {
+					$currencies[ $currency_id ] = (float) $rate;
+				}
+			}
+		}
+
+		$reader->close();
+		return $currencies;
 	}
 
 	/**
@@ -252,6 +319,7 @@ class XML_Stock_Updater {
 				}
 
 				$temp_file = wp_tempnam( 'f2000cs_' );
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Temp file is consumed by XMLReader; WP_Filesystem cannot write to a wp_tempnam() path outside the uploads dir.
 				if ( file_put_contents( $temp_file, $xml_data ) ) {
 					// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Local temp file open failure is caught by the subsequent read() check below.
 					@$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING );
@@ -265,16 +333,32 @@ class XML_Stock_Updater {
 			}
 
 			while ( $reader->read() ) {
-				if ( $reader->nodeType == XMLReader::ELEMENT && $reader->localName == 'offer' ) {
+				if ( XMLReader::ELEMENT === $reader->nodeType && 'offer' === $reader->localName ) {
 					$sku       = (string) $reader->getAttribute( 'id' );
 					$available = (string) $reader->getAttribute( 'available' );
 					$group_id  = (string) $reader->getAttribute( 'group_id' );
 
 					// Get the offer node as SimpleXML to extract pricing
 					$offer_xml = simplexml_load_string( $reader->readOuterXML() );
+					if ( false === $offer_xml ) {
+						continue;
+					}
 
-					$price     = isset( $offer_xml->price ) ? (float) $offer_xml->price : 0;
-					$old_price = isset( $offer_xml->oldprice ) ? (float) $offer_xml->oldprice : 0;
+					$price     = isset( $offer_xml->price ) ? f2000cs_parse_price( (string) $offer_xml->price ) : 0;
+					$old_price = isset( $offer_xml->oldprice ) ? f2000cs_parse_price( (string) $offer_xml->oldprice ) : 0;
+
+					// Apply currency conversion.
+					$store_currency = function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'UAH';
+					if ( isset( $offer_xml->currencyId ) ) {
+						$offer_currency = (string) $offer_xml->currencyId;
+						if ( $offer_currency !== $store_currency && isset( $this->currencies[ $offer_currency ] ) ) {
+							$rate = $this->currencies[ $offer_currency ];
+							if ( $rate > 0 && $rate !== 1.0 ) {
+								$price     = round( $price * $rate, 2 );
+								$old_price = round( $old_price * $rate, 2 );
+							}
+						}
+					}
 
 					if ( ! $this->skip_price_updates && $this->price_adjust_value > 0 ) {
 						$price     = $this->apply_price_adjustment( $price );
@@ -283,7 +367,16 @@ class XML_Stock_Updater {
 
 					$vendor_code = isset( $offer_xml->vendorCode ) ? (string) $offer_xml->vendorCode : '';
 
-					$stock_status = 'true' === $available ? 'instock' : 'outofstock';
+					$quantity = null;
+					if ( $this->update_stock_qty ) {
+						if ( isset( $offer_xml->quantity ) && '' !== trim( (string) $offer_xml->quantity ) ) {
+							$quantity = max( 0, (int) $offer_xml->quantity );
+						} elseif ( isset( $offer_xml->stock_quantity ) && '' !== trim( (string) $offer_xml->stock_quantity ) ) {
+							$quantity = max( 0, (int) $offer_xml->stock_quantity );
+						}
+					}
+
+					$stock_status = f2000cs_parse_available( $available );
 
 					if ( ! empty( $sku ) ) {
 						$updates[ $this->sku_prefix . $sku ] = array(
@@ -292,6 +385,7 @@ class XML_Stock_Updater {
 							'old_price'    => $old_price,
 							'group_id'     => $group_id,
 							'vendor_code'  => $vendor_code,
+							'quantity'     => $quantity,
 						);
 					}
 				}
@@ -375,7 +469,7 @@ class XML_Stock_Updater {
 
 		$parent_status = $instock_count > 0 ? 'instock' : 'outofstock';
 
-		update_post_meta( $parent_id, '_stock_status', $parent_status );
+		f2000cs_update_stock_status( $parent_id, $parent_status );
 		wc_delete_product_transients( $parent_id );
 	}
 
@@ -391,6 +485,7 @@ class XML_Stock_Updater {
 		$updated_in_stock     = 0;
 		$updated_out_of_stock = 0;
 		$updated_price        = 0;
+		$updated_qty          = 0;
 		$not_found            = 0;
 		$skipped_unchanged    = 0; // Count of products where nothing changed.
 
@@ -447,6 +542,14 @@ class XML_Stock_Updater {
 						}
 					}
 
+					if ( $this->update_stock_qty && isset( $product_data['quantity'] ) && null !== $product_data['quantity'] ) {
+						$qty_changed = $this->update_product_quantity( $product, (int) $product_data['quantity'] );
+						if ( $qty_changed ) {
+							++$updated_qty;
+							$changes_made = true;
+						}
+					}
+
 					if ( ! empty( $product_data['vendor_code'] ) ) {
 						$current_vendor = get_post_meta( $product_id, 'f2000cs-updater-vendor', true );
 						if ( empty( $current_vendor ) ) {
@@ -457,7 +560,7 @@ class XML_Stock_Updater {
 					if ( ! $changes_made ) {
 						++$skipped_unchanged;
 					}
-				} catch ( Exception $e ) {
+				} catch ( Exception $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- Silent error handling.
 					// Silent error handling
 				}
 
@@ -479,6 +582,7 @@ class XML_Stock_Updater {
 				"• Оновлено статус \"В наявності\": %d\n" .
 				"• Оновлено статус \"Немає в наявності\": %d\n" .
 				"• Оновлено цін: %d\n" .
+				"• Оновлено кількість: %d\n" .
 				"• Пропущено (без змін): %d\n" .
 				'• Не знайдено товарів: %d',
 				$total,
@@ -486,18 +590,20 @@ class XML_Stock_Updater {
 				$updated_in_stock,
 				$updated_out_of_stock,
 				$updated_price,
+				$updated_qty,
 				$skipped_unchanged,
 				$not_found
 			)
 		);
 
-		if ( ( $updated_in_stock + $updated_out_of_stock ) > 0 || $updated_price > 0 ) {
+		if ( ( $updated_in_stock + $updated_out_of_stock ) > 0 || $updated_price > 0 || $updated_qty > 0 ) {
 			f2000cs_log(
 				sprintf(
-					'Update completed. Total: %d, Stock changed: %d, Price changed: %d, Unchanged: %d, Not found: %d',
+					'Update completed. Total: %d, Stock changed: %d, Price changed: %d, Qty changed: %d, Unchanged: %d, Not found: %d',
 					$total,
 					$updated_in_stock + $updated_out_of_stock,
 					$updated_price,
+					$updated_qty,
 					$skipped_unchanged,
 					$not_found
 				),
@@ -539,44 +645,7 @@ class XML_Stock_Updater {
 	 * @return array Associative array of SKU and Product ID.
 	 */
 	private function get_product_ids_by_skus( $skus ) {
-		global $wpdb;
-
-		if ( empty( $skus ) ) {
-			return array();
-		}
-
-		// Limit query size to prevent database overload
-		if ( count( $skus ) > 500 ) {
-			$chunks  = array_chunk( $skus, 500 );
-			$results = array();
-
-			foreach ( $chunks as $chunk ) {
-				$chunk_results = $this->get_product_ids_by_skus( $chunk );
-				$results       = array_merge( $results, $chunk_results );
-			}
-
-			return $results;
-		}
-
-		$placeholders = implode( ',', array_fill( 0, count( $skus ), '%s' ) );
-
-		// Use a direct query for better performance with indexes.
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is a generated list of %s placeholders, values are passed to prepare().
-		$sql = $wpdb->prepare(
-			"SELECT pm.meta_value AS sku, p.ID
-			FROM {$wpdb->posts} p
-			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
-			WHERE p.post_type IN ('product', 'product_variation')
-			AND p.post_status IN ('publish', 'draft', 'private')
-			AND pm.meta_key = '_sku'
-			AND pm.meta_value IN ($placeholders)",
-			$skus
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is already prepared above; lookup must be live.
-		$results = $wpdb->get_results( $sql );
-		return array_column( $results, 'ID', 'sku' );
+		return f2000cs_get_product_ids_by_skus( (array) $skus );
 	}
 
 	/**
@@ -597,7 +666,8 @@ class XML_Stock_Updater {
 			$product_id   = $product->get_id();
 			$product_type = $product->get_type();
 
-			update_post_meta( $product_id, '_stock_status', $stock_status );
+			// HPOS-compatible: write both postmeta and the lookup table.
+			f2000cs_update_stock_status( $product_id, $stock_status );
 
 			wc_delete_product_transients( $product_id );
 
@@ -620,6 +690,30 @@ class XML_Stock_Updater {
 	}
 
 	/**
+	 * Update managed stock quantity from XML.
+	 *
+	 * @param \WC_Product $product  Product object.
+	 * @param int         $quantity Stock quantity.
+	 * @return bool Whether quantity was changed.
+	 */
+	private function update_product_quantity( $product, $quantity ) {
+		$quantity = max( 0, (int) $quantity );
+
+		$manage_stock = $product->get_manage_stock();
+		$current_qty  = $product->get_stock_quantity();
+
+		if ( $manage_stock && null !== $current_qty && (int) $current_qty === $quantity ) {
+			return false;
+		}
+
+		$product->set_manage_stock( true );
+		$product->set_stock_quantity( $quantity );
+		$product->save();
+
+		return true;
+	}
+
+	/**
 	 * Log memory usage and execution time.
 	 *
 	 * @param float  $start_time Start time of the process.
@@ -637,7 +731,8 @@ class XML_Stock_Updater {
 
 		// Format the log message
 		$log_message = sprintf(
-			'Процес завершено за %.1f сек | Використано пам\'яті: %.1f MB | Пікове використання: %.1f MB',
+			'%s: Процес завершено за %.1f сек | Використано пам\'яті: %.1f MB | Пікове використання: %.1f MB',
+			$message,
 			$execution_time,
 			$memory_usage,
 			$peak_memory
@@ -704,6 +799,7 @@ class XML_Stock_Updater {
 
 		if ( $changed ) {
 			wc_delete_product_transients( $product_id );
+			f2000cs_sync_price_lookup( $product_id );
 		}
 
 		return $changed;
@@ -770,7 +866,7 @@ class XML_Stock_Updater {
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 		foreach ( $missing_variation_ids as $vid ) {
-			update_post_meta( $vid, '_stock_status', 'outofstock' );
+			f2000cs_update_stock_status( $vid, 'outofstock' );
 			wc_delete_product_transients( $vid );
 
 			$parent_id = (int) get_post_field( 'post_parent', $vid );
@@ -906,10 +1002,16 @@ class XML_Stock_Updater {
 
 					wc_delete_product_transients( $product->ID );
 				} else {
-					// Silent error handling
+					f2000cs_log(
+						sprintf( 'Failed to draft missing product #%d: %s', (int) $product->ID, $result->get_error_message() ),
+						'error'
+					);
 				}
 			} catch ( Exception $e ) {
-				// Silent error handling
+				f2000cs_log(
+					sprintf( 'Exception drafting missing product #%d: %s', (int) $product->ID, $e->getMessage() ),
+					'error'
+				);
 			}
 		}
 

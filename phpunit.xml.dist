@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+	bootstrap="tests/bootstrap.php"
+	cacheDirectory=".phpunit.cache"
+	colors="true"
+	stopOnFailure="false"
+	failOnWarning="true">
+	<testsuites>
+		<testsuite name="unit">
+			<directory>tests/unit</directory>
+		</testsuite>
+	</testsuites>
+	<source>
+		<!--
+			Only includes/ is scanned for coverage. admin/ is tightly coupled
+			to the WordPress Settings API and $_POST/$_FILES flows; it needs a
+			real install (wp-env / Brain Monkey) and is a documented follow-up,
+			see tests/README.md. The Freemius SDK is third-party code.
+		-->
+		<include>
+			<directory suffix=".php">includes</directory>
+		</include>
+		<exclude>
+			<directory>freemius</directory>
+		</exclude>
+	</source>
+</phpunit>

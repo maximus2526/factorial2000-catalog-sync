@@ -13,11 +13,13 @@ defined( 'ABSPATH' ) || exit;
  * Filters XML export to remove products that already exist on the site.
  */
 class XML_Export_Filter {
+	use XML_Rebuilder;
+
 	private string $xml_url;
 	private string $sku_prefix;
 	private float $min_price;
-	private array $site_skus = array();
-	private int $removed_count = 0;
+	private array $site_skus          = array();
+	private int $removed_count        = 0;
 	private string $filtered_xml_path = '';
 
 	/**
@@ -25,12 +27,12 @@ class XML_Export_Filter {
 	 *
 	 * @param string $xml_path Path to the XML file (URL or local file path).
 	 * @param string $sku_prefix SKU prefix for site products.
-	 * @param float $min_price Minimum price for filtering products.
+	 * @param float  $min_price Minimum price for filtering products.
 	 */
 	public function __construct( string $xml_path, string $sku_prefix = 'NEW_', float $min_price = 0 ) {
-		$this->xml_url = $xml_path;
+		$this->xml_url    = $xml_path;
 		$this->sku_prefix = $sku_prefix;
-		$this->min_price = $min_price;
+		$this->min_price  = $min_price;
 	}
 
 	/**
@@ -42,13 +44,13 @@ class XML_Export_Filter {
 		try {
 			// Step 1: Get site products SKUs
 			$this->get_site_products_skus();
-			
+
 			if ( empty( $this->site_skus ) ) {
 				return array(
-					'success' => false,
-					'error' => 'На сайті не знайдено товарів з вказаним SKU префіксом.',
+					'success'       => false,
+					'error'         => 'На сайті не знайдено товарів з вказаним SKU префіксом.',
 					'removed_count' => 0,
-					'download_url' => ''
+					'download_url'  => '',
 				);
 			}
 
@@ -56,10 +58,10 @@ class XML_Export_Filter {
 			$xml_content = $this->fetch_xml_content();
 			if ( ! $xml_content ) {
 				return array(
-					'success' => false,
-					'error' => 'Не вдалося завантажити XML файл.',
+					'success'       => false,
+					'error'         => 'Не вдалося завантажити XML файл.',
 					'removed_count' => 0,
-					'download_url' => ''
+					'download_url'  => '',
 				);
 			}
 
@@ -70,10 +72,10 @@ class XML_Export_Filter {
 			$saved_path = $this->save_filtered_xml( $filtered_content );
 			if ( ! $saved_path ) {
 				return array(
-					'success' => false,
-					'error' => 'Не вдалося зберегти очищений XML файл.',
+					'success'       => false,
+					'error'         => 'Не вдалося зберегти очищений XML файл.',
 					'removed_count' => 0,
-					'download_url' => ''
+					'download_url'  => '',
 				);
 			}
 
@@ -84,18 +86,18 @@ class XML_Export_Filter {
 			$this->log_export_process();
 
 			return array(
-				'success' => true,
-				'error' => '',
+				'success'       => true,
+				'error'         => '',
 				'removed_count' => $this->removed_count,
-				'download_url' => $download_url
+				'download_url'  => $download_url,
 			);
 
 		} catch ( Exception $e ) {
 			return array(
-				'success' => false,
-				'error' => 'Помилка: ' . $e->getMessage(),
+				'success'       => false,
+				'error'         => 'Помилка: ' . $e->getMessage(),
 				'removed_count' => 0,
-				'download_url' => ''
+				'download_url'  => '',
 			);
 		}
 	}
@@ -123,10 +125,10 @@ class XML_Export_Filter {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is already prepared above; live data required.
 		$results = $wpdb->get_col( $sql );
-		
+
 		// Remove prefix from SKUs for comparison with XML
 		foreach ( $results as $sku ) {
-			$original_sku = ! empty( $this->sku_prefix ) ? substr( $sku, strlen( $this->sku_prefix ) ) : $sku;
+			$original_sku      = ! empty( $this->sku_prefix ) ? substr( $sku, strlen( $this->sku_prefix ) ) : $sku;
 			$this->site_skus[] = $original_sku;
 		}
 
@@ -153,7 +155,7 @@ class XML_Export_Filter {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Static query with no user input; live data required.
 		$group_ids = $wpdb->get_col( $sql );
-		
+
 		foreach ( $group_ids as $group_id ) {
 			$original_group_id = ! empty( $this->sku_prefix ) ? substr( $group_id, strlen( $this->sku_prefix ) ) : $group_id;
 			$this->site_skus[] = $original_group_id;
@@ -216,7 +218,7 @@ class XML_Export_Filter {
 		}
 
 		$removed_count = 0;
-		$total_offers = count( $xml->shop->offers->offer );
+		$total_offers  = count( $xml->shop->offers->offer );
 
 		// Store original offers data in array to avoid iteration issues
 		$offers_to_process = array();
@@ -224,34 +226,34 @@ class XML_Export_Filter {
 			$children_data = array();
 			foreach ( $offer->children() as $child ) {
 				$children_data[] = array(
-					'name' => $child->getName(),
-					'value' => (string) $child,
+					'name'       => $child->getName(),
+					'value'      => (string) $child,
 					'attributes' => array(),
-					'children' => array()
+					'children'   => array(),
 				);
-				
+
 				foreach ( $child->attributes() as $attr_name => $attr_value ) {
-					$children_data[count($children_data)-1]['attributes'][$attr_name] = (string) $attr_value;
+					$children_data[ count( $children_data ) - 1 ]['attributes'][ $attr_name ] = (string) $attr_value;
 				}
-				
+
 				foreach ( $child->children() as $grandchild ) {
-					$children_data[count($children_data)-1]['children'][] = array(
-						'name' => $grandchild->getName(),
-						'value' => (string) $grandchild,
-						'attributes' => array()
+					$children_data[ count( $children_data ) - 1 ]['children'][] = array(
+						'name'       => $grandchild->getName(),
+						'value'      => (string) $grandchild,
+						'attributes' => array(),
 					);
-					
+
 					foreach ( $grandchild->attributes() as $attr_name => $attr_value ) {
-						$children_data[count($children_data)-1]['children'][count($children_data[count($children_data)-1]['children'])-1]['attributes'][$attr_name] = (string) $attr_value;
+						$children_data[ count( $children_data ) - 1 ]['children'][ count( $children_data[ count( $children_data ) - 1 ]['children'] ) - 1 ]['attributes'][ $attr_name ] = (string) $attr_value;
 					}
 				}
 			}
-			
-			$offer_data = array(
-				'id' => (string) $offer['id'],
-				'group_id' => isset( $offer['group_id'] ) ? (string) $offer['group_id'] : '',
+
+			$offer_data          = array(
+				'id'        => (string) $offer['id'],
+				'group_id'  => isset( $offer['group_id'] ) ? (string) $offer['group_id'] : '',
 				'available' => isset( $offer['available'] ) ? (string) $offer['available'] : '',
-				'children' => $children_data
+				'children'  => $children_data,
 			);
 			$offers_to_process[] = $offer_data;
 		}
@@ -291,12 +293,12 @@ class XML_Export_Filter {
 				if ( ! empty( $offer_data['available'] ) ) {
 					$new_offer->addAttribute( 'available', $offer_data['available'] );
 				}
-				
+
 				foreach ( $offer_data['children'] as $child_data ) {
-					$this->copy_xml_element_from_data( $child_data, $new_offer );
+					$this->data_to_xml( $child_data, $new_offer );
 				}
 			} else {
-				$removed_count++;
+				++$removed_count;
 			}
 		}
 
@@ -331,32 +333,13 @@ class XML_Export_Filter {
 	 */
 	private function copy_xml_element( SimpleXMLElement $source, SimpleXMLElement $target ): void {
 		$new_element = $target->addChild( $source->getName(), htmlspecialchars( (string) $source ) );
-		
+
 		foreach ( $source->attributes() as $name => $value ) {
 			$new_element->addAttribute( $name, (string) $value );
 		}
-		
+
 		foreach ( $source->children() as $child ) {
 			$this->copy_xml_element( $child, $new_element );
-		}
-	}
-
-	/**
-	 * Copy XML element from stored data.
-	 *
-	 * @param array $element_data Element data array.
-	 * @param SimpleXMLElement $target Target element.
-	 * @return void
-	 */
-	private function copy_xml_element_from_data( array $element_data, SimpleXMLElement $target ): void {
-		$new_element = $target->addChild( $element_data['name'], htmlspecialchars( $element_data['value'] ) );
-		
-		foreach ( $element_data['attributes'] as $name => $value ) {
-			$new_element->addAttribute( $name, $value );
-		}
-		
-		foreach ( $element_data['children'] as $child_data ) {
-			$this->copy_xml_element_from_data( $child_data, $new_element );
 		}
 	}
 
@@ -367,18 +350,20 @@ class XML_Export_Filter {
 	 * @return string|false File path or false on failure.
 	 */
 	private function save_filtered_xml( string $filtered_content ) {
-		$upload_dir = wp_upload_dir();
-		$export_dir = $upload_dir['basedir'] . '/f2000cs-exports';
-		
+		$export_dir = function_exists( 'f2000cs_ensure_exports_dir' )
+			? f2000cs_ensure_exports_dir()
+			: ( wp_upload_dir()['basedir'] . '/f2000cs-exports' );
+
 		if ( ! file_exists( $export_dir ) ) {
 			wp_mkdir_p( $export_dir );
 		}
 
-		$filename = 'filtered-xml-' . gmdate( 'Y-m-d-H-i-s' ) . '.xml';
+		$filename  = 'filtered-xml-' . gmdate( 'Y-m-d-H-i-s' ) . '-' . wp_generate_password( 8, false, false ) . '.xml';
 		$file_path = $export_dir . '/' . $filename;
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Export runs on demand from the admin UI; WP_Filesystem credentials are not guaranteed in this context.
 		$result = file_put_contents( $file_path, $filtered_content );
-		
+
 		if ( $result === false ) {
 			return false;
 		}
@@ -394,8 +379,18 @@ class XML_Export_Filter {
 	 * @return string Download URL.
 	 */
 	private function create_download_url( string $file_path ): string {
-		$upload_dir = wp_upload_dir();
+		$name = basename( $file_path );
+
+		if ( function_exists( 'f2000cs_get_export_download_url' ) ) {
+			$url = f2000cs_get_export_download_url( $name );
+			if ( '' !== $url ) {
+				return $url;
+			}
+		}
+
+		$upload_dir    = wp_upload_dir();
 		$relative_path = str_replace( $upload_dir['basedir'], '', $file_path );
+
 		return $upload_dir['baseurl'] . $relative_path;
 	}
 
@@ -406,7 +401,7 @@ class XML_Export_Filter {
 	 */
 	private function log_export_process(): void {
 		$remaining_count = count( $this->site_skus ) - $this->removed_count;
-		
+
 		$message = sprintf(
 			'🔍 XML фільтрація завершена' .
 			'📊 Видалено: %d товарів' .
@@ -417,17 +412,20 @@ class XML_Export_Filter {
 
 		$telegram_token = get_option( 'f2000cs_telegram_token_id', '' );
 		$telegram_users = get_option( 'f2000cs_telegram_user_ids', '' );
-		
+
 		if ( ! empty( $telegram_token ) && ! empty( $telegram_users ) ) {
 			$user_ids = array_map( 'trim', explode( ',', $telegram_users ) );
 			foreach ( $user_ids as $user_id ) {
-				wp_remote_post( "https://api.telegram.org/bot{$telegram_token}/sendMessage", array(
-					'body' => array(
-						'chat_id' => $user_id,
-						'text' => $message,
-						'parse_mode' => 'HTML'
+				wp_remote_post(
+					"https://api.telegram.org/bot{$telegram_token}/sendMessage",
+					array(
+						'body' => array(
+							'chat_id'    => $user_id,
+							'text'       => $message,
+							'parse_mode' => 'HTML',
+						),
 					)
-				) );
+				);
 			}
 		}
 

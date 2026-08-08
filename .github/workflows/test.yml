@@ -1,0 +1,52 @@
+name: Test
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  php:
+    name: PHP ${{ matrix.php }} — WP ${{ matrix.wp }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.2']
+        wp:  ['6.5']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysqli, xml, simplexml, curl, mbstring
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install Node dependencies
+        run: npm ci --no-audit
+
+      - name: PHPUnit
+        run: php vendor/bin/phpunit --configuration phpunit.xml.dist
+
+      - name: PHPCS
+        run: php vendor/bin/phpcs --standard=.phpcs.xml.dist
+
+      - name: Gulp PHPCS
+        run: npx gulp phpcs
+
+      - name: Gulp PHPUnit
+        run: npx gulp phpunit

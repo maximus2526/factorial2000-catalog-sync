@@ -7,18 +7,34 @@
 	box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
 }
 
+.f2000cs-vendor-code-footer.is-closed,
+.f2000cs-vendor-code-footer[hidden] {
+	display: none !important;
+}
+
 .f2000cs-vendor-code-footer--variable {
 	background-color: #f9f9f9;
 	border-top: 3px solid #0073aa;
-	padding: 15px 20px;
-	max-height: 200px;
+	padding: 12px 20px;
+	max-height: 220px;
 	overflow-y: auto;
 }
 
 .f2000cs-vendor-code-footer--simple {
 	background-color: #fff3cd;
 	border-top: 3px solid #ffc107;
-	padding: 12px 20px;
+	padding: 10px 20px;
+}
+
+.f2000cs-vendor-code-footer.is-collapsed {
+	max-height: none;
+	overflow: visible;
+	padding-top: 8px;
+	padding-bottom: 8px;
+}
+
+.f2000cs-vendor-code-footer.is-collapsed .f2000cs-vendor-code-footer__body {
+	display: none;
 }
 
 .f2000cs-vendor-code-footer__inner {
@@ -26,25 +42,69 @@
 	margin: 0 auto;
 }
 
-.f2000cs-vendor-code-footer__inner--simple {
+.f2000cs-vendor-code-footer__header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 15px;
+	gap: 12px;
 	flex-wrap: wrap;
+	margin-bottom: 10px;
+}
+
+.f2000cs-vendor-code-footer.is-collapsed .f2000cs-vendor-code-footer__header {
+	margin-bottom: 0;
+}
+
+.f2000cs-vendor-code-footer__actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.f2000cs-vendor-code-footer__btn {
+	appearance: none;
+	border: 1px solid #c3c4c7;
+	background: #fff;
+	color: #1d2327;
+	border-radius: 3px;
+	padding: 4px 10px;
+	font-size: 12px;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+.f2000cs-vendor-code-footer__btn:hover {
+	background: #f0f0f1;
+	border-color: #8c8f94;
+}
+
+.f2000cs-vendor-code-footer__btn--close {
+	border-color: #d63638;
+	color: #d63638;
+}
+
+.f2000cs-vendor-code-footer__btn--close:hover {
+	background: #fcf0f1;
+	border-color: #b32d2e;
+	color: #b32d2e;
 }
 
 .f2000cs-vendor-code-footer__title {
-	margin: 0 0 10px 0;
+	margin: 0;
 	font-size: 14px;
 	color: #333;
 	font-weight: 600;
 }
 
-.f2000cs-vendor-code-footer__title--simple {
-	margin: 0;
+.f2000cs-vendor-code-footer--simple .f2000cs-vendor-code-footer__title {
 	color: #856404;
 	font-size: 13px;
+}
+
+.f2000cs-vendor-code-footer__body--simple {
+	display: flex;
+	align-items: center;
 }
 
 .f2000cs-vendor-code-footer__list {

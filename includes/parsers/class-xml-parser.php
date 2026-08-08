@@ -16,14 +16,13 @@ defined( 'ABSPATH' ) || exit;
  * Optimized for weak hosting use.
  */
 class XML_Parser {
-	private string $xml_url;
-	private array $categories = array(); // Cache for categories
-	private array $term_cache = array(); // Cache for terms
-	private array $sku_cache  = array(); // Cache for product SKUs
-	private string $telegram_token_id;
-	private array $telegram_user_ids;
-	private bool $new_category = false;
-	private string $sku_prefix = '';
+	protected string $xml_url;
+	protected array $categories  = array(); // Cache for categories
+	private array $term_cache    = array(); // Cache for terms
+	private array $sku_cache     = array(); // Cache for product SKUs
+	private bool $new_category   = false;
+	protected string $sku_prefix = '';
+	protected array $currencies  = array(); // Cache for currency rates (id => rate)
 
 	/**
 	 * XML_Parser constructor.
@@ -33,20 +32,22 @@ class XML_Parser {
 	 * @param string $sku_prefix Prefix to add to SKU values.
 	 */
 	public function __construct( string $file_path, bool $new_category, string $sku_prefix = '' ) {
-		$this->xml_url           = $file_path;
-		$this->telegram_token_id = get_option( 'f2000cs_telegram_token_id', '' );
-		$this->telegram_user_ids = array_map( 'trim', explode( ',', get_option( 'f2000cs_telegram_user_ids', '' ) ) );
-		$this->new_category      = $new_category;
-		$this->sku_prefix        = $sku_prefix;
+		$this->xml_url      = $file_path;
+		$this->new_category = $new_category;
+		$this->sku_prefix   = $sku_prefix;
 	}
 
 	/**
-	 * Sanitize string for taxonomy name.
+	 * Transliterate Cyrillic (and similar) text to a URL-safe ASCII slug.
 	 *
-	 * @param string $text Text to sanitize.
-	 * @return string Sanitized text.
+	 * Used for product post_name, category/attribute term slugs, and (with a
+	 * shorter max length) WooCommerce attribute taxonomy names.
+	 *
+	 * @param string $text       Text to sanitize.
+	 * @param int    $max_length Max slug length (WC attribute names need <=28).
+	 * @return string Sanitized slug.
 	 */
-	private function sanitize_for_taxonomy( $text ) {
+	protected function sanitize_slug( $text, int $max_length = 200 ) {
 		// Транслітерація кирилиці в латиницю
 		$translit = array(
 			'а' => 'a',
@@ -123,12 +124,42 @@ class XML_Parser {
 			'Ъ' => '',
 		);
 
-		$text = strtr( $text, $translit );
+		$text = strtr( (string) $text, $translit );
 		$text = strtolower( $text );
 		$text = preg_replace( '/[^a-z0-9_\-]/', '_', $text );
 		$text = preg_replace( '/_+/', '_', $text );
-		$text = trim( $text, '_' );
-		return substr( $text, 0, 28 );
+		$text = trim( (string) $text, '_' );
+
+		$max_length = max( 1, $max_length );
+
+		return substr( (string) $text, 0, $max_length );
+	}
+
+	/**
+	 * Sanitize string for WooCommerce attribute taxonomy name (max 28 chars).
+	 *
+	 * @param string $text Text to sanitize.
+	 * @return string Sanitized text.
+	 */
+	protected function sanitize_for_taxonomy( $text ) {
+		return $this->sanitize_slug( $text, 28 );
+	}
+
+	/**
+	 * Insert a taxonomy term with an explicit transliterated slug.
+	 *
+	 * @param string               $name     Term name (kept as Cyrillic for display).
+	 * @param string               $taxonomy Taxonomy.
+	 * @param array<string, mixed> $args     Extra wp_insert_term args (parent, etc.).
+	 * @return array|\WP_Error
+	 */
+	protected function insert_term_with_slug( string $name, string $taxonomy, array $args = array() ) {
+		$slug = $this->sanitize_slug( $name );
+		if ( '' !== $slug ) {
+			$args['slug'] = $slug;
+		}
+
+		return wp_insert_term( $name, $taxonomy, $args );
 	}
 
 	/**
@@ -139,7 +170,7 @@ class XML_Parser {
 	 * @param string $attribute_slug  Sanitized slug without 'pa_' prefix (e.g., "kolir").
 	 * @return void
 	 */
-	private function ensure_global_attribute( string $attribute_label, string $attribute_slug ): void {
+	protected function ensure_global_attribute( string $attribute_label, string $attribute_slug ): void {
 		global $wpdb;
 
 		if ( empty( $attribute_slug ) ) {
@@ -151,7 +182,7 @@ class XML_Parser {
 
 		$attr_tax_table = $wpdb->prefix . 'woocommerce_attribute_taxonomies';
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $attr_tax_table is the internal WC attribute table name (built from $wpdb->prefix), value is bound via prepare().
-		$existing       = $wpdb->get_var( $wpdb->prepare( "SELECT attribute_id FROM {$attr_tax_table} WHERE attribute_name = %s LIMIT 1", $attribute_slug ) );
+		$existing = $wpdb->get_var( $wpdb->prepare( "SELECT attribute_id FROM {$attr_tax_table} WHERE attribute_name = %s LIMIT 1", $attribute_slug ) );
 		if ( $existing ) {
 			return;
 		}
@@ -216,102 +247,6 @@ class XML_Parser {
 	}
 
 	/**
-	 * Update the stock status of products based on XML data.
-	 *
-	 * @return void
-	 */
-	public function update_products_stock_status() {
-		$start_time   = microtime( true );
-		$start_memory = memory_get_usage();
-
-		// Set maximum execution time for production.
-		if ( function_exists( 'set_time_limit' ) && ! ini_get( 'safe_mode' ) ) {
-			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.NoSilencedErrors.Discouraged -- Needed to avoid timeouts on large catalogs; failure is non-fatal.
-			@set_time_limit( 600 );
-		}
-
-		$xml_data = $this->fetch_xml_data();
-		if ( ! $xml_data ) {
-			return $this->send_telegram_message( 'Failed to retrieve XML data' );
-		}
-
-		try {
-			$products = new XMLReader();
-			$products->open( $this->xml_url );
-
-			// Check if XML is empty using proper XMLReader methods
-			if ( ! $products->read() ) {
-				return $this->send_telegram_message( 'XML data is empty or not created' );
-			}
-
-			// Reset the reader position
-			$products->close();
-			$products->open( $this->xml_url );
-		} catch ( Exception $e ) {
-			return $this->send_telegram_message( 'XML parsing error: ' . $e->getMessage() );
-		}
-
-		$batch_size  = 100;
-		$updates     = array();
-		$batch_count = 0;
-
-		while ( $products->read() ) {
-			if ( $products->nodeType == XMLReader::ELEMENT && $products->localName == 'offer' ) {
-				$sku             = (string) $products->getAttribute( 'id' );
-				$available       = (string) $products->getAttribute( 'available' );
-				$stock_status    = 'true' === $available ? 'instock' : 'outofstock';
-				$updates[ $sku ] = $stock_status;
-
-				// Process in batches to avoid memory issues
-				if ( count( $updates ) >= $batch_size ) {
-					$this->process_stock_updates_batch( $updates );
-					$updates = array();
-					++$batch_count;
-
-					gc_collect_cycles();
-				}
-			}
-		}
-
-		// Process any remaining updates
-		if ( ! empty( $updates ) ) {
-			$this->process_stock_updates_batch( $updates );
-			++$batch_count;
-		}
-
-		$products->close();
-
-		$this->log_memory_usage( $start_time, $start_memory, "Stock status update completed ($batch_count batches)" );
-	}
-
-	/**
-	 * Process a batch of stock updates
-	 *
-	 * @param array $updates Array of SKU => stock_status
-	 */
-	private function process_stock_updates_batch( $updates ) {
-		$product_ids      = $this->get_product_ids_by_skus( array_keys( $updates ) );
-		$updated_in_stock = $updated_out_of_stock = $not_found = 0;
-
-		foreach ( $updates as $sku => $stock_status ) {
-			$product_id = $product_ids[ $sku ] ?? false;
-			if ( ! $product_id ) {
-				++$not_found;
-				continue;
-			}
-
-			$product = wc_get_product( $product_id );
-			if ( ! $product ) {
-				++$not_found;
-				continue;
-			}
-
-			$this->update_product_stock( $product, $stock_status );
-			$stock_status === 'instock' ? ++$updated_in_stock : ++$updated_out_of_stock;
-		}
-	}
-
-	/**
 	 * Imports products from XML.
 	 *
 	 * @param int $offset Offset for pagination.
@@ -321,10 +256,7 @@ class XML_Parser {
 	 * @throws Exception If the XML file can't be opened.
 	 */
 	public function import_products( int $offset = 0, int $limit = 10 ): array {
-		if ( empty( $this->categories ) ) {
-			$this->categories = $this->load_categories_from_xml();
-			$this->preload_category_terms(); // Preload category terms
-		}
+		$this->ensure_categories_loaded();
 
 		// Check if variable products import is enabled (from transient during import session)
 		$import_variations_transient = get_transient( 'f2000cs_import_variations_temp' );
@@ -353,127 +285,132 @@ class XML_Parser {
 
 			$offer_data = $this->extract_offer_data( $offer );
 
-			$has_group_id = ! empty( $offer_data['group_id'] );
+			// empty( '0' ) === true in PHP — treat any non-empty string as a real group_id.
+			$has_group_id = '' !== trim( (string) $offer_data['group_id'] );
 
 			if ( $import_variations ) {
-				// Режим варіативних: імпортуємо товари З group_id
+				// Variable mode: only offers with group_id.
 				if ( $has_group_id ) {
 					$grouped_products[ $offer_data['group_id'] ][] = $offer_data;
 					++$offers_with_group_id;
 				} else {
-					++$offers_without_group_id; // Пропускаємо
-				}
-			} else {
-				// Режим простих: імпортуємо товари БЕЗ group_id + товари з group_id але з 1 варіацією
-				if ( ! $has_group_id ) {
-					$simple_products[] = $offer_data;
 					++$offers_without_group_id;
-				} else {
-					// Товари з group_id зберігаємо для подальшої перевірки
-					$grouped_products[ $offer_data['group_id'] ][] = $offer_data;
-					++$offers_with_group_id;
 				}
+			} elseif ( ! $has_group_id ) {
+				// Simple mode: offers without group_id.
+				$simple_products[] = $offer_data;
+				++$offers_without_group_id;
+			} else {
+				// Simple mode: keep grouped offers only to promote single-offer groups to simple.
+				$grouped_products[ $offer_data['group_id'] ][] = $offer_data;
+				++$offers_with_group_id;
 			}
 		}
 
 		$reader->close();
 
-		// Для режиму простих товарів: перевіряємо групи і переносимо одиночні товари
 		if ( ! $import_variations ) {
-			$single_variation_groups = 0;
+			// Promote lone group_id offers to simple; never create variable products in this mode.
 			foreach ( $grouped_products as $group_id => $variations ) {
-				if ( count( $variations ) === 1 ) {
-					// Товар з group_id але тільки 1 варіація - імпортуємо як простий
+				if ( 1 === count( $variations ) ) {
 					$simple_products[] = $variations[0];
+				}
+			}
+			$grouped_products = array();
+		} else {
+			// Variable mode: analyze/import only groups with 2+ offers.
+			foreach ( $grouped_products as $group_id => $variations ) {
+				if ( count( $variations ) < 2 ) {
 					unset( $grouped_products[ $group_id ] );
-					++$single_variation_groups;
 				}
 			}
 		}
 
-		// Підраховуємо скільки товарів буде оброблено
-		$simple_count   = count( $simple_products );
-		$variable_count = 0;
-		foreach ( $grouped_products as $variations ) {
-			if ( count( $variations ) >= 2 ) {
-				$variable_count += count( $variations );
-			}
-		}
-
-		// Second pass: Create products
+		// Second pass: Create products.
 		$imported       = 0;
 		$skipped        = 0;
+		$processed      = 0;
 		$current_offset = 0;
 
-		// Підраховуємо загальну кількість товарів для імпорту залежно від режиму
 		if ( $import_variations ) {
-			// В режимі варіативних - рахуємо тільки групи з 2+ варіаціями
-			$total_products = 0;
-			foreach ( $grouped_products as $variations ) {
-				if ( count( $variations ) >= 2 ) {
-					++$total_products;
+			$total_products      = count( $grouped_products );
+			$items_to_process    = $grouped_products;
+			$process_as_variable = true;
+		} else {
+			$total_products      = count( $simple_products );
+			$items_to_process    = $simple_products;
+			$process_as_variable = false;
+		}
+
+		if ( $process_as_variable ) {
+			foreach ( $items_to_process as $group_id => $variations_data ) {
+				if ( $current_offset < $offset ) {
+					++$current_offset;
+					continue;
 				}
+
+				if ( $processed >= $limit ) {
+					break;
+				}
+
+				$result = $this->import_variable_product( (string) $group_id, $variations_data );
+				if ( $result ) {
+					++$imported;
+				} else {
+					++$skipped;
+				}
+
+				++$processed;
+				++$current_offset;
 			}
 		} else {
-			// В режимі простих - рахуємо тільки прості товари
-			$total_products = count( $simple_products );
-		}
+			foreach ( $items_to_process as $offer_data ) {
+				if ( $current_offset < $offset ) {
+					++$current_offset;
+					continue;
+				}
 
-		// Import simple products
-		foreach ( $simple_products as $offer_data ) {
-			if ( $current_offset < $offset ) {
+				if ( $processed >= $limit ) {
+					break;
+				}
+
+				$result = $this->import_simple_product( $offer_data );
+				if ( $result ) {
+					++$imported;
+				} else {
+					++$skipped;
+				}
+
+				++$processed;
 				++$current_offset;
-				continue;
 			}
-
-			if ( $imported >= $limit ) {
-				break;
-			}
-
-			$result = $this->import_simple_product( $offer_data );
-			if ( $result ) {
-				++$imported;
-			} else {
-				++$skipped;
-			}
-
-			++$current_offset;
-		}
-
-		// Import variable products
-		foreach ( $grouped_products as $group_id => $variations_data ) {
-			if ( $current_offset < $offset ) {
-				++$current_offset;
-				continue;
-			}
-
-			if ( $imported >= $limit ) {
-				break;
-			}
-
-			// Пропускаємо групи з тільки 1 варіацією в режимі варіативних товарів
-			if ( count( $variations_data ) === 1 ) {
-				++$skipped;
-				++$current_offset;
-				continue;
-			}
-
-			$result = $this->import_variable_product( $group_id, $variations_data );
-			if ( $result ) {
-				++$imported;
-			} else {
-				++$skipped;
-			}
-
-			++$current_offset;
 		}
 
 		return array(
-			'imported' => $imported,
-			'skipped'  => $skipped,
-			'total'    => $total_products,
-			'finished' => $offset + $imported >= $total_products,
+			'imported'  => $imported,
+			'skipped'   => $skipped,
+			'processed' => $processed,
+			'total'     => $total_products,
+			'finished'  => ( $offset + $processed ) >= $total_products,
 		);
+	}
+
+	/**
+	 * Load categories from the XML (once) and preload matching term cache.
+	 *
+	 * @return void
+	 */
+	protected function ensure_categories_loaded(): void {
+		if ( ! empty( $this->categories ) ) {
+			return;
+		}
+
+		$this->categories = $this->load_categories_from_xml();
+		$this->preload_category_terms();
+
+		if ( empty( $this->currencies ) ) {
+			$this->currencies = $this->load_currencies_from_xml();
+		}
 	}
 
 	/**
@@ -491,16 +428,39 @@ class XML_Parser {
 			$title = (string) $offer->name_ua;
 		}
 
-		$price     = (float) $offer->price;
-		$old_price = isset( $offer->oldprice ) ? (float) $offer->oldprice : 0;
-		$desc      = (string) $offer->description;
+		$price     = f2000cs_parse_price( (string) $offer->price );
+		$old_price = isset( $offer->oldprice ) ? f2000cs_parse_price( (string) $offer->oldprice ) : 0;
+
+		// Apply currency conversion if the offer uses a different currency.
+		$store_currency = function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'UAH';
+		if ( isset( $offer->currencyId ) ) {
+			$offer_currency = (string) $offer->currencyId;
+			if ( $offer_currency !== $store_currency && isset( $this->currencies[ $offer_currency ] ) ) {
+				$rate = $this->currencies[ $offer_currency ];
+				if ( $rate > 0 && $rate !== 1.0 ) {
+					$price     = round( $price * $rate, 2 );
+					$old_price = round( $old_price * $rate, 2 );
+				}
+			}
+		}
+		$desc = (string) $offer->description;
 
 		if ( ! empty( $offer->description_ua ) ) {
 			$desc = (string) $offer->description_ua;
 		}
 
-		$category  = (string) $offer->categoryId;
-		$available = (string) $offer['available'] === 'true' ? 'instock' : 'outofstock';
+		// Support multiple <categoryId> elements (YML allows several per offer).
+		$categories = array();
+		if ( isset( $offer->categoryId ) ) {
+			foreach ( $offer->categoryId as $cid ) {
+				$cid_str = trim( (string) $cid );
+				if ( '' !== $cid_str ) {
+					$categories[] = $cid_str;
+				}
+			}
+		}
+		$category  = ! empty( $categories ) ? implode( ',', $categories ) : '';
+		$available = f2000cs_parse_available( (string) $offer['available'] );
 		$vendor    = isset( $offer->vendor ) ? (string) $offer->vendor : '';
 
 		// Get all product images
@@ -509,14 +469,21 @@ class XML_Parser {
 			$images[] = (string) $picture;
 		}
 
-		// Get all product attributes
+		// Get all product attributes (supports multiple values per name and unit attribute).
 		$attributes = array();
 		if ( isset( $offer->param ) ) {
 			foreach ( $offer->param as $param ) {
 				$name  = (string) $param['name'];
 				$value = (string) $param;
-				if ( ! empty( $name ) && ! empty( $value ) ) {
-					$attributes[ $name ] = $value;
+				if ( ! empty( $name ) && '' !== $value ) {
+					$unit       = isset( $param['unit'] ) ? ' ' . trim( (string) $param['unit'] ) : '';
+					$full_value = $value . $unit;
+
+					if ( isset( $attributes[ $name ] ) ) {
+						$attributes[ $name ] .= '; ' . $full_value;
+					} else {
+						$attributes[ $name ] = $full_value;
+					}
 				}
 			}
 		}
@@ -525,6 +492,11 @@ class XML_Parser {
 		if ( ! empty( $vendor ) && ! isset( $attributes['Виробник'] ) ) {
 			$attributes['Виробник'] = $vendor;
 		}
+
+		// Physical product fields.
+		$weight     = isset( $offer->weight ) ? f2000cs_parse_price( (string) $offer->weight ) : 0;
+		$barcode    = isset( $offer->barcode ) ? (string) $offer->barcode : '';
+		$dimensions = isset( $offer->dimensions ) ? (string) $offer->dimensions : '';
 
 		return array(
 			'sku'        => $sku,
@@ -538,6 +510,9 @@ class XML_Parser {
 			'vendor'     => $vendor,
 			'images'     => $images,
 			'attributes' => $attributes,
+			'weight'     => $weight,
+			'barcode'    => $barcode,
+			'dimensions' => $dimensions,
 		);
 	}
 
@@ -547,7 +522,7 @@ class XML_Parser {
 	 * @param array $offer_data Offer data.
 	 * @return bool True if imported, false if skipped.
 	 */
-	private function import_simple_product( array $offer_data ): bool {
+	protected function import_simple_product( array $offer_data ): bool {
 		$sku        = $offer_data['sku'];
 		$title      = $offer_data['title'];
 		$price      = $offer_data['price'];
@@ -557,6 +532,9 @@ class XML_Parser {
 		$available  = $offer_data['available'];
 		$images     = $offer_data['images'];
 		$attributes = $offer_data['attributes'];
+		$weight     = isset( $offer_data['weight'] ) ? (float) $offer_data['weight'] : 0;
+		$barcode    = isset( $offer_data['barcode'] ) ? (string) $offer_data['barcode'] : '';
+		$dimensions = isset( $offer_data['dimensions'] ) ? (string) $offer_data['dimensions'] : '';
 
 		if ( empty( $sku ) || empty( $title ) || $price <= 0 ) {
 			return false;
@@ -577,6 +555,7 @@ class XML_Parser {
 		$post_id = wp_insert_post(
 			array(
 				'post_title'   => $title,
+				'post_name'    => $this->sanitize_slug( $title ),
 				'post_content' => $desc,
 				'post_status'  => 'publish',
 				'post_type'    => 'product',
@@ -598,8 +577,18 @@ class XML_Parser {
 			update_post_meta( $post_id, '_price', number_format( $price, 2, '.', '' ) );
 		}
 
-		update_post_meta( $post_id, '_stock_status', $available );
+		f2000cs_update_stock_status( $post_id, $available );
 		update_post_meta( $post_id, '_manage_stock', 'no' );
+
+		if ( $weight > 0 ) {
+			update_post_meta( $post_id, '_weight', $weight );
+		}
+		if ( '' !== $barcode ) {
+			update_post_meta( $post_id, '_barcode', $barcode );
+		}
+		if ( '' !== $dimensions ) {
+			update_post_meta( $post_id, '_dimensions', $dimensions );
+		}
 
 		// Handle product attributes
 		if ( ! empty( $attributes ) ) {
@@ -617,7 +606,7 @@ class XML_Parser {
 
 		if ( $this->new_category ) {
 			if ( term_exists( 'Новинки', 'product_cat' ) === 0 ) {
-				wp_insert_term( 'Новинки', 'product_cat' );
+				$this->insert_term_with_slug( 'Новинки', 'product_cat' );
 			}
 			wp_set_object_terms( $post_id, 'Новинки', 'product_cat', true );
 		}
@@ -632,7 +621,7 @@ class XML_Parser {
 	 * @param array  $variations_data Array of variation data.
 	 * @return bool True if imported, false if skipped.
 	 */
-	private function import_variable_product( string $group_id, array $variations_data ): bool {
+	protected function import_variable_product( string $group_id, array $variations_data ): bool {
 		if ( empty( $variations_data ) ) {
 			return false;
 		}
@@ -656,6 +645,7 @@ class XML_Parser {
 		$parent_id = wp_insert_post(
 			array(
 				'post_title'   => $parent_name,
+				'post_name'    => $this->sanitize_slug( $parent_name ),
 				'post_content' => $base_data['desc'],
 				'post_status'  => 'publish',
 				'post_type'    => 'product',
@@ -668,8 +658,18 @@ class XML_Parser {
 
 		wp_set_object_terms( $parent_id, 'variable', 'product_type' );
 		update_post_meta( $parent_id, '_sku', $parent_sku );
-		update_post_meta( $parent_id, '_stock_status', 'instock' );
+		f2000cs_update_stock_status( $parent_id, 'instock' );
 		update_post_meta( $parent_id, '_manage_stock', 'no' );
+
+		if ( ! empty( $base_data['weight'] ) && (float) $base_data['weight'] > 0 ) {
+			update_post_meta( $parent_id, '_weight', (float) $base_data['weight'] );
+		}
+		if ( ! empty( $base_data['barcode'] ) ) {
+			update_post_meta( $parent_id, '_barcode', (string) $base_data['barcode'] );
+		}
+		if ( ! empty( $base_data['dimensions'] ) ) {
+			update_post_meta( $parent_id, '_dimensions', (string) $base_data['dimensions'] );
+		}
 
 		if ( ! $this->new_category ) {
 			$this->set_product_category( $parent_id, $base_data['category'] );
@@ -677,7 +677,7 @@ class XML_Parser {
 
 		if ( $this->new_category ) {
 			if ( term_exists( 'Новинки', 'product_cat' ) === 0 ) {
-				wp_insert_term( 'Новинки', 'product_cat' );
+				$this->insert_term_with_slug( 'Новинки', 'product_cat' );
 			}
 			wp_set_object_terms( $parent_id, 'Новинки', 'product_cat', true );
 		}
@@ -714,7 +714,11 @@ class XML_Parser {
 		// Set product attributes for variations
 		$this->set_variation_attributes_for_product( $parent_id, $variation_attributes, $variations_data );
 
-		$this->create_product_variations( $parent_id, $variations_data, $variation_attributes );
+		$created = $this->create_product_variations( $parent_id, $variations_data, $variation_attributes );
+		if ( $created < 1 ) {
+			wp_delete_post( $parent_id, true );
+			return false;
+		}
 
 		return true;
 	}
@@ -793,15 +797,15 @@ class XML_Parser {
 					} else {
 						$skipped_attrs[] = $selected_attr . ' (тільки 1 значення)';
 					}
-					} else {
-						$skipped_attrs[] = $selected_attr . ' (не знайдено)';
-					}
-				}
-
-				if ( ! empty( $variation_attributes ) ) {
-					return $variation_attributes;
+				} else {
+					$skipped_attrs[] = $selected_attr . ' (не знайдено)';
 				}
 			}
+
+			if ( ! empty( $variation_attributes ) ) {
+				return $variation_attributes;
+			}
+		}
 
 		// Filter to find attributes that vary between products
 		$variation_attributes = array();
@@ -893,7 +897,7 @@ class XML_Parser {
 
 				$term = get_term_by( 'name', $value, $taxonomy );
 				if ( ! $term ) {
-					$term_info = wp_insert_term( $value, $taxonomy );
+					$term_info = $this->insert_term_with_slug( $value, $taxonomy );
 					if ( ! is_wp_error( $term_info ) ) {
 						$term_ids[] = $term_info['term_id'];
 					}
@@ -939,8 +943,10 @@ class XML_Parser {
 						$non_variation_attributes[ $attr_name ] = array();
 					}
 
-					if ( ! in_array( $attr_value, $non_variation_attributes[ $attr_name ], true ) ) {
-						$non_variation_attributes[ $attr_name ][] = $attr_value;
+					foreach ( $this->split_attribute_values( (string) $attr_value ) as $single_value ) {
+						if ( ! in_array( $single_value, $non_variation_attributes[ $attr_name ], true ) ) {
+							$non_variation_attributes[ $attr_name ][] = $single_value;
+						}
 					}
 				}
 			}
@@ -978,7 +984,7 @@ class XML_Parser {
 
 				$term = get_term_by( 'name', $attr_value, $taxonomy );
 				if ( ! $term ) {
-					$term_info = wp_insert_term( $attr_value, $taxonomy );
+					$term_info = $this->insert_term_with_slug( $attr_value, $taxonomy );
 					if ( ! is_wp_error( $term_info ) ) {
 						$term_ids[] = $term_info['term_id'];
 					}
@@ -1039,11 +1045,20 @@ class XML_Parser {
 	 * @param int   $parent_id Parent product ID.
 	 * @param array $variations_data Variations data.
 	 * @param array $variation_attributes Variation attributes.
-	 * @return void
+	 * @return int Number of variations created.
 	 */
-	private function create_product_variations( int $parent_id, array $variations_data, array $variation_attributes ): void {
+	private function create_product_variations( int $parent_id, array $variations_data, array $variation_attributes ): int {
+		$created = 0;
+
 		foreach ( $variations_data as $variation_data ) {
-			$original_sku = $variation_data['sku'];
+			$original_sku = isset( $variation_data['sku'] ) ? (string) $variation_data['sku'] : '';
+			$title        = isset( $variation_data['title'] ) ? (string) $variation_data['title'] : '';
+			$price        = isset( $variation_data['price'] ) ? (float) $variation_data['price'] : 0;
+
+			if ( '' === $original_sku || '' === $title || $price <= 0 ) {
+				f2000cs_log( sprintf( 'Skipping variation with invalid sku/title/price (sku=%s)', $original_sku ) );
+				continue;
+			}
 
 			// Check if variation already exists (передаємо SKU без префіксу)
 			$existing_variation = $this->get_product_ids_by_skus( array( $original_sku ) );
@@ -1061,6 +1076,7 @@ class XML_Parser {
 			$variation_id = wp_insert_post(
 				array(
 					'post_title'  => $variation_data['title'],
+					'post_name'   => $this->sanitize_slug( $variation_data['title'] ),
 					'post_status' => 'publish',
 					'post_parent' => $parent_id,
 					'post_type'   => 'product_variation',
@@ -1085,8 +1101,18 @@ class XML_Parser {
 				update_post_meta( $variation_id, '_price', number_format( $price, 2, '.', '' ) );
 			}
 
-			update_post_meta( $variation_id, '_stock_status', $variation_data['available'] );
+			f2000cs_update_stock_status( $variation_id, $variation_data['available'] );
 			update_post_meta( $variation_id, '_manage_stock', 'no' );
+
+			if ( ! empty( $variation_data['weight'] ) && (float) $variation_data['weight'] > 0 ) {
+				update_post_meta( $variation_id, '_weight', (float) $variation_data['weight'] );
+			}
+			if ( ! empty( $variation_data['barcode'] ) ) {
+				update_post_meta( $variation_id, '_barcode', (string) $variation_data['barcode'] );
+			}
+			if ( ! empty( $variation_data['dimensions'] ) ) {
+				update_post_meta( $variation_id, '_dimensions', (string) $variation_data['dimensions'] );
+			}
 
 			foreach ( $variation_attributes as $attr_name => $attr_values ) {
 				$taxonomy_name = $this->sanitize_for_taxonomy( $attr_name );
@@ -1111,12 +1137,18 @@ class XML_Parser {
 				$this->set_variation_image( $variation_id, $variation_data['images'][0] );
 			}
 
+			++$created;
+
 			// Clear product cache
 			wc_delete_product_transients( $parent_id );
 			wc_delete_product_transients( $variation_id );
 		}
 
-		WC_Product_Variable::sync( $parent_id );
+		if ( $created > 0 ) {
+			WC_Product_Variable::sync( $parent_id );
+		}
+
+		return $created;
 	}
 
 	/**
@@ -1126,7 +1158,7 @@ class XML_Parser {
 	 * @param string $image_url Image URL.
 	 * @return void
 	 */
-	private function set_variation_image( int $variation_id, string $image_url ): void {
+	protected function set_variation_image( int $variation_id, string $image_url ): void {
 		if ( empty( $image_url ) || ! filter_var( $image_url, FILTER_VALIDATE_URL ) ) {
 			return;
 		}
@@ -1135,19 +1167,23 @@ class XML_Parser {
 		require_once ABSPATH . 'wp-admin/includes/media.php';
 		require_once ABSPATH . 'wp-admin/includes/image.php';
 
-		$tmp = download_url( $image_url );
+		$tmp = f2000cs_download_url( $image_url );
 		if ( is_wp_error( $tmp ) ) {
 			return;
 		}
 
-		$file_array = array(
-			'name'     => basename( $image_url ),
-			'tmp_name' => $tmp,
-		);
+		$file_array = class_exists( __NAMESPACE__ . '\\Image_Processor' )
+			? Image_Processor::prepare_sideload( $tmp, $image_url )
+			: array(
+				'name'     => basename( $image_url ),
+				'tmp_name' => $tmp,
+			);
 
 		$attachment_id = media_handle_sideload( $file_array, $variation_id );
 		if ( is_wp_error( $attachment_id ) ) {
-			wp_delete_file( $tmp );
+			if ( ! empty( $file_array['tmp_name'] ) ) {
+				wp_delete_file( $file_array['tmp_name'] );
+			}
 			return;
 		}
 
@@ -1209,7 +1245,7 @@ class XML_Parser {
 				if ( $category_id && $category_name ) {
 					$categories[ $category_id ] = array(
 						'name'   => $category_name,
-						'parent' => $parent_id ?: null,
+						'parent' => $parent_id ? $parent_id : null,
 					);
 				}
 			}
@@ -1220,19 +1256,73 @@ class XML_Parser {
 	}
 
 	/**
+	 * Parse <currencies> section from YML XML.
+	 *
+	 * @return array<string,float> Currency ID => rate mapping.
+	 */
+	private function load_currencies_from_xml(): array {
+		$currencies = array();
+		$reader     = new XMLReader();
+
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Fallback path catches open failure (same as stock updater).
+		if ( ! @$reader->open( $this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING ) ) {
+			$xml_data = $this->fetch_xml_data();
+			if ( ! $xml_data ) {
+				return $currencies;
+			}
+
+			$temp_file = wp_tempnam( 'f2000cs_curr_' );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Temp file for XMLReader.
+			if ( ! file_put_contents( $temp_file, $xml_data ) ) {
+				return $currencies;
+			}
+
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Local temp open failure returns empty map.
+			if ( ! @$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING ) ) {
+				return $currencies;
+			}
+		}
+
+		while ( $reader->read() ) {
+			if ( XMLReader::ELEMENT === $reader->nodeType && 'currency' === $reader->name ) {
+				$currency_id = $reader->getAttribute( 'id' );
+				$rate        = $reader->getAttribute( 'rate' );
+				if ( $currency_id && is_numeric( $rate ) && (float) $rate > 0 ) {
+					$currencies[ $currency_id ] = (float) $rate;
+				}
+			}
+		}
+
+		$reader->close();
+		return $currencies;
+	}
+
+	/**
 	 * Assigns a product to the correct category by its XML category ID.
 	 *
-	 * @param int    $post_id     Product ID.
-	 * @param string $category_id XML category ID.
+	 * @param int    $post_id      Product ID.
+	 * @param string $category_ids Comma-separated XML category IDs.
 	 */
-	private function set_product_category( int $post_id, string $category_id ): void {
-		if ( ! isset( $this->categories[ $category_id ] ) ) {
+	protected function set_product_category( int $post_id, string $category_ids ): void {
+		// Support comma-separated list of category IDs (YML allows multiple <categoryId>).
+		$ids = array_filter( array_map( 'trim', explode( ',', $category_ids ) ) );
+		if ( empty( $ids ) ) {
 			return;
 		}
 
-		$term_id = $this->ensure_category_term( $category_id, $this->categories, $this->term_cache );
-		if ( $term_id ) {
-			wp_set_object_terms( $post_id, array( (int) $term_id ), 'product_cat' );
+		$term_ids = array();
+		foreach ( $ids as $category_id ) {
+			if ( ! isset( $this->categories[ $category_id ] ) ) {
+				continue;
+			}
+			$term_id = $this->ensure_category_term( $category_id, $this->categories, $this->term_cache );
+			if ( $term_id ) {
+				$term_ids[] = (int) $term_id;
+			}
+		}
+
+		if ( ! empty( $term_ids ) ) {
+			wp_set_object_terms( $post_id, $term_ids, 'product_cat' );
 		}
 	}
 
@@ -1264,7 +1354,7 @@ class XML_Parser {
 
 		$term = get_term_by( 'name', $name, 'product_cat' );
 		if ( ! $term ) {
-			$term = wp_insert_term(
+			$term = $this->insert_term_with_slug(
 				$name,
 				'product_cat',
 				array(
@@ -1286,39 +1376,22 @@ class XML_Parser {
 	}
 
 	/**
-	 * Downloads and attaches the product image.
+	 * Split multi-value attribute strings (joined with "; " during XML extract).
 	 *
-	 * @param int    $post_id Product ID.
-	 * @param string $url     Image URL.
+	 * @param string $value Raw attribute value.
+	 * @return array<int, string>
 	 */
-	private function handle_product_image( int $post_id, string $url ): void {
-		// Validate URL to prevent errors
-		if ( empty( $url ) || ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
-			f2000cs_log( "Invalid image URL for product ID: $post_id", 'warning' );
-			return;
-		}
+	protected function split_attribute_values( string $value ): array {
+		$parts = array_map( 'trim', explode( ';', $value ) );
 
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-		require_once ABSPATH . 'wp-admin/includes/media.php';
-		require_once ABSPATH . 'wp-admin/includes/image.php';
-
-		$tmp = download_url( $url );
-		if ( is_wp_error( $tmp ) ) {
-			return;
-		}
-
-		$file_array = array(
-			'name'     => basename( $url ),
-			'tmp_name' => $tmp,
+		return array_values(
+			array_filter(
+				$parts,
+				static function ( $part ) {
+					return '' !== $part;
+				}
+			)
 		);
-
-		$attachment_id = media_handle_sideload( $file_array, $post_id );
-		if ( is_wp_error( $attachment_id ) ) {
-			wp_delete_file( $tmp );
-			return;
-		}
-
-		set_post_thumbnail( $post_id, $attachment_id );
 	}
 
 	/**
@@ -1327,7 +1400,7 @@ class XML_Parser {
 	 * @param int   $post_id    Product ID.
 	 * @param array $attributes Array of attributes [name => value].
 	 */
-	private function set_product_attributes( int $post_id, array $attributes ): void {
+	protected function set_product_attributes( int $post_id, array $attributes ): void {
 		if ( empty( $attributes ) ) {
 			return;
 		}
@@ -1353,34 +1426,37 @@ class XML_Parser {
 			if ( ! taxonomy_exists( $taxonomy ) ) {
 				// Ensure global attribute exists so taxonomy is properly registered by WC
 				$this->ensure_global_attribute( $name, $taxonomy_name );
-					register_taxonomy(
-						$taxonomy,
-						array( 'product' ),
-						array(
-							'labels'       => array(
-								'name' => $name,
-							),
-							'hierarchical' => false,
-							'show_ui'      => true,
-							'query_var'    => true,
-							'rewrite'      => false,
-						)
-					);
+				register_taxonomy(
+					$taxonomy,
+					array( 'product' ),
+					array(
+						'labels'       => array(
+							'name' => $name,
+						),
+						'hierarchical' => false,
+						'show_ui'      => true,
+						'query_var'    => true,
+						'rewrite'      => false,
+					)
+				);
 			}
 
-			$term_id = null;
-			$term    = get_term_by( 'name', $value, $taxonomy );
-			if ( ! $term ) {
-				$term_info = wp_insert_term( $value, $taxonomy );
-				if ( ! is_wp_error( $term_info ) ) {
-					$term_id = $term_info['term_id'];
+			$term_ids = array();
+			foreach ( $this->split_attribute_values( (string) $value ) as $single_value ) {
+				$term = get_term_by( 'name', $single_value, $taxonomy );
+				if ( ! $term ) {
+					$term_info = $this->insert_term_with_slug( $single_value, $taxonomy );
+					if ( ! is_wp_error( $term_info ) ) {
+						$term_ids[] = (int) $term_info['term_id'];
+					}
+				} else {
+					$term_ids[] = (int) $term->term_id;
 				}
-			} else {
-				$term_id = $term->term_id;
 			}
 
-			if ( $term_id ) {
-				wp_set_object_terms( $post_id, array( $term_id ), $taxonomy );
+			$term_ids = array_values( array_unique( array_filter( $term_ids ) ) );
+			if ( ! empty( $term_ids ) ) {
+				wp_set_object_terms( $post_id, $term_ids, $taxonomy );
 				$product_attributes[ $taxonomy ] = array(
 					'name'         => $taxonomy,
 					'value'        => '',
@@ -1407,12 +1483,12 @@ class XML_Parser {
 	 * @param int   $post_id Product ID.
 	 * @param array $urls    Array of image URLs.
 	 */
-	private function handle_product_images( int $post_id, array $urls ): void {
-		add_filter( 'intermediate_image_sizes_advanced', '__return_empty_array' );
-
+	protected function handle_product_images( int $post_id, array $urls ): void {
 		if ( empty( $urls ) ) {
 			return;
 		}
+
+		add_filter( 'intermediate_image_sizes_advanced', '__return_empty_array' );
 
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 		require_once ABSPATH . 'wp-admin/includes/media.php';
@@ -1422,27 +1498,31 @@ class XML_Parser {
 		$featured_image_set = false;
 
 		foreach ( $urls as $index => $url ) {
-			$tmp = download_url( $url );
+			$tmp = f2000cs_download_url( $url );
 
 			if ( is_wp_error( $tmp ) ) {
 				continue;
 			}
 
-			$file_array = array(
-				'name'     => basename( $url ),
-				'tmp_name' => $tmp,
-			);
+			$file_array = class_exists( __NAMESPACE__ . '\\Image_Processor' )
+				? Image_Processor::prepare_sideload( $tmp, $url )
+				: array(
+					'name'     => basename( $url ),
+					'tmp_name' => $tmp,
+				);
 
 			$attachment_id = media_handle_sideload( $file_array, $post_id );
 
 			if ( is_wp_error( $attachment_id ) ) {
-				wp_delete_file( $tmp );
+				if ( ! empty( $file_array['tmp_name'] ) ) {
+					wp_delete_file( $file_array['tmp_name'] );
+				}
 				continue;
 			}
 
 			$attachment_ids[] = $attachment_id;
 
-			if ( $index === 0 && ! $featured_image_set ) {
+			if ( 0 === (int) $index && ! $featured_image_set ) {
 				set_post_thumbnail( $post_id, $attachment_id );
 				$featured_image_set = true;
 			}
@@ -1468,9 +1548,7 @@ class XML_Parser {
 	 *
 	 * @return array Array of [sku => product ID].
 	 */
-	private function get_product_ids_by_skus( array $skus ): array {
-		global $wpdb;
-
+	protected function get_product_ids_by_skus( array $skus ): array {
 		if ( empty( $skus ) ) {
 			return array();
 		}
@@ -1478,8 +1556,7 @@ class XML_Parser {
 		// Add prefix to SKUs for database search if prefix is set
 		$skus_with_prefix = array();
 		foreach ( $skus as $sku ) {
-			$sku_with_prefix    = ! empty( $this->sku_prefix ) ? $this->sku_prefix . $sku : $sku;
-			$skus_with_prefix[] = $sku_with_prefix;
+			$skus_with_prefix[] = ! empty( $this->sku_prefix ) ? $this->sku_prefix . $sku : $sku;
 		}
 
 		// Check cache first for each SKU with prefix
@@ -1498,24 +1575,9 @@ class XML_Parser {
 
 		// Only query the database for SKUs not in cache
 		if ( ! empty( $uncached_skus ) ) {
-			$placeholders = implode( ',', array_fill( 0, count( $uncached_skus ), '%s' ) );
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is a generated %s list; values passed to prepare().
-			$sql          = $wpdb->prepare(
-				"SELECT pm.meta_value AS sku, p.ID
-				FROM {$wpdb->posts} p
-				INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
-				WHERE p.post_type IN ('product', 'product_variation')
-				AND pm.meta_key = '_sku'
-				AND pm.meta_value IN ($placeholders)",
-				$uncached_skus
-			);
-			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+			$db_results = f2000cs_get_product_ids_by_skus( $uncached_skus );
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is already prepared above; results are cached in $this->sku_cache.
-			$db_results = $wpdb->get_results( $sql );
-			$db_results = array_column( $db_results, 'ID', 'sku' );
-
-			// Add to cache and map back to original SKU
+			// Add to cache and map back to original SKU (without prefix).
 			foreach ( $db_results as $sku_with_prefix => $id ) {
 				$this->sku_cache[ $sku_with_prefix ] = $id;
 				$original_sku                        = ! empty( $this->sku_prefix ) ? substr( $sku_with_prefix, strlen( $this->sku_prefix ) ) : $sku_with_prefix;
@@ -1535,7 +1597,7 @@ class XML_Parser {
 		$response = wp_remote_get(
 			$this->xml_url,
 			array(
-				'timeout'   => 600,
+				'timeout'   => 90,  // below Cloudflare's 100 s proxy timeout
 				'sslverify' => false,
 			)
 		);
@@ -1548,98 +1610,5 @@ class XML_Parser {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Update the stock status of a product with improved error handling.
-	 *
-	 * @param WC_Product $product Product object.
-	 * @param string     $stock_status Stock status.
-	 * @return void
-	 */
-	private function update_product_stock( $product, $stock_status ) {
-		try {
-			if ( $product->get_stock_status() === $stock_status ) {
-				return;
-			}
-
-			$product->set_stock_status( $stock_status );
-			$product->save();
-			wc_delete_product_transients( $product->get_id() );
-
-			if ( 'variable' === $product->get_type() ) {
-				foreach ( $product->get_children() as $variation_id ) {
-					$variation = wc_get_product( $variation_id );
-					if ( $variation ) {
-						$variation->set_stock_status( $stock_status );
-						$variation->save();
-						wc_delete_product_transients( $variation_id );
-					}
-				}
-			}
-		} catch ( Exception $e ) {
-			f2000cs_log( 'Error updating product #' . $product->get_id() . ': ' . $e->getMessage(), 'error' );
-		}
-	}
-
-	/**
-	 * Log memory usage and execution time.
-	 *
-	 * @param float  $start_time Start time of the process.
-	 * @param int    $start_memory Start memory usage in bytes.
-	 * @param string $message Log message.
-	 * @return void
-	 */
-	private function log_memory_usage( $start_time, $start_memory, $message ) {
-		$end_time   = microtime( true );
-		$end_memory = memory_get_usage();
-
-		$execution_time = $end_time - $start_time;
-		$memory_usage   = ( $end_memory - $start_memory ) / 1048576; // Convert to megabytes
-
-		// Format the log message
-		$log_message = sprintf(
-			"[%s] %s | Execution time: %.2f sec | Memory usage: %.2f MB\n",
-			gmdate( 'Y-m-d H:i:s' ),
-			$message,
-			$execution_time,
-			$memory_usage
-		);
-
-		// Send log to Telegram
-		$this->send_telegram_message( $log_message );
-	}
-
-	/**
-	 * Send a message to Telegram.
-	 *
-	 * @param string $message Message to send.
-	 * @return void
-	 */
-	private function send_telegram_message( $message ) {
-		if ( empty( $this->telegram_token_id ) || empty( $this->telegram_user_ids ) ) {
-			return;
-		}
-
-		foreach ( $this->telegram_user_ids as $chat_id ) {
-			if ( empty( $chat_id ) ) {
-				continue;
-			}
-
-			$url  = "https://api.telegram.org/bot{$this->telegram_token_id}/sendMessage";
-			$data = array(
-				'chat_id'    => trim( $chat_id ),
-				'text'       => $message,
-				'parse_mode' => 'HTML',
-			);
-
-			wp_remote_post(
-				$url,
-				array(
-					'timeout' => 15,
-					'body'    => $data,
-				)
-			);
-		}
 	}
 }

@@ -1,0 +1,32 @@
+{
+    "name": "factorial2000/factorial2000-catalog-sync",
+    "description": "Import Prom.ua XML into WooCommerce. Sync stock and prices, import variations, filter feeds, and get Telegram alerts.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "keywords": [
+        "woocommerce",
+        "import",
+        "xml",
+        "stock",
+        "prom"
+    ],
+    "require-dev": {
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "phpcompatibility/phpcompatibility-wp": "^2.1",
+        "phpunit/phpunit": "^12.0",
+        "squizlabs/php_codesniffer": "^3.11",
+        "wp-coding-standards/wpcs": "^3.1"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test-integration": "php -d extension=mysqli tests/integration/wp-smoke-editor.php",
+        "phpcs": "phpcs",
+        "phpcbf": "phpcbf"
+    }
+}

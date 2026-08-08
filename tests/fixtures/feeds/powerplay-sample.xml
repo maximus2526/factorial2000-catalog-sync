@@ -1,0 +1,748 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<yml_catalog date="sample">
+<shop>
+<currencies>
+<currency id="USD" rate="CB"/>
+<currency id="UAH" rate="1"/>
+<currency id="BYN" rate="CB"/>
+<currency id="KZT" rate="CB"/>
+<currency id="EUR" rate="CB"/>
+</currencies>
+<categories>
+<category id="38154460" parentId="38154404">Спортивні пляшки і фляги</category>
+<category id="38158793" parentId="38158726">Боксерські рукавиці</category>
+<category id="38154161" parentId="38153303">Килимки для йоги</category>
+<category id="93183623" parentId="38153303">Балансувальні платформи</category>
+<category id="97434537" parentId="38153303">Фітнес рушнички</category>
+<category id="105076354" parentId="105076345">001 - Термоси, пляшки, шейкери</category>
+<category id="105076355" parentId="105076345">11.2 Дитячі картини 30*40см</category>
+<category id="105076356" parentId="105076345">11.3 Картини 40*50см</category>
+<category id="105076358" parentId="105076345">0.1 - Шейкери спортивні</category>
+<category id="105076359" parentId="105076345">0.4 - Контейнера</category>
+<category id="105076360" parentId="105076345">0.2 - Спортивні пляшки</category>
+<category id="105076361" parentId="105076345">01 - Кухонные шейкеры</category>
+<category id="105830436" parentId="105076345">11.1 Картини Київ нові</category>
+<category id="107739043" parentId="105076345">0.1 - Шейкери спортивні</category>
+<category id="107739044" parentId="105076345">0.4 - Контейнера</category>
+<category id="107739045" parentId="105076345">0.2 - Спортивні пляшки</category>
+<category id="107739046" parentId="105076345">01 - Кухонные шейкеры</category>
+<category id="107753114" parentId="105076345">011 - Палиці для скандинавської ходьби</category>
+<category id="107753115" parentId="105076345">015 - BOOKOPT</category>
+<category id="107753116" parentId="105076345">11.7 Набори ручок</category>
+<category id="107758586" parentId="105076345">12 - Іграшки</category>
+<category id="107875715" parentId="105076345">11.8 Українська символіка</category>
+<category id="107897015" parentId="105076345">11.9 Шопери</category>
+<category id="107900380" parentId="105076345">Екошопери</category>
+<category id="107900381" parentId="105076345">11.9 Шопери</category>
+</categories>
+<offers>
+<offer id="671387733" available="false">
+    <url>https://powerplay.com.ua/p671387733-bokserskij-sholom-trenuvalnij.html</url>
+    <price>740</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>38159113</categoryId>
+    <picture>https://images.prom.ua/2408149364_bokserskij-sholom-trenuvalnij.jpg</picture>
+    <picture>https://images.prom.ua/2415102771_bokserskij-sholom-trenuvalnij.jpg</picture>
+    <picture>https://images.prom.ua/2415102770_bokserskij-sholom-trenuvalnij.jpg</picture>
+    <picture>https://images.prom.ua/2415102767_bokserskij-sholom-trenuvalnij.jpg</picture>
+    <picture>https://images.prom.ua/2415102769_bokserskij-sholom-trenuvalnij.jpg</picture>
+    <picture>https://images.prom.ua/2408149356_bokserskij-sholom-trenuvalnij.jpg</picture>
+    <pickup>false</pickup>
+    <delivery>true</delivery>
+    <name>Боксерський шолом тренувальний PowerPlay 3043 Синій S</name>
+    <name_ua>Боксерський шолом тренувальний PowerPlay 3043 Синій S</name_ua>
+    <vendor>Power Play</vendor>
+    <vendorCode>PP_3043_S_Blue</vendorCode>
+    <country_of_origin>Пакистан</country_of_origin>
+    <description><![CDATA[<p><strong>Призначення: </strong>шолом призначений для повноцінного захисту найважливішої частини вашого тіла - мозку</p>
+<p>Закритий шолом тренувальний PowerPlay використовується для тренувань з боксу та інших видів бойових мистецтв. Він оптимально підходить спортсменам для підготовчих спарингів і тренувальних боїв. Гарантує найкращий захист голови спортсмена. Шолом підійде для бійців різного віку і рівня підготовки. Може використовуватися як початківцями, так і професіоналами.</p>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4977712347_w640_h2048_2415115842_w640_h640_2415115842.jpg?fresh=1&PIMAGE_ID=4977712347" style="width:640px;height:420px"/></p>
+<p><strong>Опис:</strong></p>
+<ul>
+<li>Боксерський шолом PowerPla&nbsp;виготовлений з <strong>міцної синтетичної шкіри високого класу </strong>на основі поліуретану <strong>(PU)</strong>, яка має ідентичну структуру натуральній шкірі.</li>
+<li><strong>Поліуретанова шкіра </strong>вважається екошкірою &ndash; вона не викликає алергії у людей. Серед переваг такого матеріалу &ndash; стійкість до механічних пошкоджень (не рветься і не дряпається), еластичність, тривалий термін використання.</li>
+<li>Стійкий до ударів внутрішній пінно-гелевий наповнювач, відмінно поглинає силу ударів.</li>
+<li>Завдяки анатомічній формі шолом цієї моделі щільно прилягає до голови. Також він забезпечує широкий кут огляду, що вкрай важливо для успішного проведення бою.</li>
+<li>Шолом <strong>надійно захищає голову</strong>, має додатковий захист на вилиці, щоки, потилицю і підборіддя. Додаткові вушні протектори<strong>&nbsp;</strong>надійно захищають вуха&nbsp;від травм.</li>
+<li>Підгонка моделі здійснюється з допомогою застібки-липучки на тильній частині, що гарантує надійну фіксацію.</li>
+<li>Внутрішня частина шолома виготовлена із високоякісного замінника шкіри на основі поліуретану <strong>(PU). </strong>Підкладка легко вимивається, не втягує запах.<strong>&nbsp;</strong></li>
+<li>Завдяки відкритому верху голова відмінно вентилюється.</li>
+<li>Окрім високих функціональних характеристик, боксерський шолом PowerPlay&nbsp;вирізняється <strong>стильним дизайном</strong>.</li>
+</ul>
+<p>Враховуючи те, що бокс та інші види єдиноборств вважаються найбільш травмонебезпечними видами спорту, шолом для спортсмена є одним із найнеобхідніших елементів спорядження. Згідно зі статистикою, під час боксерського поєдинку протягом одного раунду суперники наносять один одному 30-40 прицільних ударів, із яких 40% спрямовані в голову. Тому правильний вибір шолома &ndash; одна із запорук безпеки під час проведення поєдинку.</p>
+<p><strong>Властивості:</strong></p>
+<ul>
+<li>Матеріал з зовні: PU</li>
+<li>Матеріал набивки: Піна</li>
+</ul>
+<p><strong>Розмір шолома</strong> підбирається залежно від обсягу окружності голови.</p>
+<table border="1">
+<tr>
+<td>Розмір</td>
+<td>&nbsp; &nbsp; &nbsp; &nbsp;xs</td>
+<td>&nbsp; &nbsp; &nbsp; &nbsp;s</td>
+<td>&nbsp; &nbsp; &nbsp; &nbsp;m</td>
+<td>&nbsp; &nbsp; &nbsp; l</td>
+</tr>
+<tr>
+<td>Обхват голови (см)</td>
+<td>&nbsp; &nbsp; &nbsp;50-52</td>
+<td>&nbsp; &nbsp; &nbsp;52-54</td>
+<td>&nbsp; &nbsp; &nbsp;54-55</td>
+<td>&nbsp; &nbsp; 55-56</td>
+</tr>
+</table>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4977695782_w640_h2048_2415065294_w640_h640_2415065294.jpg?fresh=1&PIMAGE_ID=4977695782" style="width:640px;height:452px"/></p>
+<p style="text-align:center"><iframe allowfullscreen="allowfullscreen" frameborder="0" height="360" src="//www.youtube.com/embed/pSjKVQtt-M0?rel=0&loop=0&autoplay=0&controls=1&showinfo=1&disablekb=0&modestbranding=0" width="640"></iframe></p>]]></description>
+    <description_ua><![CDATA[<p><strong>Призначення:</strong></p>
+<p>Закритий тренувальний шолом PowerPlay 3043&nbsp;використовується&nbsp;для тренувань з&nbsp;боксу та&nbsp;інших&nbsp;видів&nbsp;бойових мистецтв. Він&nbsp;оптимально підходить&nbsp;спортсменам&nbsp;для підготовчих спарингів і&nbsp;тренувальних боїв.&nbsp;Гарантує&nbsp;найкращий захист&nbsp;голови&nbsp;спортсмена. Шолом&nbsp;підійде для&nbsp;бійців різного віку і&nbsp;рівня підготовки. Може використовуватися як початківцями, так і&nbsp;професіоналами.</p>
+<p><strong>Опис:</strong></p>
+<ul>
+<li>Боксерський шолом&nbsp;PowerPlay&nbsp;3043&nbsp;виготовлений з <strong>міцної синтетичної шкіри високого класу&nbsp;</strong>на основі поліуретану <strong>(PU)</strong>, яка має структуру ідентичну натуральній шкірі.</li>
+<li><strong>Поліуретанова&nbsp;шкіра </strong>вважається&nbsp;еко-шкірою&nbsp;&ndash; вона&nbsp;не викликає алергії у людей.&nbsp;Серед переваг такого матеріалу &ndash; стійкість до механічних пошкоджень (не рветься і не дряпається), еластичність, тривалий термін використання.</li>
+<li>Стійкий&nbsp;до ударів внутрішній пінно-гелевий&nbsp;наповнювач, відмінно поглинає силу&nbsp;ударів.</li>
+<li>Завдяки анатомічній формі шолом цієї моделі щільно прилягає до голови. Також він забезпечує широкий кут огляду, що вкрай важливо для проведення успішного бою.</li>
+<li>Шолом <strong>надійно захищає голову</strong>,&nbsp;має додатковий&nbsp;захист&nbsp;на вилиці, щоки, потилицю і&nbsp;підборіддя.&nbsp;Додаткові вушні протектори<strong>&nbsp;</strong>надійно захищають вуха від&nbsp;травм.</li>
+<li>Підгонка моделі&nbsp;здійснюється з допомогою&nbsp;застібки-липучки&nbsp;на тильній частині, що гарантує надійну фіксацію.</li>
+<li>Внутрішня&nbsp;частина&nbsp;шолома виготовлена&nbsp;із високоякісного замінника шкіри на основі поліуретану <strong>(PU).&nbsp; </strong>Підкладка легко вимивається, не втягує&nbsp;запах.<strong>&nbsp;</strong></li>
+<li>Завдяки відкритому верху голова відмінно&nbsp;вентилюється.</li>
+<li>Окрім&nbsp;високих функціональних характеристик, боксерський шолом PowerPlay 3043&nbsp;вирізняється&nbsp;<strong>стильним дизайном</strong>.&nbsp;</li>
+</ul>
+<p>Враховуючи те, що бокс та інші види єдиноборств&nbsp;вважаються найбільш травмо-небезпечними видами спорту, шолом для спортсмена є одним із найнеобхідніших елементів спорядження. Згідно&nbsp;статистики, під час боксерського поєдинку протягом одного раунду суперники наносять один одному 30-40 прицільних ударів, із яких 40% спрямовані в голову. Тому правильний вибір шолома &ndash; одна із запорук безпеки під час проведення поєдинку.&nbsp;</p>
+<p><strong>Розмір шолома</strong> підбирається залежно&nbsp;від обсягу окружності голови.</p>
+<p style="text-align:center"><iframe allowfullscreen="allowfullscreen" frameborder="0" height="480" src="//www.youtube.com/embed/pSjKVQtt-M0?rel=0&loop=0&autoplay=0&controls=1&showinfo=1&disablekb=0&modestbranding=0" width="853"></iframe></p>]]></description_ua>
+    <quantity_in_stock>0</quantity_in_stock>
+    <keywords>шоломи, шоломи для боксу, боксерські шоломи захисні, шолом для боксу, шоломи для боксу та єдиноборств, боксерський шолом powerplay, захист голови, захист голови шолом, захист голови карате для дітей, шолом боксерський тренувальний, боксерський тренувальний шолом, шолом бокс тренувальний, шолом бокс змагальний, шолом боксерський відкритий, боксерський шолом відкритий, защита головы, боксерські шоломи, шлем боксерский тренировочный, шлемы боксерские защитные, шлемы для бокса, боксерські шоломи захисні шоломи для боксу, боксерський шолом, защита головы шлем, шлем бокс соревновательный, защита головы карате для детей, захист голови шолом боксерський шолом відкритий, боксерский шлем открытый, захист голови карате, шолом бокс, шлем бокс тренировочный, шлем для бокса, боксерский тренировочный шлем, шлем боксерский открытый, шоломи бокс, шлемы для бокса и единоборств, шолом боксерський закритий</keywords>
+    <keywords_ua>шоломи, шоломи для боксу, боксерські Шоломи захисні, Шолом для боксу, Шоломи для боксу та єдиноборств, Боксерський шолом PowerPlay, захист голови, Захист голови шолом, Захист голови карате для дітей, Шолом боксерський тренувальний, Боксерський тренувальний шолом, шолом бокс тренувальний, шолом бокс змагальний, Шолом боксерський відкритий, боксерський шолом відкритий</keywords_ua>
+    <param name="Вид шлема">Бокс</param>
+    <param name="Возрастная группа">Взрослая</param>
+    <param name="Цвет">Синий</param>
+    <param name="Материал верха">Искусственная кожа</param>
+    <param name="Материал подкладки">Искусственная кожа</param>
+    <param name="Размер">S</param>
+    <param name="Состояние">Новое</param>
+    <param name="Тип">Закрытый</param>
+    <param name="Висновок СЕЗ" unit="">Відповідає санітарно-епідеміологічним нормам</param>
+    <param name="Гарантія" unit="">14 днів</param>
+    <param name="Склад  матеріалу" unit="">PU-шкіра (ЕКО шкіра), пінний наповнювач</param>
+    <param name="Страна регистрации бренда" unit="">Польша</param>
+  </offer>
+<offer id="671872535" available="true">
+    <url>https://powerplay.com.ua/p671872535-poyas-dlya-shudnennya.html</url>
+    <price>480</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>38154295</categoryId>
+    <picture>https://images.prom.ua/5011344091_poyas-dlya-shudnennya.jpg</picture>
+    <picture>https://images.prom.ua/2480476882_poyas-dlya-shudnennya.jpg</picture>
+    <picture>https://images.prom.ua/5005547862_poyas-dlya-shudnennya.jpg</picture>
+    <picture>https://images.prom.ua/5005547849_poyas-dlya-shudnennya.jpg</picture>
+    <picture>https://images.prom.ua/5005547851_poyas-dlya-shudnennya.jpg</picture>
+    <picture>https://images.prom.ua/5005547857_poyas-dlya-shudnennya.jpg</picture>
+    <picture>https://images.prom.ua/1472878882_poyas-dlya-shudnennya.jpg</picture>
+    <picture>https://images.prom.ua/1472878963_poyas-dlya-shudnennya.jpg</picture>
+    <picture>https://images.prom.ua/5005547858_poyas-dlya-shudnennya.jpg</picture>
+    <picture>https://images.prom.ua/1472879329_poyas-dlya-shudnennya.jpg</picture>
+    <pickup>false</pickup>
+    <delivery>true</delivery>
+    <name>Пояс для схуднення PowerPlay 4303 Чорно-Синій</name>
+    <name_ua>Пояс для схуднення PowerPlay 4303 Чорно-Синій</name_ua>
+    <vendor>Power Play</vendor>
+    <vendorCode>PP_4303_Black/Blue</vendorCode>
+    <country_of_origin>Китай</country_of_origin>
+    <description><![CDATA[<p><strong>Призначення: </strong>для занять фітнесом вдома і в тренажерному залі.</p>
+<p><strong>Опис:</strong></p>
+<ul>
+<li><a href="/g38154295-poyasi-dlya-shudnennya" target="_self">Пояс для схуднення</a>&nbsp;PowerPlay&nbsp;4303&nbsp;виготовлений із неопрену, укріплений фактурним еластичним нейлоном.</li>
+<li>Цей аксесуар надійно фіксується на тілі за допомогою застібки на липучці, не сповзає під час занять, не викликає алергії.</li>
+<li>Внаслідок підвищення температури тіла в зоні контакту поясу з тілом процес спалення жиру проходить значно швидше, сприяючи схудненню.</li>
+<li>Також пояс PowerPlay 4303 підтримує нижню частину спини та пресу під час тренування.</li>
+</ul>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4967487664_w640_h2048_2480476878_w640_h640_2480476878.jpg?fresh=1&PIMAGE_ID=4967487664" style="width:500px;height:504px"/></p>
+<p><strong>Ефективність і дія поясу для схуднення</strong></p>
+<p>У процесі вивчення розмаїтих способів зменшення ваги тіла спеціалісти роблять чимало відкриттів.&nbsp; Серед них &ndash; ефективний пояс для схуднення. Це механічний прилад, що працює за принципом підвищення температури та покращення кровообігу. За формою пояс для схуднення являє собою широку еластичну стрічку з фіксатором.</p>
+<p>Пояс для схуднення живота для жінок одягається на проблемну зону, застібається і витримується певний час, чинячи вплив на жирові відкладення.</p>
+<p>&nbsp;<strong> &nbsp; &nbsp; Це сприяє наступним змінам:&nbsp;&nbsp;</strong></p>
+<ul>
+<li>&nbsp;Виводить з організму токсини, шлаки та інші продукти розпаду;</li>
+<li>&nbsp;Прискорює обмін речовин;</li>
+<li>&nbsp;Відновлює клітини та тканини організму;</li>
+<li>&nbsp;Покращує кровообіг;</li>
+<li>&nbsp; Прискорює процеси спалення жиру;</li>
+<li>&nbsp; Має масажний ефект;</li>
+<li>&nbsp;&nbsp;Покращує функціонування травної системи.</li>
+</ul>
+<p>Пояс будь-якого типу базується на створенні непроникної оболонки та нагріванні ділянок, що потребують корекції. Головна його ціль в тому, щоби не дати певним ділянкам тіла охолонути до природної температури та забезпечити сильне потовиділення. Завдяки цьому з організму виходиться зайва рідина і, відповідно, відбувається схуднення.</p>
+<p><strong>У чому користь поясу для схуднення?</strong></p>
+<ul>
+<li>Разом із сечею й потом виходить зайвий жир, що накопичився у проблемній зоні;</li>
+<li>Зміцнюються м&rsquo;язи;</li>
+<li>Покращується робота кишківника і шлунка;</li>
+<li>Шкіра стає більш гладкою і пружною;</li>
+<li>З організму виводяться шкідливі компоненти;</li>
+<li>Зменшуються прояви целюліту.</li>
+</ul>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4967487010_w640_h2048_2480476880_w640_h640_2480476880.jpg?fresh=1&PIMAGE_ID=4967487010" style="width:500px;height:403px"/></p>
+<p><strong>Властивості:</strong></p>
+<ul>
+<li>Матеріал: неопрен</li>
+<li>довжина : 100</li>
+<li>ширина: 20</li>
+</ul>
+<p><strong>Рекомендовано на талію не більше 95 см.</strong></p>
+<p style="text-align:center"><strong><img alt="" src="https://images.prom.ua/4967486277_w640_h2048_2130256892_w640_h640_2130256892.jpg?fresh=1&PIMAGE_ID=4967486277" style="width:500px;height:315px"/></strong></p>
+<p>&nbsp;</p>]]></description>
+    <description_ua><![CDATA[<p><strong>Призначення: </strong>для занять фітнесом вдома і в тренажерному залі.</p>
+<p><strong>Опис:</strong></p>
+<p><a href="/g38154295-poyasi-dlya-shudnennya">Пояс для схуднення</a> PowerPlay 4303 виготовлений із неопрену, укріплений фактурним еластичним нейлоном. Цей аксесуар надійно фіксується на тілі за допомогою подвійної застібки на липучці. Не сповзає під годину зайняти, не викликає алергії. За рахунок підвищення температури тіла в зоні контакту поясу з тілом процес спалення жиру проходити значно швидше, сприяючи схудненню. Також пояс PowerPlay 4303 підтримує нижню частину spini і пресу під час тренування.</p>
+<p><strong>Технічні характеристики:</strong></p>
+<ul>
+<li>Довжина - 100см,</li>
+<li>Ширина - 20см.</li>
+<li>Колір - Чорно-Синій</li>
+</ul>]]></description_ua>
+    <quantity_in_stock>8</quantity_in_stock>
+    <keywords>пояса для схуднення, пояс для спины, пояса, пояс для фитнеса, пояс для похудения, пояс для зала, пояс для осанки, пояс для похудения powerplay, пояс для схуднення, пояс-сауна, пояс для похудения сауна, пояс для похудения сауна из неопрена, куплю пояс сауна, Жирозжигательный пояс сауна, пояс сауна, Спортивний пояс для спини, Пояс для схуднення, пояс для схуднення з ефектом сауни, Пояс для підтримки живота, Пояс для спини поперековий, Корсет для похудания, пояс для залу, Ортопедичний пояс для спини, пояс для спини, Пояс для підтримки спини, Подарунок спортсмену, Пояс для спини, корсетный пояс, Корсетный пояс для спорта, Корсетный пояс для фитнеса, Корсетный пояс для тренировок, кожаный пояс-корсет заказать, Пояс корсет, корсет для підтримки спини</keywords>
+    <keywords_ua>пояса для схуднення, пояс для спины, пояса, пояс для фитнеса, пояс для похудения, пояс для зала, пояс для осанки, пояс для похудения powerplay, пояс для схуднення, пояс-сауна, пояс для похудения сауна, пояс для похудения сауна из неопрена, куплю пояс сауна, Жирозжигательный пояс сауна, пояс сауна</keywords_ua>
+    <param name="Вид изделия">Пояс</param>
+    <param name="Действие">Эффект "сауны"|Липолитическое|Подтягивающее</param>
+    <param name="Застежка">Резинка|Липучка</param>
+    <param name="Цвет">Синий</param>
+    <param name="Материал">Нейлон</param>
+    <param name="Состав">Неопрен, ПВХ</param>
+    <param name="Состояние">Новое</param>
+    <param name="Пол">Унисекс</param>
+    <param name="Висновок СЕЗ" unit="">Відповідає санітарно-епідеміологічним нормам</param>
+    <param name="Гарантія" unit="">14 дней</param>
+    <param name="Країна Реєстрації" unit="">Чехия</param>
+    <param name="Размер (&quot;)" unit="">Універсальний</param>
+    <param name="Степень фиксации" unit="">Регулируемая</param>
+    <param name="Тип фиксации" unit="">Липучка</param>
+    <param name="Частина тіла" unit="">Спина,живіт</param>
+  </offer>
+<offer id="675927877" available="true">
+    <url>https://powerplay.com.ua/p675927877-skakalka-powerplay-4201.html</url>
+    <price>120</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>38154070</categoryId>
+    <picture>https://images.prom.ua/4627451684_skakalka-powerplay-4201.jpg</picture>
+    <picture>https://images.prom.ua/1106936171_skakalka-powerplay-4201.jpg</picture>
+    <picture>https://images.prom.ua/1106936141_skakalka-powerplay-4201.jpg</picture>
+    <picture>https://images.prom.ua/1106935778_skakalka-powerplay-4201.jpg</picture>
+    <picture>https://images.prom.ua/4957637714_skakalka-powerplay-4201.jpg</picture>
+    <picture>https://images.prom.ua/4957637704_skakalka-powerplay-4201.jpg</picture>
+    <picture>https://images.prom.ua/4957637713_skakalka-powerplay-4201.jpg</picture>
+    <picture>https://images.prom.ua/4957637710_skakalka-powerplay-4201.jpg</picture>
+    <picture>https://images.prom.ua/4957637711_skakalka-powerplay-4201.jpg</picture>
+    <picture>https://images.prom.ua/4957637716_skakalka-powerplay-4201.jpg</picture>
+    <pickup>false</pickup>
+    <delivery>true</delivery>
+    <name>Скакалка PowerPlay 4201 Basic Jump Rope Синя (2,8m.)</name>
+    <name_ua>Скакалка PowerPlay 4201 Basic Jump Rope Синя (2,8m.)</name_ua>
+    <vendor>Power Play</vendor>
+    <vendorCode>PP_4201_Blue</vendorCode>
+    <country_of_origin>Китай</country_of_origin>
+    <description><![CDATA[<p><strong>Призначення: </strong>для занять фітнесом вдома і в тренажерному залі.</p>
+<p>Скакалка PowerPlay 4201 &ndash; це простий, але достатньо ефективний тренажер, яким можна користуватись як у спортзалі, так і на вулиці чи вдома. Фахівці стверджують, що стрибки зі скакалкою можуть спалити до 900 ккал на годину, зміцнити ікри, стегна, прес. Скакалка PowerPlay 4201 виготовляється з міцного PP і PVC, має зручні ручки, сучасний дизайн, легка й еластична. Завдяки компактному розміру скакалку зручно носити з собою на тренування, займатися вдома.</p>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973678136_w640_h2048_2070234093_w640_h640_2070234093.jpg?fresh=1&PIMAGE_ID=4973678136" style="width:500px;height:427px"/></p>
+<p><strong>Опис:</strong></p>
+<ul>
+<li>Скакалка призначена для стрибків вперед, назад і хрест-навхрест.</li>
+</ul>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973144423_w640_h2048_3305374788_w640_h640_3305374788.jpg?fresh=1&PIMAGE_ID=4973144423" style="width:500px;height:500px"/></p>
+<ul>
+<li>Дуже корисний снаряд для спортивних тренувань.</li>
+<li>Підвищує серцеву витривалість.</li>
+<li>Тонізує і зміцнює м&#39;язи всього тіла.</li>
+<li>Легкі зручні ручки.</li>
+</ul>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973142360_w640_h2048_3305374461_w640_h640_3305374461.jpg?fresh=1&PIMAGE_ID=4973142360" style="width:500px;height:500px"/></p>
+<p><strong>Технічні характеристики:</strong></p>
+<ul>
+<li>Розміри (м): довжина: 2.8</li>
+<li>Матеріал: ПВХ.</li>
+<li>Колір: Чорний</li>
+</ul>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973681141_w640_h2048_2130249596_w640_h640_2130249596.jpg?fresh=1&PIMAGE_ID=4973681141" style="width:500px;height:640px"/></p>
+<p><em>Увага!</em> Кожна скакалка відповідає параметрам, котрі зазначені у характеристиках. Аби відрегулювати довжину скакалки, вкоротіть трос самостійно.&nbsp;<br/>
+Перш ніж обрізати трос, переконайтесь, що Ви правильно виміряли потрібну вам довжину скакалки.</p>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973137072_w640_h2048_3305374787_w640_h640_3305374787.jpg?fresh=1&PIMAGE_ID=4973137072" style="width:500px;height:500px"/></p>
+<p style="text-align:center"><iframe allowfullscreen="allowfullscreen" frameborder="0" height="315" src="//www.youtube.com/embed/iJnt_BOvTH4?rel=0&loop=0&autoplay=0&controls=1&showinfo=1&disablekb=0&modestbranding=0" width="560"></iframe></p>
+<div><span></span></div>
+<div style=""><span></span></div>]]></description>
+    <description_ua><![CDATA[<p><strong>Призначення: для занять фітнесом вдома і в тренажерному залі.</strong></p>
+<p>Скакалка PowerPlay 4201 &ndash; це простий, але достатня ефективний тренажер, яким можна користуватись як у спортзалі, так і на вулиці чи вдома. Фахівці стверджують, що стрибки зі скакалкою можуть спалити до 900 ккал на годину, зміцнити ікри, стегна, прес. Скакалка PowerPlay 4201 виготовляється з міцного PP і PVC, має зручні ручки, сучасний дизайн, легка і еластична. Завдяки компактному розміру скакалку зручно носити з собою на тренування, займатися вдома.</p>
+<p><strong>Опис:</strong></p>
+<ul>
+<li>Скакалка призначений для стрибків вперед, назад і хрест-навхрест.</li>
+<li>Дуже корисний снаряд для спортивних тренувань.</li>
+<li>Підвищує серцеву витривалість.</li>
+<li>Тонізує і надає форму всьому тілу.</li>
+<li>Легкі зручні ручки.</li>
+</ul>
+<p><strong>Технічні характеристики:</strong></p>
+<ul>
+<li>Розміри (м): довжина: 2.8</li>
+<li>Матеріал: ПВХ.</li>
+<li>Колір: Синій</li>
+</ul>
+<p style="text-align:center"><iframe allowfullscreen="allowfullscreen" frameborder="0" height="315" src="//www.youtube.com/embed/iJnt_BOvTH4?rel=0&loop=0&autoplay=0&controls=1&showinfo=1&disablekb=0&modestbranding=0" width="560"></iframe></p>]]></description_ua>
+    <quantity_in_stock>165</quantity_in_stock>
+    <keywords>скакалка, скакалка важка, фітнес, скакалки, скакалка легка, легка скакалка, скакалка для схуднення, скакалка для фітнесу, все для кроссфита, швидкісна скакалка, дитяча скакалка, прозора дитяча скакалка, скакалка дитяча, скакалка з підшипниками, скакалка для ніг, тросова скакалка, скакалка спортивная, скакалка скоростная, скакалка для фитнеса, скакалка на дітей, скакалка для кросфита, скакалка для дитини, скакалка для ног, скакалка для тренувань, скакалка с подшипниками, скакалка для тренування, скакалка для тренировок, скакалка спортивна, скакалка в зал, скакалка для спорту, скакалка для похудения, скакалка детская, скакалка для дітей, скакалка легкая, скакалка з підшипником, тросовая скакалка, скакалка с регулировкой длины, скоростная скакалка, легкая скакалка, скакалка з регулюванням довжини, скакалка для спорта, скакалка швидкісна, скакалка на детей</keywords>
+    <keywords_ua>скакалка, скакалка важка, фітнес, скакалки, скакалка легка, легка скакалка, скакалка для схуднення, скакалка для фітнесу, Все для кроссфита, швидкісна скакалка, дитяча скакалка, Прозора дитяча скакалка, скакалка дитяча, скакалка з підшипниками</keywords_ua>
+    <param name="Длина" unit="м">2.8</param>
+    <param name="Цвет">Синий</param>
+    <param name="Материал ручек">Пластик</param>
+    <param name="Особенности">Регулируемая длина</param>
+    <param name="Состояние">Новое</param>
+    <param name="Тип">Обычная</param>
+    <param name="Вид" unit="">Класичні</param>
+    <param name="Висновок СЕЗ" unit="">Відповідає санітарно-епідеміологічним нормам</param>
+    <param name="Гарантія" unit="">14 дней</param>
+    <param name="Країна Реєстрації" unit="">Польща</param>
+    <param name="Метеріал тросу" unit="">ПВХ</param>
+  </offer>
+<offer id="675929748" available="true">
+    <url>https://powerplay.com.ua/p675929748-skakalka-shvidkisna-powerplay.html</url>
+    <price>240</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>38154070</categoryId>
+    <picture>https://images.prom.ua/5465278120_skakalka-shvidkisna-powerplay.jpg</picture>
+    <picture>https://images.prom.ua/1580925600_skakalka-shvidkisna-powerplay.jpg</picture>
+    <picture>https://images.prom.ua/1580925608_skakalka-shvidkisna-powerplay.jpg</picture>
+    <picture>https://images.prom.ua/1580925599_skakalka-shvidkisna-powerplay.jpg</picture>
+    <picture>https://images.prom.ua/4956815428_skakalka-shvidkisna-powerplay.jpg</picture>
+    <picture>https://images.prom.ua/4956815412_skakalka-shvidkisna-powerplay.jpg</picture>
+    <picture>https://images.prom.ua/4956815444_skakalka-shvidkisna-powerplay.jpg</picture>
+    <picture>https://images.prom.ua/4956815416_skakalka-shvidkisna-powerplay.jpg</picture>
+    <picture>https://images.prom.ua/4956815436_skakalka-shvidkisna-powerplay.jpg</picture>
+    <picture>https://images.prom.ua/4956815452_skakalka-shvidkisna-powerplay.jpg</picture>
+    <pickup>false</pickup>
+    <delivery>true</delivery>
+    <name>Скакалка швидкісна PowerPlay 4202 Ultra Speed Rope Жовта (2,9m.)</name>
+    <name_ua>Скакалка швидкісна PowerPlay 4202 Ultra Speed Rope Жовта (2,9m.)</name_ua>
+    <vendor>Power Play</vendor>
+    <vendorCode>PP_4202_Yellow</vendorCode>
+    <country_of_origin>Китай</country_of_origin>
+    <description><![CDATA[<p><strong>Призначення:</strong> для занять фітнесом вдома і в тренажерному залі.&nbsp;</p>
+<p>Швидкісна скакалка для кросфіту PowerPlay 4202 &ndash; це достатня ефективний тренажер, яким можна користуватись як у спортзалі, так і на вулиці чи вдома. Вона виготовлена зі сталевого дроту, обтягнутого поліпропіленом, міцна, легка, не займає багато місця. Механізм підшипника виготовлений з матеріалів високої якості. На відміну від класичної конструкції, ручки PowerPlay 4202 оснащені головками, які крутяться, з підшипниками для запобігання скручуванню шнурка під час тренування. Наявність підшипників дозволяє виконувати значно більше обертів на секунду. Застосування швидкісної скакалки забезпечує більш інтенсивне навантаження, розвиває витривалість, зміцнює серцево-судинну та дихальну систему. Також стрибки на такій скакалці ефективно тренують м&#39;язи ікри, стегон та пресу.</p>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973685363_w640_h2048_2070233409_w640_h640_2070233409.jpg?fresh=1&PIMAGE_ID=4973685363" style="width:500px;height:461px"/></p>
+<p><strong>Опис:</strong></p>
+<ul>
+<li>Неймовірна швидкість обертання.</li>
+<li>Унікальна можливість легкої зміни довжини скакалки.</li>
+<li>Трос високої якості.</li>
+<li>Дана скакалка дозволяє робити до 5-ти обертів за 1 секунду.</li>
+<li>Чудовий дизайн.</li>
+</ul>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973156618_w640_h2048_3305374461_w640_h640_3305374461.jpg?fresh=1&PIMAGE_ID=4973156618" style="width:500px;height:500px"/></p>
+<p><strong>Технічні характеристики:</strong></p>
+<ul>
+<li>Розмір - 2.9 м</li>
+<li>Колір - Синій</li>
+</ul>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973685657_w640_h2048_2130250784_w640_h640_2130250784.jpg?fresh=1&PIMAGE_ID=4973685657" style="width:500px;height:500px"/></p>
+<p><em>Увага!</em> Кожна скакалка відповідає параметрам, котрі зазначені у характеристиках. Аби відрегулювати довжину скакалки, вкоротіть трос самостійно.&nbsp;<br/>
+Перш ніж обрізати трос, переконайтесь, що Ви правильно виміряли потрібну вам довжину скакалки.</p>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973158727_w640_h2048_3305374788_w640_h640_3305374788.jpg?fresh=1&PIMAGE_ID=4973158727" style="width:500px;height:500px"/></p>
+<p><strong>Довжина скакалки</strong> - дуже важливий параметр. Якщо виріб занадто довгий - при стрибках буде чіплятися за підлогу, а якщо занадто короткий - змусить весь час підтискати ноги та вивертатися. Такі варіанти не підходять. Довжина скакалки повинна відповідати зросту людини, для якої вона призначена.</p>
+<p style="text-align:center"><img alt="" class="" src="https://images.prom.ua/4973685849_w640_h2048_2130250783_w640_h640_2130250783.jpg?fresh=1&PIMAGE_ID=4973685849" style="width:500px;height:500px"/></p>
+<p><strong>Орієнтовно це виглядає так:</strong></p>
+<ul>
+<li>зріст людини до 152 см - довжина виробу 210 см;</li>
+<li>зріст 152-165 см - довжина 240 см;</li>
+<li>зріст 167-174 см - довжина 274-280 см;</li>
+<li>зріст 175-183 см - 300 см;</li>
+<li>зріст 183 см і більше - 350 см.</li>
+</ul>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973151454_w640_h2048_3305374787_w640_h640_3305374787.jpg?fresh=1&PIMAGE_ID=4973151454" style="width:500px;height:500px"/></p>
+<div><span></span></div>
+<div style=""><span></span></div>]]></description>
+    <description_ua><![CDATA[<p><strong>Призначення: для зайняти кросфітом.</strong></p>
+<p><strong>Опис:</strong></p>
+<p>Швидкісна скакалка для кросфіту PowerPlay 4202 – це достатня ефективний тренажер, яким можна користуватись як у спортзалі, так і на вулиці чи вдома. Вона виготовлена із сталевого дроту, обтягнутого поліпропіленом, міцна, легка, не займає багато місця. Механізм підшипника виготовлений з матеріалів високої якості. На відміну від класичної конструкції, ручки PowerPlay 4202 оснащені головками, які крутяться, з підшипниками для запобігання скручуванню шнурка під час тренування. Наявність підшипників дозволяє виконувати значно більше обертів на секунду. Застосування швидкісної скакалки забезпечує більш інтенсивне навантаження, розвиває витривалість, зміцнює серцево-судинну та дихальну систему. Також стрибки на такій скакалці ефективно тренують м'яка зв'язку ікр, стегон та пресу.</p>
+<ul>
+<li>Неймовірна швидкість обертання.</li>
+<li>Унікальна можливість простоти зміну довжини скакалки.</li>
+<li>Трос високої якості.</li>
+<li>Дана скакалка дозволяє робити до 5-ти обертів за 1 секунду.</li>
+<li>Чудовий дизайн.</li>
+</ul>
+<p><strong>Технічні характеристики:</strong></p>
+<ul>
+<li>Розмір - 2.9</li>
+<li>Колір - Жовтий</li>
+</ul>
+<p>Увага! Кожна скакалка відповідає параметрам, котрі зазначені в характеристиках. Аби відрегулювати довжину скакалки, вкоротіть трос самостійно.<br/>
+<br/>
+Увага : Перш ніж вкоротити трос, переконайтесь, що Ви правильно виміряли потрібну вам довжину скакалки.</p>]]></description_ua>
+    <quantity_in_stock>73</quantity_in_stock>
+    <keywords>скакалка, скакалка важка, фітнес, скакалки, скакалка легка, легка скакалка, скакалка для схуднення, скакалка для фітнесу, все для кроссфита, швидкісна скакалка, дитяча скакалка, прозора дитяча скакалка, скакалка дитяча, скакалка з підшипниками, скакалка для ніг, тросова скакалка, скакалка спортивная, скакалка скоростная, скакалка для фитнеса, скакалка на дітей, скакалка для кросфита, скакалка для дитини, скакалка для ног, скакалка для тренувань, скакалка с подшипниками, скакалка для тренування, скакалка для тренировок, скакалка спортивна, скакалка в зал, скакалка для спорту, скакалка для похудения, скакалка детская, скакалка для дітей, скакалка легкая, скакалка з підшипником, тросовая скакалка, скакалка с регулировкой длины, скоростная скакалка, легкая скакалка, скакалка з регулюванням довжини, скакалка для спорта, скакалка швидкісна, скакалка на детей</keywords>
+    <keywords_ua>скакалка, скакалка важка, фітнес, скакалки, скакалка легка, легка скакалка, скакалка для схуднення, скакалка для фітнесу, Все для кроссфита, швидкісна скакалка, дитяча скакалка, Прозора дитяча скакалка, скакалка дитяча, скакалка з підшипниками</keywords_ua>
+    <param name="Длина" unit="м">2.9</param>
+    <param name="Цвет">Желтый</param>
+    <param name="Материал ручек">Пластик</param>
+    <param name="Особенности">Регулируемая длина</param>
+    <param name="Состояние">Новое</param>
+    <param name="Тип">Обычная</param>
+    <param name="Вид" unit="">Швидкісні</param>
+    <param name="Висновок СЕЗ" unit="">Відповідає санітарно-епідеміологічним нормам</param>
+    <param name="Гарантія" unit="">14 дней</param>
+    <param name="Країна Реєстрації" unit="">Польща</param>
+    <param name="Метеріал тросу" unit="">Металевий трос</param>
+  </offer>
+<offer id="770836500" available="false">
+    <url>https://powerplay.com.ua/p770836500-nabir-gantelej-kejsi.html</url>
+    <price>1300</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>38153486</categoryId>
+    <picture>https://images.prom.ua/4642233922_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/5008832182_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/5008832203_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/5008832210_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/5008832214_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/5008832208_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/5008832200_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/1692370617_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/1692370729_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/1692371708_nabir-gantelej-v.jpg</picture>
+    <pickup>false</pickup>
+    <delivery>true</delivery>
+    <name>Набір гантелей в кейсі 6 кг. PowerPlay 4103 Fitness Dumbells (2шт.*0,5кг. 2шт.*1кг. 2шт.*1,5кг.)</name>
+    <name_ua>Набір гантелей в кейсі 6 кг. PowerPlay 4103 Fitness Dumbells (2шт.*0,5кг. 2шт.*1кг. 2шт.*1,5кг.)</name_ua>
+    <vendor>Power Play</vendor>
+    <vendorCode>PP_4103_6kg</vendorCode>
+    <country_of_origin>Китай</country_of_origin>
+    <description><![CDATA[<p><strong>Призначення: </strong>для занять фітнесом вдома і в тренажерному залі.</p>
+<p><strong>Опис:</strong></p>
+<ul>
+<li>Гантелі ‒ незамін<a>ні</a>&nbsp;для тренування м м&#39;язового каркаса людини.</li>
+<li>Використовуються в фітнесі, бодибілдинг, функціональному тренінгу (в тому числі CrossFit), лікувальній фізкультурі.</li>
+<li>У набір вінілових гантелей PowerPlay входять гантелі з покриттям із полівінілхлориду.</li>
+<li>На відміну від звичайних гантелей, вони ідеально підходять для тренувань в домашніх умовах, оскільки не дряпають підлогу і мінімізують шум від зіткнення з нею.</li>
+<li>Завдяки нековзній поверхні їх можна використовувати для аквааеробіки та для інших вправ у води.</li>
+<li>Також ці снаряди приємні на дотик, не холодні в долонях і виконані в яскравій колірній гамі.</li>
+</ul>
+<h3><strong>Набір круглих вінілових гантелей&nbsp;</strong></h3>
+<p>- це інструмент, який допоможе вам зміцнити та надати форму вашим рукам, передпліччям і м&#39;язам грудей. Підходить для занять аеробікою, фітнесом, силовими вправами та реабілітації. Контурна форма гантелей гарантує надійне і зручне зчеплення. Вага гантелей, описана на бічній стороні виробу та полегшує їх ідентифікацію. Завдяки невеликому розміру круглі вінілові гантелі надзвичайно легко зберігати та перевозити - вони легко поміщаються в сумці або рюкзаку, тому ви можете взяти їх з собою куди завгодно!</p>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4960791453_w640_h2048_3366921011_w640_h640_3366921011.jpg?fresh=1&PIMAGE_ID=4960791453" style="width:500px;height:457px"/></p>
+<h3><strong>Надійні та практичні</strong></h3>
+<p>Круглі вінілові гантелі поєднують в собі естетику і функціональність. Вони виготовлені з високоякісного чавуну, покриті міцним вінілом. Поверхня гантелей не вбирає піт і вологу, завдяки чому їх дуже легко чистити. Крім того, вінілове покриття зводить до мінімуму ризик подряпин на підлозі під час можливого падіння, що робить цей продукт відмінним для домашніх тренувань</p>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4960791858_w640_h2048_3366920487_w640_h640_3366920487.jpg?fresh=1&PIMAGE_ID=4960791858" style="width:500px;height:499px"/></p>
+<p><strong>Комплект складається із 6 гантелей:</strong></p>
+<ul>
+<li>2 гантелі 0,5 кг</li>
+<li>2 гантелі 1 кг</li>
+<li>2 гантелі 1,5 кг.</li>
+</ul>
+<p><strong>Для зручного зберігання та перенесення передбачений кейс.</strong></p>
+<p>&nbsp;</p>
+<p><strong>Технічні властивості:</strong></p>
+<p><strong>Матеріал: </strong>сталь, покриття вінілове</p>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4960794820_w640_h2048_2633605937_w640_h640_2633605937.jpg?fresh=1&PIMAGE_ID=4960794820" style="width:500px;height:458px"/></p>
+<p style="text-align:center"><iframe allowfullscreen="allowfullscreen" frameborder="0" height="360" src="//www.youtube.com/embed/o86A7vctTDw?rel=0&loop=0&autoplay=0&controls=1&showinfo=1&disablekb=0&modestbranding=0" width="640"></iframe></p>]]></description>
+    <description_ua><![CDATA[<p><strong>Набір гантелей в кейсі 6 кг. PowerPlay 4103</strong></p>
+<p><strong>Призначення: для занять фітнесом вдома і в тренажерному залі.</strong></p>
+<p>Опис:</p>
+<ul>
+<li>Гантелі ‒ незамінні снаряди для тренування м м'язового каркаса людини.</li>
+<li>Використовуються в фітнесі, бодібілдінгу, функціональному тренінгу (в тому числі CrossFit), лікувальній фізкультурі.</li>
+<li>У набір вінілових гантелей PowerPlay 4103 входять гантелі з покриттям із полівінілхлориду.</li>
+<li>На відміну від звичайних гантелей, вони ідеально підходять для тренувань в домашніх умовах, оскільки не дряпають підлогу і мінімізують шум від зіткнення з нею.</li>
+<li>Завдяки нековзкій поверхні їх можна використовувати для аквааеробіки та для інших вправ у води. Також ці снаряди приємні на дотик, не холодні в долонях і виконані в яскравій кольоровій гамі.</li>
+</ul>
+<p>Комплект складається із 6 гантелей:</p>
+<ul>
+<li>2 гантелі-по 0,5 кг</li>
+<li>2 гантелі-за 1 кг</li>
+<li>2 гантелі-по 1,5 кг.</li>
+</ul>
+<p>Для зручного зберігання та перенесення передбачений кейс.</p>
+<p style="text-align:center"><iframe allowfullscreen="allowfullscreen" frameborder="0" height="480" src="//www.youtube.com/embed/o86A7vctTDw?rel=0&loop=0&autoplay=0&controls=1&showinfo=1&disablekb=0&modestbranding=0" width="853"></iframe></p>]]></description_ua>
+    <quantity_in_stock>0</quantity_in_stock>
+    <keywords>гантелі, набір гантелей, Набір гантелей у валізі, Подарунковий набір гантелей, гантелі подарункові, набір гантелі, гантелі набір, гантелі тренувальні, гантелі в коробці, Гантелі в кейсі, Гантелі 6 кг, Подарочный набор гантелей, набор гантелей, гантелі для дому, гантели, гантель обрезинена, гантелі на подарунок, гантель, обрезиненні Гантелі, гантель вінілова, Гантелі вініл, Гантели в кейсе, гантелі вініл, Гантелі, Гантелі для спорту, Гантель обгумована, Гантелі набір, гентелі неопрен, неопренова гантель, гентелі непренові, гиря для тренировок, гантелі з пінополіуретану, Гантелі неопренові, гантели в коробке, гантели тренировочные, Гантелі у валізі, гантелі обрезинені, гентель обрезинена, гантель неопренова, гантелі вінілові, гентель для фітнесу, неопренові гантелі, Гантель обрезинена 5 кг, Гантелі вініл 5 кг</keywords>
+    <keywords_ua>гантелі, набір гантелей, Набір гантелей у валізі, Подарунковий набір гантелей, гантелі подарункові, набір гантелі, гантелі набір, гантелі тренувальні, гантелі в коробці, Гантелі в кейсі, Гантелі 6 кг</keywords_ua>
+    <param name="Цвет">Разные цвета</param>
+    <param name="Конструкция">Цельная</param>
+    <param name="Покрытие блинов">Винил</param>
+    <param name="Состояние">Новое</param>
+    <param name="Тип">Гантели</param>
+    <param name="Тип грифа">Прямой</param>
+    <param name="Висновок СЕЗ" unit="">Відповідає санітарно-епідеміологічним нормам</param>
+    <param name="Гарантія" unit="">14 дней</param>
+    <param name="Комплект" unit="">Набір</param>
+    <param name="Країна Реєстрації" unit="">Польща</param>
+    <param name="Склад  матеріалу" unit="">Метал, покриття неопрен</param>
+  </offer>
+<offer id="770848933" available="false">
+    <url>https://powerplay.com.ua/p770848933-nabir-gantelej-kejsi.html</url>
+    <price>2600</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>38153486</categoryId>
+    <picture>https://images.prom.ua/3282643725_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/3291398406_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/3282596432_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/3291398190_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/5011475892_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/5011475917_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/3282596374_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/3282596836_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/5011479451_nabir-gantelej-v.jpg</picture>
+    <picture>https://images.prom.ua/3291398677_nabir-gantelej-v.jpg</picture>
+    <pickup>false</pickup>
+    <delivery>true</delivery>
+    <name>Набір гантелей в кейсі 12 кг. PowerPlay 4118 Fitness Dumbells (2шт.*1кг. 2шт.*2кг. 2шт.*3кг.)</name>
+    <name_ua>Набір гантелей в кейсі 12 кг. PowerPlay 4118 Fitness Dumbells (2шт.*1кг. 2шт.*2кг. 2шт.*3кг.)</name_ua>
+    <vendor>Power Play</vendor>
+    <vendorCode>PP_4118_12kg</vendorCode>
+    <country_of_origin>Китай</country_of_origin>
+    <description><![CDATA[<p><strong>Призначення: </strong>для занять фітнесом вдома і в тренажерному залі.</p>
+<p><strong>Опис:</strong></p>
+<ul>
+<li>Гантелі ‒ незамін<a>ні</a>&nbsp;для тренування м м&#39;язового каркаса людини.</li>
+<li>Використовуються в фітнесі, бодибілдинг, функціональному тренінгу (в тому числі CrossFit), лікувальній фізкультурі.</li>
+<li>У набір вінілових гантелей PowerPlay входять гантелі з покриттям із полівінілхлориду.</li>
+<li>На відміну від звичайних гантелей, вони ідеально підходять для тренувань в домашніх умовах, оскільки не дряпають підлогу і мінімізують шум від зіткнення з нею.</li>
+<li>Завдяки нековзній поверхні їх можна використовувати для аквааеробіки та для інших вправ у води.</li>
+<li>Також ці снаряди приємні на дотик, не холодні в долонях і виконані в яскравій колірній гамі.</li>
+</ul>
+<h3><strong>Набір круглих вінілових гантелей&nbsp;</strong></h3>
+<p>- це інструмент, який допоможе вам зміцнити та надати форму вашим рукам, передпліччям і м&#39;язам грудей. Підходить для занять аеробікою, фітнесом, силовими вправами та реабілітації. Контурна форма гантелей гарантує надійне і зручне зчеплення. Вага гантелей, описана на бічній стороні виробу та полегшує їх ідентифікацію. Завдяки невеликому розміру круглі вінілові гантелі надзвичайно легко зберігати та перевозити - вони легко поміщаються в сумці або рюкзаку, тому ви можете взяти їх з собою куди завгодно!</p>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4960786875_w640_h2048_3366921011_w640_h640_3366921011.jpg?fresh=1&PIMAGE_ID=4960786875" style="width:500px;height:457px"/></p>
+<h3><strong>Надійні та практичні</strong></h3>
+<p>Круглі вінілові гантелі поєднують в собі естетику і функціональність. Вони виготовлені з високоякісного чавуну, покриті міцним вінілом. Поверхня гантелей не вбирає піт і вологу, завдяки чому їх дуже легко чистити. Крім того, вінілове покриття зводить до мінімуму ризик подряпин на підлозі під час можливого падіння, що робить цей продукт відмінним для домашніх тренувань</p>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4960786476_w640_h2048_3366920487_w640_h640_3366920487.jpg?fresh=1&PIMAGE_ID=4960786476" style="width:500px;height:499px"/></p>
+<p><strong>Комплект</strong> складається із 6 гантелей:</p>
+<ul>
+<li>2 гантелі 1 кг</li>
+<li>2 гантелі по 2 кг</li>
+<li>2 гантелі по 3 кг</li>
+</ul>
+<p><strong>Для зручного зберігання та перенесення передбачений кейс.</strong></p>
+<p><strong>Технічні властивості:</strong></p>
+<p><strong>Матеріал: </strong>сталь, покриття вінілове</p>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4960788967_w640_h2048_3291399145_w640_h640_3291399145.jpg?fresh=1&PIMAGE_ID=4960788967" style="width:500px;height:457px"/></p>
+<p>&nbsp;</p>]]></description>
+    <description_ua><![CDATA[<p><strong>Набір гантелей в кейсі 12 кг. PowerPlay 4118</strong></p>
+<p><strong>Призначення: для занять фітнесом вдома і в тренажерному залі.</strong></p>
+<p><strong>Опис:</strong></p>
+<ul>
+<li>Гантелі ‒ незамінні снаряди для тренування м м&#39;язового каркаса людини.</li>
+<li>Використовуються в фітнесі, бодібілдінгу, функціональному тренінгу (в тому числі CrossFit), лікувальній фізкультурі.</li>
+<li>У набір вінілових гантелей PowerPlay 4118 входять гантелі з покриттям із полівінілхлориду.</li>
+<li>На відміну від звичайних гантелей, вони ідеально підходять для тренувань в домашніх умовах, оскільки не дряпають підлогу і мінімізують шум від зіткнення з нею.</li>
+<li>Завдяки нековзкій поверхні їх можна використовувати для аквааеробіки та для інших вправ у води.</li>
+<li>Також ці снаряди приємні на дотик, не холодні в долонях і виконані в яскравій кольоровій гамі.</li>
+</ul>
+<p>Комплект складається із 6 гантелей:</p>
+<ul>
+<li>2 гантелі-за 1 кг</li>
+<li>2 гантелі по 2 кг</li>
+<li>2 гантелі по 3 кг</li>
+</ul>
+<p>Для зручного зберігання та перенесення передбачений кейс.</p>
+<p>&nbsp;</p>]]></description_ua>
+    <quantity_in_stock>0</quantity_in_stock>
+    <keywords>гантелі в кейсі 12кг, Подарунковий набір гантелей, гантелі, Набір гантелей у валізі, набір гантелей, гантелі подарункові, набір гантелі, гантелі набір, гантелі тренувальні, гантелі в коробці, Гантелі в кейсі, Гантелі 6 кг, Подарочный набор гантелей, набор гантелей, гантелі для дому, гантели, гантель обрезинена, гантелі на подарунок, гантель, обрезиненні Гантелі, гантель вінілова, Гантелі вініл, Гантели в кейсе, гантелі вініл, Гантелі, Гантелі для спорту, Гантель обгумована, Гантелі набір, гентелі неопрен, неопренова гантель, гентелі непренові, гиря для тренировок, гантелі з пінополіуретану, Гантелі неопренові, гантели в коробке, гантели тренировочные, Гантелі у валізі, гантелі обрезинені, гентель обрезинена, гантель неопренова, гантелі вінілові, гентель для фітнесу, неопренові гантелі, Гантель обрезинена 5 кг, Гантелі вініл 5 кг</keywords>
+    <keywords_ua>гантелі в кейсі 12кг, Подарунковий набір гантелей, гантелі, Набір гантелей у валізі, набір гантелей, гантелі подарункові, набір гантелі, гантелі набір, гантелі тренувальні, гантелі в коробці, Гантелі в кейсі, Гантелі 6 кг</keywords_ua>
+    <param name="Вес" unit="кг">12</param>
+    <param name="Цвет">Разные цвета</param>
+    <param name="Конструкция">Цельная</param>
+    <param name="Покрытие блинов">Винил</param>
+    <param name="Состояние">Новое</param>
+    <param name="Тип">Гантели</param>
+    <param name="Висновок СЕЗ" unit="">Відповідає санітарно-епідеміологічним нормам</param>
+    <param name="Гарантія" unit="">14 дней</param>
+    <param name="Комплект" unit="">Набір</param>
+    <param name="Країна Реєстрації" unit="">Польща</param>
+    <param name="Склад  матеріалу" unit="">Метал, покриття неопрен</param>
+  </offer>
+<offer id="770880060" available="true">
+    <url>https://powerplay.com.ua/p770880060-skakalka-powerplay-4205.html</url>
+    <price>120</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>38154070</categoryId>
+    <picture>https://images.prom.ua/4641968476_skakalka-powerplay-4205.jpg</picture>
+    <picture>https://images.prom.ua/1580933974_skakalka-powerplay-4205.jpg</picture>
+    <picture>https://images.prom.ua/1494290456_skakalka-powerplay-4205.jpg</picture>
+    <picture>https://images.prom.ua/1580933754_skakalka-powerplay-4205.jpg</picture>
+    <picture>https://images.prom.ua/4957674511_skakalka-powerplay-4205.jpg</picture>
+    <picture>https://images.prom.ua/4957674506_skakalka-powerplay-4205.jpg</picture>
+    <picture>https://images.prom.ua/4957674536_skakalka-powerplay-4205.jpg</picture>
+    <picture>https://images.prom.ua/4957674491_skakalka-powerplay-4205.jpg</picture>
+    <picture>https://images.prom.ua/4957674499_skakalka-powerplay-4205.jpg</picture>
+    <picture>https://images.prom.ua/1494290509_skakalka-powerplay-4205.jpg</picture>
+    <pickup>false</pickup>
+    <delivery>true</delivery>
+    <name>Скакалка PowerPlay 4205 Classic Plus Jump Rope Помаранчева (2,7m.)</name>
+    <name_ua>Скакалка PowerPlay 4205 Classic Plus Jump Rope Помаранчева (2,7m.)</name_ua>
+    <vendor>Power Play</vendor>
+    <vendorCode>PP_4205_Orange</vendorCode>
+    <country_of_origin>Китай</country_of_origin>
+    <description><![CDATA[<p><strong>Призначення: </strong>для занять фітнесом вдома і в тренажерному залі.</p>
+<p>Скакалка PowerPlay 4205 &ndash; це простий, але достатня ефективний тренажер, яким можна користуватись як у спортзалі, так і на вулиці чи в домашніх умовах. Фахівці стверджують, що стрибки зі скакалкою можуть спалити до 900 ккал на годину, зміцнити ікри, стегна, прес. Скакалка PowerPlay 4205 виготовляється з міцного PP і PVC, має зручні ручки, сучасний дизайн, легка і еластична. Завдяки компактному розміру скакалку зручно носити з собою на тренування, займатися вдома. Наявність вбудованих підшипників в ручках дозволяє підвищити ефективність зайняти.</p>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973183721_w640_h2048_54450250.jpg?fresh=1&PIMAGE_ID=4973183721" style="width:500px;height:438px"/></p>
+<p><strong>Опис:</strong></p>
+<ul>
+<li>Скакалка призначений для стрибків вперед, назад і хрест-навхрест.</li>
+<li>Дуже корисний снаряд для спортивних тренувань.</li>
+<li>Підвищує серцеву витривалість.</li>
+<li>Тонізує і надає форму всьому тілу.</li>
+<li>Легкі зручні ручки.</li>
+</ul>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973185793_w640_h2048_3305374461_w640_h640_3305374461.jpg?fresh=1&PIMAGE_ID=4973185793" style="width:500px;height:500px"/></p>
+<p><strong>Технічні характеристики:</strong></p>
+<ul>
+<li>Розміри (м): довжина: 2.7</li>
+<li>Матеріал: ПВХ. ручки ЕВА</li>
+</ul>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973186420_w640_h2048_3305374788_w640_h640_3305374788.jpg?fresh=1&PIMAGE_ID=4973186420" style="width:500px;height:500px"/></p>
+<p><em>Увага</em>! Кожна скакалка відповідає параметрам, котрі зазначені в характеристиках. Аби відрегулювати довжину скакалки, вкоротіть трос самостійно.<br/>
+Перш ніж обрізати трос, переконайтесь, що Ви правильно виміряли потрібну вам довжину скакалки.</p>
+<p><strong>Довжина скакалки</strong> - дуже важливий параметр. Якщо виріб занадто довгий - при стрибках буде чіплятися за підлогу, а якщо занадто короткий - змусить весь час підтискати ноги та вивертатися. Такі варіанти не підходять. Довжина скакалки повинна відповідати зросту людини, для якої вона призначена.</p>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973184694_w640_h2048_3365078096_w640_h640_3365078096.jpg?fresh=1&PIMAGE_ID=4973184694" style="width:500px;height:471px"/></p>
+<p><strong>Орієнтовно це виглядає так:</strong></p>
+<ul>
+<li>зріст людини до 152 см - довжина виробу 210 см;</li>
+<li>зріст 152-165 см - довжина 240 см;</li>
+<li>зріст 167-174 см - довжина 274-280 см;</li>
+<li>зріст 175-183 см - 300 см;</li>
+<li>зріст 183 см і більше - 350 см.</li>
+</ul>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4973181166_w640_h2048_3305374787_w640_h640_3305374787.jpg?fresh=1&PIMAGE_ID=4973181166" style="width:500px;height:500px"/></p>]]></description>
+    <description_ua><![CDATA[<p><strong>Призначення: для занять фітнесом вдома і в тренажерному залі.</strong></p>
+<p>Скакалка&nbsp;PowerPlay&nbsp;4205&nbsp;&ndash; це&nbsp;простий, але достатньо ефективний тренажер, яким можна користуватись як у в спортзалі, так і на вулиці чи в домашніх умовах. Фахівці стверджують, що стрибки зі скакалкою можуть спалити до 900 ккал на годину, зміцнити ікри, стегна, прес. Скакалка PowerPlay 4205 виготовляється з міцного PP і PVC, має зручні рукоятки, сучасний дизайн, легка і еластична. Завдяки компактному розміру скакалку зручно носити з собою на тренування, займатися вдома. Наявність вбудованих підшипників в ручках дозволяє підвищити ефективність занять.</p>
+<p><strong>Опис:</strong></p>
+<ul>
+<li>Скакалка призначена для стрибків вперед, назад і хрест-навхрест.</li>
+<li>Дуже корисний снаряд для спортивних тренувань.</li>
+<li>Підвищує серцеву витривалість.</li>
+<li>Тонізує і надає форму всьому тілу.</li>
+<li>Легкі зручні ручки.</li>
+</ul>
+<p><strong>Технічні характеристики:</strong></p>
+<ul>
+<li>Розміри (м): довжина: 2.7</li>
+<li>Матеріал: ПВХ.</li>
+<li>Колір: Оранжевий</li>
+</ul>
+<p>Увага! Кожна скакалка відповідає параметрам, котрі зазначені у характеристиках. Аби відрегулювати довжину скакалки, вкоротіть трос самостійно.<br/>
+<br/>
+Увага : Перш ніж вкоротити трос, переконайтесь, що Ви правильно виміряли потрібну вам довжину скакалки.</p>]]></description_ua>
+    <quantity_in_stock>197</quantity_in_stock>
+    <keywords>фітнес, скакалки, скакалка, скакалка важка, скакалка легка, легка скакалка, скакалка для схуднення, скакалка для фітнесу, Все для кроссфита, швидкісна скакалка, дитяча скакалка, Прозора дитяча скакалка, скакалка дитяча, скакалка з підшипниками, скакалка для ніг, тросова скакалка, скакалка спортивная, Скакалка скоростная, скакалка для фитнеса, скакалка на дітей, Скакалка для кросфита, Скакалка для дитини, скакалка для ног, скакалка для тренувань, скакалка с подшипниками, скакалка для тренування, скакалка для тренировок, скакалка спортивна, скакалка в зал, Швидкісна скакалка, Скакалка для спорту, скакалка для похудения, скакалка детская, скакалка для дітей, скакалка легкая, скакалка з підшипником, тросовая скакалка, СКАКАЛКА С РЕГУЛИРОВКОЙ ДЛИНЫ, скоростная скакалка, легкая скакалка, СКАКАЛКА З РЕГУЛЮВАННЯМ ДОВЖИНИ, Скакалка для спорта, Скакалка швидкісна, скакалка на детей</keywords>
+    <keywords_ua>фітнес, скакалки, скакалка, скакалка важка, скакалка легка, легка скакалка, скакалка для схуднення, скакалка для фітнесу, Все для кроссфита, швидкісна скакалка, дитяча скакалка, Прозора дитяча скакалка, скакалка дитяча, скакалка з підшипниками</keywords_ua>
+    <param name="Длина" unit="м">2.7</param>
+    <param name="Цвет">Оранжевый</param>
+    <param name="Материал ручек">Пластик</param>
+    <param name="Особенности">Регулируемая длина</param>
+    <param name="Состояние">Новое</param>
+    <param name="Тип">Обычная</param>
+    <param name="Вид" unit="">Класичні</param>
+    <param name="Висновок СЕЗ" unit="">Відповідає санітарно-епідеміологічним нормам</param>
+    <param name="Гарантія" unit="">14 дней</param>
+    <param name="Країна Реєстрації" unit="">Польща</param>
+    <param name="Метеріал тросу" unit="">ПВХ</param>
+  </offer>
+<offer id="770926328" available="true">
+    <url>https://powerplay.com.ua/p770926328-rezinki-dlya-fitnesu.html</url>
+    <price>250</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>38154079</categoryId>
+    <picture>https://images.prom.ua/5067470950_rezinki-dlya-fitnesu.jpg</picture>
+    <picture>https://images.prom.ua/4665773466_rezinki-dlya-fitnesu.jpg</picture>
+    <picture>https://images.prom.ua/4665773467_rezinki-dlya-fitnesu.jpg</picture>
+    <picture>https://images.prom.ua/4665773465_rezinki-dlya-fitnesu.jpg</picture>
+    <picture>https://images.prom.ua/1306993340_rezinki-dlya-fitnesu.jpg</picture>
+    <picture>https://images.prom.ua/1394900999_rezinki-dlya-fitnesu.jpg</picture>
+    <picture>https://images.prom.ua/1394901989_rezinki-dlya-fitnesu.jpg</picture>
+    <picture>https://images.prom.ua/2062134710_rezinki-dlya-fitnesu.jpg</picture>
+    <picture>https://images.prom.ua/1881184591_rezinki-dlya-fitnesu.jpg</picture>
+    <picture>https://images.prom.ua/2035925156_rezinki-dlya-fitnesu.jpg</picture>
+    <pickup>false</pickup>
+    <delivery>true</delivery>
+    <name>Резинки для фітнесу PowerPlay 4113 Mini Power Band Set набір із 5 шт.  (від 1 до 20 кг)</name>
+    <name_ua>Резинки для фітнесу PowerPlay 4113 Mini Power Band Set набір із 5 шт.  (від 1 до 20 кг)</name_ua>
+    <vendor>Power Play</vendor>
+    <vendorCode>PP_4113</vendorCode>
+    <country_of_origin>Китай</country_of_origin>
+    <description><![CDATA[<p><strong>Призначення: </strong>для занять фітнесом вдома і в тренажерному залі.</p>
+<p>Набір гумок PowerPlay - цей інструмент, підвищить ефективність ваших вправ. Їх універсальне використання означає, що ви можете використовувати їх в різних видах тренувань - від силових тренувань, фітнесу до реабілітаційних вправ. Тренування з гумками допоможуть вам зміцнити м&#39;язи та суглоби по всьому тілу. Вони рекомендуються як любителям, так і досвідченим спортсменам. Комплект містить п&#39;ять латексних гумок, які пропонують різні рівні опору в діапазоні від 1 до 20 кг. Завдяки невеликому розміру гумки дуже легко транспортувати та зберігати.</p>
+<p><strong>Опис:</strong></p>
+<ul>
+<li>Зробіть ваші ноги стрункими, а сідниці та м&#39;язи кору підтягнутими з петлями PowerPlay. Гумки виготовлені зі 100% натурального латексу високої якості, тому вони легко розтягуються утричі від своєї початкової довжини. Ви можете не хвилюватися про те, що гумки порвуться, тому що&nbsp;вони дуже міцні! Навіть після регулярних і довготривалих тренувань не втратять свою форму і пружність.</li>
+<li>Ці спортивні аксесуари дуже легкі та компактні, &nbsp;без зусиль помістяться в жіночу сумочку. Тому можете брати їх із собою повсякчас.</li>
+<li>Еспандер-петля широко використовується у фітнесі, під час занять пілатесом&nbsp;і йогою.</li>
+<li>За допомогою такого простого виробу можна урізноманітнити багато вправ, збільшити навантаження, не викликаючи при цьому звикання м&#39;язів.</li>
+<li>Перевагою гумових петель є їх мобільність та легкість у використанні.</li>
+<li>Результативність і простота у використанні роблять фітнес гумки незамінним засобом для розвитку м&#39;язової структури, фізичної сили, витривалості та гнучкості.</li>
+<li>Гумки для фітнесу широко використовуються як професійними спортсменами, так й серед людей, які просто підтримують свою фізичну форму.</li>
+</ul>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4974957599_w640_h2048_63369123.jpg?fresh=1&PIMAGE_ID=4974957599" style="width:500px;height:463px"/></p>
+<p><strong>Розміри:</strong></p>
+<ul>
+<li>500*50*0,4 мм надслабкий опір (X-light resistance)</li>
+<li>500*50*0,6 мм слабкий опір (Light resistance)</li>
+<li>500*50*0,8 мм середній опір (Medium resistance)</li>
+<li>500*50*1,0 мм сильний опір (Heavy resistance)</li>
+<li>500*50*1,2 мм надсильний опір (X-heavy resistance)</li>
+</ul>
+<p style="text-align:center"><img alt="" src="https://images.prom.ua/4974953587_w640_h2048_3134396943_w640_h640_3134396943.jpg?fresh=1&PIMAGE_ID=4974953587" style="width:500px;height:394px"/></p>
+<p><strong>Вправи з використанням гумок:</strong></p>
+<ul>
+<li>Ходьба зі стрічкою-гумкою. Ця вправа долучає в першу чергу середні сідничні м&#39;язи.</li>
+<li>Бічні кроки з гумкою. Ця вправа тренує великі сідничні м&#39;язи.</li>
+<li>Гребля з гумками. Ця вправа впливає на найширший м&#39;яз спини, круглий, дельтоподібний м&#39;яз, ромбоподібний і трапецієподібний м&#39;язи.</li>
+<li>Станова тяга з гумками. Ця вправа залучає до роботи так звану задню групу м&#39;язів стегна, а саме: двоголовий м&#39;яз стегна, сідничний м&#39;яз і м&#39;язи спини.</li>
+<li>Розведення рук з гумками над головою в положенні стоячи. У цій вправі ми долучаємо&nbsp;в основному дельтоподібний і плечові м&#39;язи.</li>
+<li>Підйом рук в сторони з використанням гумок. У цій вправі в основному працюють дельтоподібний і плечові м&#39;язи.</li>
+<li>Вправа "мертвий жук" з гумками. Ця вправа спрямована на роботу прямого м&#39;яза живота.</li>
+<li>Розведення ніг лежачи на боці - долучає&nbsp;м&#39;язи стегна, середні сідничні м&#39;язи та підколінні сухожилля.</li>
+</ul>
+<p style="text-align:center"><iframe allowfullscreen="allowfullscreen" frameborder="0" height="360" src="//www.youtube.com/embed/FC2CV4m8N00?rel=0&loop=0&autoplay=0&controls=1&showinfo=1&disablekb=0&modestbranding=0" width="640"></iframe></p>
+<p style="text-align:center"><iframe allowfullscreen="allowfullscreen" frameborder="0" height="360" src="//www.youtube.com/embed/_yhwZwyaQdU?rel=0&loop=0&autoplay=0&controls=1&showinfo=1&disablekb=0&modestbranding=0" width="640"></iframe></p>
+<p style="text-align:center"><iframe allowfullscreen="allowfullscreen" frameborder="0" height="360" src="//www.youtube.com/embed/ramBugnS7CE?rel=0&loop=0&autoplay=0&controls=1&showinfo=1&disablekb=0&modestbranding=0" width="640"></iframe></p>
+<p>&nbsp;</p>]]></description>
+    <description_ua><![CDATA[<p><strong>Призначення: для занять фітнесом вдома і в тренажерному залі.</strong></p>
+<p><strong>Опис:</strong></p>
+<ul>
+<li>Зробіть ваші ноги стрункими, а сідниці і м&#39;яка зв&#39;язку кору підтягнутими з петлями PowerPlay. Гумки виготовлені з 100% натурального латексу високої якості, тому вони легко розтягуються утричі від своєї початкової довжини. Ви можете не хвилюватися про те, що вони можуть порватися: вони дуже міцні! Навіть після регулярних і довготривалих тренувань гумки не втратять свою форму і пружність.</li>
+<li>Ці аксесуари для ніг дуже легкі і компактні, вони без зусиль помістяться в жіночу сумочку. І тому вони ідеально підійдуть для подорожей і носіння з собою повсякчас.</li>
+<li>Еспандер-петля широко використовується для фітнес тренувань, при заняттях пілатесом і йогою.</li>
+<li>За допомогою такого простого виробу можна урізноманітнити багато вправ, збільшивши навантаження, не викликаючи при цьому звикання м язів.</li>
+<li>Перевагою гумовіх петель є їх мобільність, легкість у використанні.</li>
+<li>Результативність і простота у використанні роблять його незамінним засобом для розвитку фізичної сили і витривалості.</li>
+<li>Вправи з еспандером широко використовуються не тільки спортсменами, він також популярний і у людей, які активно займаються фізичною підготовкою.</li>
+<li>Еспандер-петля добре розвиває м язову структуру, силу і гнучкість.</li>
+</ul>
+<p><strong>Розміри:</strong></p>
+<ul>
+<li>500*50*0,4 мм над - слабкий опір (X-light resistance)</li>
+<li>500*50*0,6 мм слабкий опір (Light resistance)</li>
+<li>500*50*0,8 мм середній опір (Medium resistance)</li>
+<li>500*50*1,0 мм сильний опір (Heavy resistance)</li>
+<li>500*50*1,2 мм над &ndash; сильний опір (X-heavy resistance)</li>
+</ul>
+<p style="text-align:center"><iframe allowfullscreen="allowfullscreen" frameborder="0" height="480" src="//www.youtube.com/embed/FC2CV4m8N00?rel=0&loop=0&autoplay=0&controls=1&showinfo=1&disablekb=0&modestbranding=0" width="853"></iframe></p>
+<p style="text-align:center"><iframe allowfullscreen="allowfullscreen" frameborder="0" height="480" src="//www.youtube.com/embed/_yhwZwyaQdU?rel=0&loop=0&autoplay=0&controls=1&showinfo=1&disablekb=0&modestbranding=0" width="853"></iframe></p>
+<p style="text-align:center"><iframe allowfullscreen="allowfullscreen" frameborder="0" height="480" src="//www.youtube.com/embed/ramBugnS7CE?rel=0&loop=0&autoplay=0&controls=1&showinfo=1&disablekb=0&modestbranding=0" width="853"></iframe></p>
+<p>&nbsp;</p>]]></description_ua>
+    <quantity_in_stock>472</quantity_in_stock>
+    <keywords>еспандер, гумові петлі, фітнес, еспандер петля, еспандера, еспандери, еспандер для фітнесу, еспандер плечової, фитнесрезинки набір, набір еспандеров, силовий еспандер, еспандер для рук, еспандер для ніг, гума для підтягувань, гума для фітнесу, еспандер тренувальний, гуму для підтягувань, гуму для тренувань, резинки для випадів, резина для спорта, резина для фитнеса, эспандер резинка, эспандер для фитнеса, гуму для тренування, гумка для тренувань, еспандери резинки, гума для тренувань, гумки для випадів, лента для фитнеса, еспандер для пилатеса, еспандер для фитнеса, резинки набором, петля для фитнеса, эспандеры, гумка еспандер для фітнесу йоги, резина для тринеровок, стрічка для тренувань, гумка для фітнесу, набор резиночек, фітнес гумки набір, лента для тренировок, резинка для фитнеса, стрічка еспандер для фітнесу набір, фитнесс резинки, резинки для фітнесу powerplay, резинки для фітнесу, резинки для фітнесу powerplay 4113 mini power band set набір із 5 шт, резинки для фітнесу набір із 5 шт</keywords>
+    <keywords_ua>еспандер, гумові петлі, фітнес, еспандер петля, Еспандера, Еспандери, еспандер для фітнесу, Стрічковий еспандер, еспандер плечової, фитнесрезинки набір, набір еспандеров, силовий еспандер, еспандер для рук, еспандер для ніг, гума для підтягувань, гума для фітнесу, еспандер тренувальний, Гуму для підтягувань, гуму для тренувань</keywords_ua>
+    <param name="Конструкция">Ленточная</param>
+    <param name="Сопротивление" unit="кг">20</param>
+    <param name="Состояние">Новое</param>
+    <param name="Тип">Ленточный</param>
+    <param name="Тип нагрузки">Растяжение</param>
+    <param name="Висновок СЕЗ" unit="">Відповідає санітарно-епідеміологічним нормам</param>
+    <param name="Гарантія" unit="">14 дней</param>
+    <param name="Цвет" unit="">Жовтий, Зелений, Блакитний, Червоний , Чорний</param>
+    <param name="Комплект" unit="">Набір із 5</param>
+    <param name="Країна Реєстрації" unit="">Польща</param>
+    <param name="Материал" unit="">Латекс</param>
+    <param name="Применение" unit="">Універсальні</param>
+    <param name="Супротив" unit="">1-20</param>
+  </offer>
+</offers>
+</shop>
+</yml_catalog>

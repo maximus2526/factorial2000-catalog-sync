@@ -1,0 +1,8 @@
+/vendor/
+/node_modules/
+/release/
+/.phpunit.cache/
+.phpunit.result.cache
+
+# Local-only feed URLs (may contain private hash_tag / tokens).
+/tests/fixtures/feeds/urls.local.php

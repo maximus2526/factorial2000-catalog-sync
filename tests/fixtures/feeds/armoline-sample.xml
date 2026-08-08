@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<yml_catalog date="sample">
+<shop>
+<currencies>
+<currency id="UAH" rate="1"/>
+</currencies>
+<categories>
+<category id="1084">РОЗПРОДАЖ ЗАЛИШКІВ</category>
+<category id="1087">Чоловічі шорти</category>
+<category id="1073">Тактичні брюки</category>
+<category id="1075" parentId="1073">Штани тактичні</category>
+<category id="1074" parentId="1073">Штани зимові утеплені водовідштовхувальні</category>
+<category id="1099" parentId="1073">Спортивні штани</category>
+<category id="1063">Головні убори</category>
+<category id="1067" parentId="1063">Панами</category>
+<category id="1066" parentId="1063">Бейсболки</category>
+<category id="1096" parentId="1063">Кепки</category>
+<category id="1065" parentId="1063">Маски балаклави</category>
+<category id="1064" parentId="1063">Шапки</category>
+<category id="1097" parentId="1063">Баффи</category>
+<category id="1068">Костюми, комплекти</category>
+<category id="1070" parentId="1068">Польові, тактичні костюми та комплекти</category>
+<category id="1069" parentId="1068">Зимові та утеплені костюми і комплекти</category>
+<category id="1072" parentId="1068">Спортивні костюми та комплекти</category>
+<category id="1079">Куртки, вітровки</category>
+<category id="1092" parentId="1079">Куртки літні та тактичні</category>
+<category id="1080" parentId="1079">Куртки зимові та утеплені</category>
+<category id="1062">Рюкзаки, сумки, баули</category>
+<category id="1055">Тактичне спорядження</category>
+<category id="1057" parentId="1055">Плитоноски</category>
+<category id="1061" parentId="1055">Тактичні кобури</category>
+<category id="1056" parentId="1055">Ремені</category>
+</categories>
+<offers>
+<offer id="513" group_id="1468" available="true">
+    <url>https://armoline.com.ua/shorty-alpha-black-rip-stop/</url>
+    <price>1408</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1087</categoryId>
+    <picture>https://armoline.com.ua/content/images/14/shorty-alpha-black-rip-stop-70045123473645_+a83ecd43b4.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/14/shorty-alpha-black-rip-stop-81298165693277_+a19bcba98c.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/14/shorty-alpha-black-rip-stop-32846450679051_+c34de4844b.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/14/shorty-alpha-black-rip-stop-57077446405549_+4612f62bf8.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/14/shorty-alpha-black-rip-stop-96315848479396_+05b71d6270.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/14/shorty-alpha-black-rip-stop-43252304042852_+d0230a25ea.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/14/shorty-alpha-black-rip-stop-64477183851332_+3981d11a20.jpg</picture>
+    <vendorCode>00305000S0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Шорти "ALPHA" BLACK (Rip-Stop)]]></name>
+    <description><![CDATA[<p><img alt="" height="400" loading="lazy" src="/content/uploads/images/37677528/3697501983_w640_h2048_shorts_alpha_3_back_hud1111.jpeg" width="562" /></p>    <p><strong>Шорти в мілітарі стилі &quot;ALPHA&quot;.</strong></p>    <p><strong>Колір - </strong>Black (Чорний).</p>    <p><strong>Тканина - </strong>&quot;Rip-Stop&quot;. Міцна зносостійка тканина для виробництва спецодягу і уніформи.</p>    <p><strong>Склад -</strong> бавовна 35%, поліестер 65%.</p>    <p><strong>Щільність -</strong> 210 г/м&sup2;.</p>    <p><strong>Переваги тканини:</strong></p>    <ul>   <li>комфортність у носінні;</li>   <li>висока міцність;</li>   <li>зносостійкість.</li>  </ul>    <p><strong>Особливості шортів:</strong></p>    <ul>   <li>Мають 6 кишень.</li>   <li>Міцні шви.</li>   <li>Кишені на ґудзиках.</li>   <li>Крой не широкий.</li>   <li>Пояс широкий з еластичними гумовими вставками з боків.</li>   <li>Шльовки під тактичний ремінь &mdash; 5 см.</li>  </ul>    <p><strong>ВИРОБИ ЧОРНОГО КОЛЬОРУ З ЧИСТОЇ БАВОВНИ АБО ЗМІШАНОЇ ТКАНИНИ, З ВМІСТОМ БАВОВНИ, СХИЛЬНІ ДО ВИГОРЯННЯ В РАЗІ ТРИВАЛОГО ПЕРЕБУВАННЯ ПІД ПРЯМИМИ ПРОМЕНЯМИ СОНЦЯ</strong></p>    <p><strong>Колір або відтінок виробу на світлині може незначно відрізнятися від реального. </strong></p>    <p><strong>Більш детальна інформація в розділі <a href="/poshyreni-pytannia/" target="_blank">&quot;Поширені питання&quot;</a>.</strong></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ:</strong></p>    <p><img alt="" height="262" loading="lazy" src="/content/uploads/images/1417387119/3826480848_w640_h2048_shorty_alpha_ua.jpeg" width="640" /></p>    <ul>   <li><strong>А - </strong>Ширина виробу складеного навпіл.</li>   <li><strong>B - </strong>Довжина зовнішнього бічного шва від краю до краю виробу.</li>   <li>Допустиме похибка +- 2 см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви &mdash; телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Black</param>
+    <param name="Стиль">Мілітарі|Карго|Тактичні</param>
+    <param name="Матеріал">Ріп-Стоп</param>
+    <param name="Склад">35% бавовна, 65% поліестер</param>
+    <param name="Посадка">Середня посадка</param>
+    <param name="Кількість кишень">6</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">S</param>
+   </offer>
+<offer id="784" group_id="1468" available="true">
+    <url>https://armoline.com.ua/shorty-alpha-black-rip-stop/784/</url>
+    <price>1408</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1087</categoryId>
+    <picture>https://armoline.com.ua/content/images/35/shorty-alpha-black-rip-stop784-26889299606207_+6412458f39.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/35/shorty-alpha-black-rip-stop784-88071999973997_+2cd777f929.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/35/shorty-alpha-black-rip-stop784-77437624683859_+887ea08c7d.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/35/shorty-alpha-black-rip-stop784-69638002844882_+00def612d8.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/35/shorty-alpha-black-rip-stop784-31758039380655_+6ac4c2561d.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/35/shorty-alpha-black-rip-stop784-70279871887033_+e788cc501a.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/35/shorty-alpha-black-rip-stop784-65239672022229_+1d526ee9a7.jpg</picture>
+    <vendorCode>00305000M0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Шорти "ALPHA" BLACK (Rip-Stop)]]></name>
+    <description><![CDATA[<p><img alt="" height="400" loading="lazy" src="/content/uploads/images/37677528/3697501983_w640_h2048_shorts_alpha_3_back_hud1111.jpeg" width="562" /></p>    <p><strong>Шорти в мілітарі стилі &quot;ALPHA&quot;.</strong></p>    <p><strong>Колір - </strong>Black (Чорний).</p>    <p><strong>Тканина - </strong>&quot;Rip-Stop&quot;. Міцна зносостійка тканина для виробництва спецодягу і уніформи.</p>    <p><strong>Склад -</strong> бавовна 35%, поліестер 65%.</p>    <p><strong>Щільність -</strong> 210 г/м&sup2;.</p>    <p><strong>Переваги тканини:</strong></p>    <ul>   <li>комфортність у носінні;</li>   <li>висока міцність;</li>   <li>зносостійкість.</li>  </ul>    <p><strong>Особливості шортів:</strong></p>    <ul>   <li>Мають 6 кишень.</li>   <li>Міцні шви.</li>   <li>Кишені на ґудзиках.</li>   <li>Крой не широкий.</li>   <li>Пояс широкий з еластичними гумовими вставками з боків.</li>   <li>Шльовки під тактичний ремінь &mdash; 5 см.</li>  </ul>    <p><strong>ВИРОБИ ЧОРНОГО КОЛЬОРУ З ЧИСТОЇ БАВОВНИ АБО ЗМІШАНОЇ ТКАНИНИ, З ВМІСТОМ БАВОВНИ, СХИЛЬНІ ДО ВИГОРЯННЯ В РАЗІ ТРИВАЛОГО ПЕРЕБУВАННЯ ПІД ПРЯМИМИ ПРОМЕНЯМИ СОНЦЯ</strong></p>    <p><strong>Колір або відтінок виробу на світлині може незначно відрізнятися від реального. </strong></p>    <p><strong>Більш детальна інформація в розділі <a href="/poshyreni-pytannia/" target="_blank">&quot;Поширені питання&quot;</a>.</strong></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ:</strong></p>    <p><img alt="" height="262" loading="lazy" src="/content/uploads/images/1417387119/3826480848_w640_h2048_shorty_alpha_ua.jpeg" width="640" /></p>    <ul>   <li><strong>А - </strong>Ширина виробу складеного навпіл.</li>   <li><strong>B - </strong>Довжина зовнішнього бічного шва від краю до краю виробу.</li>   <li>Допустиме похибка +- 2 см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви &mdash; телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Black</param>
+    <param name="Стиль">Мілітарі|Карго|Тактичні</param>
+    <param name="Матеріал">Ріп-Стоп</param>
+    <param name="Склад">35% бавовна, 65% поліестер</param>
+    <param name="Посадка">Середня посадка</param>
+    <param name="Кількість кишень">6</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">M</param>
+   </offer>
+<offer id="785" group_id="1468" available="true">
+    <url>https://armoline.com.ua/shorty-alpha-black-rip-stop/785/</url>
+    <price>1408</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1087</categoryId>
+    <picture>https://armoline.com.ua/content/images/36/shorty-alpha-black-rip-stop785-79740701671598_+c552a382ee.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/36/shorty-alpha-black-rip-stop785-73249978027759_+35aabca3d5.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/36/shorty-alpha-black-rip-stop785-29632147399219_+0569a41e5f.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/36/shorty-alpha-black-rip-stop785-58042325110393_+81753ef4ba.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/36/shorty-alpha-black-rip-stop785-67372237851845_+325526a98c.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/36/shorty-alpha-black-rip-stop785-93150833696733_+ce4007319f.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/36/shorty-alpha-black-rip-stop785-38657137073039_+0734c756b4.jpg</picture>
+    <vendorCode>00305000L0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Шорти "ALPHA" BLACK (Rip-Stop)]]></name>
+    <description><![CDATA[<p><img alt="" height="400" loading="lazy" src="/content/uploads/images/37677528/3697501983_w640_h2048_shorts_alpha_3_back_hud1111.jpeg" width="562" /></p>    <p><strong>Шорти в мілітарі стилі &quot;ALPHA&quot;.</strong></p>    <p><strong>Колір - </strong>Black (Чорний).</p>    <p><strong>Тканина - </strong>&quot;Rip-Stop&quot;. Міцна зносостійка тканина для виробництва спецодягу і уніформи.</p>    <p><strong>Склад -</strong> бавовна 35%, поліестер 65%.</p>    <p><strong>Щільність -</strong> 210 г/м&sup2;.</p>    <p><strong>Переваги тканини:</strong></p>    <ul>   <li>комфортність у носінні;</li>   <li>висока міцність;</li>   <li>зносостійкість.</li>  </ul>    <p><strong>Особливості шортів:</strong></p>    <ul>   <li>Мають 6 кишень.</li>   <li>Міцні шви.</li>   <li>Кишені на ґудзиках.</li>   <li>Крой не широкий.</li>   <li>Пояс широкий з еластичними гумовими вставками з боків.</li>   <li>Шльовки під тактичний ремінь &mdash; 5 см.</li>  </ul>    <p><strong>ВИРОБИ ЧОРНОГО КОЛЬОРУ З ЧИСТОЇ БАВОВНИ АБО ЗМІШАНОЇ ТКАНИНИ, З ВМІСТОМ БАВОВНИ, СХИЛЬНІ ДО ВИГОРЯННЯ В РАЗІ ТРИВАЛОГО ПЕРЕБУВАННЯ ПІД ПРЯМИМИ ПРОМЕНЯМИ СОНЦЯ</strong></p>    <p><strong>Колір або відтінок виробу на світлині може незначно відрізнятися від реального. </strong></p>    <p><strong>Більш детальна інформація в розділі <a href="/poshyreni-pytannia/" target="_blank">&quot;Поширені питання&quot;</a>.</strong></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ:</strong></p>    <p><img alt="" height="262" loading="lazy" src="/content/uploads/images/1417387119/3826480848_w640_h2048_shorty_alpha_ua.jpeg" width="640" /></p>    <ul>   <li><strong>А - </strong>Ширина виробу складеного навпіл.</li>   <li><strong>B - </strong>Довжина зовнішнього бічного шва від краю до краю виробу.</li>   <li>Допустиме похибка +- 2 см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви &mdash; телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Black</param>
+    <param name="Стиль">Мілітарі|Карго|Тактичні</param>
+    <param name="Матеріал">Ріп-Стоп</param>
+    <param name="Склад">35% бавовна, 65% поліестер</param>
+    <param name="Посадка">Середня посадка</param>
+    <param name="Кількість кишень">6</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">L</param>
+   </offer>
+<offer id="786" group_id="1468" available="true">
+    <url>https://armoline.com.ua/shorty-alpha-black-rip-stop/786/</url>
+    <price>1408</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1087</categoryId>
+    <picture>https://armoline.com.ua/content/images/37/shorty-alpha-black-rip-stop786-31672032401495_+6086f83026.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/37/shorty-alpha-black-rip-stop786-59544608270687_+adbdf576bb.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/37/shorty-alpha-black-rip-stop786-63047007554236_+d7434c15bb.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/37/shorty-alpha-black-rip-stop786-29749767156441_+00b1fb033f.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/37/shorty-alpha-black-rip-stop786-21516661590862_+2032c83487.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/37/shorty-alpha-black-rip-stop786-91224044956781_+016a00f45a.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/37/shorty-alpha-black-rip-stop786-47646612937267_+27f8f82789.jpg</picture>
+    <vendorCode>0030500XL0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Шорти "ALPHA" BLACK (Rip-Stop)]]></name>
+    <description><![CDATA[<p><img alt="" height="400" loading="lazy" src="/content/uploads/images/37677528/3697501983_w640_h2048_shorts_alpha_3_back_hud1111.jpeg" width="562" /></p>    <p><strong>Шорти в мілітарі стилі &quot;ALPHA&quot;.</strong></p>    <p><strong>Колір - </strong>Black (Чорний).</p>    <p><strong>Тканина - </strong>&quot;Rip-Stop&quot;. Міцна зносостійка тканина для виробництва спецодягу і уніформи.</p>    <p><strong>Склад -</strong> бавовна 35%, поліестер 65%.</p>    <p><strong>Щільність -</strong> 210 г/м&sup2;.</p>    <p><strong>Переваги тканини:</strong></p>    <ul>   <li>комфортність у носінні;</li>   <li>висока міцність;</li>   <li>зносостійкість.</li>  </ul>    <p><strong>Особливості шортів:</strong></p>    <ul>   <li>Мають 6 кишень.</li>   <li>Міцні шви.</li>   <li>Кишені на ґудзиках.</li>   <li>Крой не широкий.</li>   <li>Пояс широкий з еластичними гумовими вставками з боків.</li>   <li>Шльовки під тактичний ремінь &mdash; 5 см.</li>  </ul>    <p><strong>ВИРОБИ ЧОРНОГО КОЛЬОРУ З ЧИСТОЇ БАВОВНИ АБО ЗМІШАНОЇ ТКАНИНИ, З ВМІСТОМ БАВОВНИ, СХИЛЬНІ ДО ВИГОРЯННЯ В РАЗІ ТРИВАЛОГО ПЕРЕБУВАННЯ ПІД ПРЯМИМИ ПРОМЕНЯМИ СОНЦЯ</strong></p>    <p><strong>Колір або відтінок виробу на світлині може незначно відрізнятися від реального. </strong></p>    <p><strong>Більш детальна інформація в розділі <a href="/poshyreni-pytannia/" target="_blank">&quot;Поширені питання&quot;</a>.</strong></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ:</strong></p>    <p><img alt="" height="262" loading="lazy" src="/content/uploads/images/1417387119/3826480848_w640_h2048_shorty_alpha_ua.jpeg" width="640" /></p>    <ul>   <li><strong>А - </strong>Ширина виробу складеного навпіл.</li>   <li><strong>B - </strong>Довжина зовнішнього бічного шва від краю до краю виробу.</li>   <li>Допустиме похибка +- 2 см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви &mdash; телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Black</param>
+    <param name="Стиль">Мілітарі|Карго|Тактичні</param>
+    <param name="Матеріал">Ріп-Стоп</param>
+    <param name="Склад">35% бавовна, 65% поліестер</param>
+    <param name="Посадка">Середня посадка</param>
+    <param name="Кількість кишень">6</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">XL</param>
+   </offer>
+<offer id="1811" group_id="1468" available="true">
+    <url>https://armoline.com.ua/shorty-alpha-black-rip-stop/1811/</url>
+    <price>1408</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1087</categoryId>
+    <picture>https://armoline.com.ua/content/images/12/shorty-alpha-black-rip-stop1811-64896688497706_+704715b0d0.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/12/shorty-alpha-black-rip-stop1811-67363360216913_+0ae4527bc8.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/12/shorty-alpha-black-rip-stop1811-35064809054469_+f954bc2c97.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/12/shorty-alpha-black-rip-stop1811-97220946287973_+cb9b8cf2eb.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/12/shorty-alpha-black-rip-stop1811-36975074666683_+dd987ed72e.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/12/shorty-alpha-black-rip-stop1811-68311611839270_+0da319f0bf.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/12/shorty-alpha-black-rip-stop1811-99437065861845_+ba2e3e1736.jpg</picture>
+    <vendorCode>0030502XL0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Шорти "ALPHA" BLACK (Rip-Stop)]]></name>
+    <description><![CDATA[<p><img alt="" height="400" loading="lazy" src="/content/uploads/images/37677528/3697501983_w640_h2048_shorts_alpha_3_back_hud1111.jpeg" width="562" /></p>    <p><strong>Шорти в мілітарі стилі &quot;ALPHA&quot;.</strong></p>    <p><strong>Колір - </strong>Black (Чорний).</p>    <p><strong>Тканина - </strong>&quot;Rip-Stop&quot;. Міцна зносостійка тканина для виробництва спецодягу і уніформи.</p>    <p><strong>Склад -</strong> бавовна 35%, поліестер 65%.</p>    <p><strong>Щільність -</strong> 210 г/м&sup2;.</p>    <p><strong>Переваги тканини:</strong></p>    <ul>   <li>комфортність у носінні;</li>   <li>висока міцність;</li>   <li>зносостійкість.</li>  </ul>    <p><strong>Особливості шортів:</strong></p>    <ul>   <li>Мають 6 кишень.</li>   <li>Міцні шви.</li>   <li>Кишені на ґудзиках.</li>   <li>Крой не широкий.</li>   <li>Пояс широкий з еластичними гумовими вставками з боків.</li>   <li>Шльовки під тактичний ремінь &mdash; 5 см.</li>  </ul>    <p><strong>ВИРОБИ ЧОРНОГО КОЛЬОРУ З ЧИСТОЇ БАВОВНИ АБО ЗМІШАНОЇ ТКАНИНИ, З ВМІСТОМ БАВОВНИ, СХИЛЬНІ ДО ВИГОРЯННЯ В РАЗІ ТРИВАЛОГО ПЕРЕБУВАННЯ ПІД ПРЯМИМИ ПРОМЕНЯМИ СОНЦЯ</strong></p>    <p><strong>Колір або відтінок виробу на світлині може незначно відрізнятися від реального. </strong></p>    <p><strong>Більш детальна інформація в розділі <a href="/poshyreni-pytannia/" target="_blank">&quot;Поширені питання&quot;</a>.</strong></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ:</strong></p>    <p><img alt="" height="262" loading="lazy" src="/content/uploads/images/1417387119/3826480848_w640_h2048_shorty_alpha_ua.jpeg" width="640" /></p>    <ul>   <li><strong>А - </strong>Ширина виробу складеного навпіл.</li>   <li><strong>B - </strong>Довжина зовнішнього бічного шва від краю до краю виробу.</li>   <li>Допустиме похибка +- 2 см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви &mdash; телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Black</param>
+    <param name="Стиль">Мілітарі|Карго|Тактичні</param>
+    <param name="Матеріал">Ріп-Стоп</param>
+    <param name="Склад">35% бавовна, 65% поліестер</param>
+    <param name="Посадка">Середня посадка</param>
+    <param name="Кількість кишень">6</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">2XL</param>
+   </offer>
+<offer id="514" group_id="1462" available="true">
+    <url>https://armoline.com.ua/futbolka-army-khaki-bavovna/</url>
+    <price>528</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1078</categoryId>
+    <picture>https://armoline.com.ua/content/images/15/99896791148839_+36d0f3e559.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/15/16792706097995_+2606e9aa09.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/15/97175118735645_+8da0c2bddd.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/15/20766104742474_+2f64bde0f1.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/15/36014120273191_+471066e7e6.jpg</picture>
+    <vendorCode>00264000S0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Футболка з принтом "ARMY" KHAKI (Бавовна)]]></name>
+    <description><![CDATA[<p><img alt="" height="640" loading="lazy" src="/content/uploads/images/38112388/5874076988_w640_h2048_5.jpeg" width="640" /></p>    <p><strong>Футболка мілітарі &quot;ARMY&quot;.</strong></p>    <p><strong>Колір:</strong> Khaki (Хакі).</p>    <p><strong>Склад:</strong> 100% бавовна, щільність 165 г/<span style="line-height:normal"><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">м&sup2;</span></span></span>.</p>    <p><strong>Принт:</strong> якісна, стійка до прання фарба.</p>    <p><strong>Колір або відтінок товару на фотографії може відрізнятися від реального. </strong></p>    <p><span style="line-height:normal"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">Більш детальна інформація у розділі </span></span></b><a href="/poshyreni-pytannia/" target="_blank"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times=""><span style="color:blue">&quot;Поширені питання&quot;</span></span></span></b></a><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">.</span></span></b></span></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ ФУТБОЛКИ:</strong></p>    <p><img alt="" height="247" loading="lazy" src="/content/uploads/images/38112388/3697453465_w640_h2048_futbolka_fruit_ua.jpeg" width="640" /></p>    <ul>   <li><strong>A - </strong>Вимірюється поперек вироби на 1см нижче отвору рукава.</li>   <li><strong>B - </strong>Вимірюється від найвищої точки на плечі до нижнього краю виробу.</li>   <li>Допустима похибка + - 2&nbsp;см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви - телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Khaki</param>
+    <param name="Матеріал">Коттон</param>
+    <param name="Склад">100% бавовна</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">S</param>
+   </offer>
+<offer id="734" group_id="1462" available="true">
+    <url>https://armoline.com.ua/futbolka-army-khaki-bavovna/734/</url>
+    <price>528</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1078</categoryId>
+    <picture>https://armoline.com.ua/content/images/35/futbolka-army-khaki-bavovna734-84490199228322_+719a14cfa2.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/35/53754639875643_+3a734e397a.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/35/55327653620504_+be2d5545d4.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/35/16683527916729_+6dbbaf4cc0.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/35/29508235795502_+4fbdd78285.jpg</picture>
+    <vendorCode>00264000M0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Футболка з принтом "ARMY" KHAKI (Бавовна)]]></name>
+    <description><![CDATA[<p><img alt="" height="640" loading="lazy" src="/content/uploads/images/38112388/5874076988_w640_h2048_5.jpeg" width="640" /></p>    <p><strong>Футболка мілітарі &quot;ARMY&quot;.</strong></p>    <p><strong>Колір:</strong> Khaki (Хакі).</p>    <p><strong>Склад:</strong> 100% бавовна, щільність 165 г/<span style="line-height:normal"><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">м&sup2;</span></span></span>.</p>    <p><strong>Принт:</strong> якісна, стійка до прання фарба.</p>    <p><strong>Колір або відтінок товару на фотографії може відрізнятися від реального. </strong></p>    <p><span style="line-height:normal"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">Більш детальна інформація у розділі </span></span></b><a href="/poshyreni-pytannia/" target="_blank"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times=""><span style="color:blue">&quot;Поширені питання&quot;</span></span></span></b></a><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">.</span></span></b></span></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ ФУТБОЛКИ:</strong></p>    <p><img alt="" height="247" loading="lazy" src="/content/uploads/images/38112388/3697453465_w640_h2048_futbolka_fruit_ua.jpeg" width="640" /></p>    <ul>   <li><strong>A - </strong>Вимірюється поперек вироби на 1см нижче отвору рукава.</li>   <li><strong>B - </strong>Вимірюється від найвищої точки на плечі до нижнього краю виробу.</li>   <li>Допустима похибка + - 2&nbsp;см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви - телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Khaki</param>
+    <param name="Матеріал">Коттон</param>
+    <param name="Склад">100% бавовна</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">M</param>
+   </offer>
+<offer id="735" group_id="1462" available="true">
+    <url>https://armoline.com.ua/futbolka-army-khaki-bavovna/735/</url>
+    <price>528</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1078</categoryId>
+    <picture>https://armoline.com.ua/content/images/36/futbolka-army-khaki-bavovna735-46540294858764_+508c097134.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/36/72968090736311_+dc616a6c05.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/36/51566429339955_+7f14c3acf4.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/36/79278460458175_+e8f20c6a0b.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/36/12666891154855_+54cad15b68.jpg</picture>
+    <vendorCode>00264000L0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Футболка з принтом "ARMY" KHAKI (Бавовна)]]></name>
+    <description><![CDATA[<p><img alt="" height="640" loading="lazy" src="/content/uploads/images/38112388/5874076988_w640_h2048_5.jpeg" width="640" /></p>    <p><strong>Футболка мілітарі &quot;ARMY&quot;.</strong></p>    <p><strong>Колір:</strong> Khaki (Хакі).</p>    <p><strong>Склад:</strong> 100% бавовна, щільність 165 г/<span style="line-height:normal"><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">м&sup2;</span></span></span>.</p>    <p><strong>Принт:</strong> якісна, стійка до прання фарба.</p>    <p><strong>Колір або відтінок товару на фотографії може відрізнятися від реального. </strong></p>    <p><span style="line-height:normal"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">Більш детальна інформація у розділі </span></span></b><a href="/poshyreni-pytannia/" target="_blank"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times=""><span style="color:blue">&quot;Поширені питання&quot;</span></span></span></b></a><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">.</span></span></b></span></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ ФУТБОЛКИ:</strong></p>    <p><img alt="" height="247" loading="lazy" src="/content/uploads/images/38112388/3697453465_w640_h2048_futbolka_fruit_ua.jpeg" width="640" /></p>    <ul>   <li><strong>A - </strong>Вимірюється поперек вироби на 1см нижче отвору рукава.</li>   <li><strong>B - </strong>Вимірюється від найвищої точки на плечі до нижнього краю виробу.</li>   <li>Допустима похибка + - 2&nbsp;см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви - телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Khaki</param>
+    <param name="Матеріал">Коттон</param>
+    <param name="Склад">100% бавовна</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">L</param>
+   </offer>
+<offer id="736" group_id="1462" available="true">
+    <url>https://armoline.com.ua/futbolka-army-khaki-bavovna/736/</url>
+    <price>528</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1078</categoryId>
+    <picture>https://armoline.com.ua/content/images/37/futbolka-army-khaki-bavovna736-85496856379969_+be738afc41.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/37/36467157895494_+80c40cd929.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/37/54167118329061_+43327e95d9.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/37/71199654968034_+e2240e297f.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/37/67473666454305_+80dcffc399.jpg</picture>
+    <vendorCode>0026400XL0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Футболка з принтом "ARMY" KHAKI (Бавовна)]]></name>
+    <description><![CDATA[<p><img alt="" height="640" loading="lazy" src="/content/uploads/images/38112388/5874076988_w640_h2048_5.jpeg" width="640" /></p>    <p><strong>Футболка мілітарі &quot;ARMY&quot;.</strong></p>    <p><strong>Колір:</strong> Khaki (Хакі).</p>    <p><strong>Склад:</strong> 100% бавовна, щільність 165 г/<span style="line-height:normal"><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">м&sup2;</span></span></span>.</p>    <p><strong>Принт:</strong> якісна, стійка до прання фарба.</p>    <p><strong>Колір або відтінок товару на фотографії може відрізнятися від реального. </strong></p>    <p><span style="line-height:normal"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">Більш детальна інформація у розділі </span></span></b><a href="/poshyreni-pytannia/" target="_blank"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times=""><span style="color:blue">&quot;Поширені питання&quot;</span></span></span></b></a><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">.</span></span></b></span></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ ФУТБОЛКИ:</strong></p>    <p><img alt="" height="247" loading="lazy" src="/content/uploads/images/38112388/3697453465_w640_h2048_futbolka_fruit_ua.jpeg" width="640" /></p>    <ul>   <li><strong>A - </strong>Вимірюється поперек вироби на 1см нижче отвору рукава.</li>   <li><strong>B - </strong>Вимірюється від найвищої точки на плечі до нижнього краю виробу.</li>   <li>Допустима похибка + - 2&nbsp;см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви - телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Khaki</param>
+    <param name="Матеріал">Коттон</param>
+    <param name="Склад">100% бавовна</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">XL</param>
+   </offer>
+<offer id="737" group_id="1462" available="true">
+    <url>https://armoline.com.ua/futbolka-army-khaki-bavovna/737/</url>
+    <price>528</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1078</categoryId>
+    <picture>https://armoline.com.ua/content/images/38/futbolka-army-khaki-bavovna737-92232822400362_+8032a52e4e.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/38/40186827225883_+662ea2423a.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/38/23951739305176_+0375f8a33b.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/38/66816790687227_+86374dc6b9.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/38/72622591092155_+380dbaf8c1.jpg</picture>
+    <vendorCode>0026402XL0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Футболка з принтом "ARMY" KHAKI (Бавовна)]]></name>
+    <description><![CDATA[<p><img alt="" height="640" loading="lazy" src="/content/uploads/images/38112388/5874076988_w640_h2048_5.jpeg" width="640" /></p>    <p><strong>Футболка мілітарі &quot;ARMY&quot;.</strong></p>    <p><strong>Колір:</strong> Khaki (Хакі).</p>    <p><strong>Склад:</strong> 100% бавовна, щільність 165 г/<span style="line-height:normal"><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">м&sup2;</span></span></span>.</p>    <p><strong>Принт:</strong> якісна, стійка до прання фарба.</p>    <p><strong>Колір або відтінок товару на фотографії може відрізнятися від реального. </strong></p>    <p><span style="line-height:normal"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">Більш детальна інформація у розділі </span></span></b><a href="/poshyreni-pytannia/" target="_blank"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times=""><span style="color:blue">&quot;Поширені питання&quot;</span></span></span></b></a><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">.</span></span></b></span></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ ФУТБОЛКИ:</strong></p>    <p><img alt="" height="247" loading="lazy" src="/content/uploads/images/38112388/3697453465_w640_h2048_futbolka_fruit_ua.jpeg" width="640" /></p>    <ul>   <li><strong>A - </strong>Вимірюється поперек вироби на 1см нижче отвору рукава.</li>   <li><strong>B - </strong>Вимірюється від найвищої точки на плечі до нижнього краю виробу.</li>   <li>Допустима похибка + - 2&nbsp;см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви - телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Khaki</param>
+    <param name="Матеріал">Коттон</param>
+    <param name="Склад">100% бавовна</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">2XL</param>
+   </offer>
+<offer id="516" group_id="2462" available="true">
+    <url>https://armoline.com.ua/futbolka-army-olive-bavovna/</url>
+    <price>528</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1078</categoryId>
+    <picture>https://armoline.com.ua/content/images/17/48268660735549_+3d4332d910.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/17/26924675665658_+79a3051a44.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/17/50563620383014_+78c0361650.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/17/44872187522106_+e4bb68927b.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/17/46648293341760_+a19122d79c.jpg</picture>
+    <vendorCode>00265000S0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Футболка з принтом "ARMY" OLIVE (Бавовна)]]></name>
+    <description><![CDATA[<p><img alt="" height="640" loading="lazy" src="/content/uploads/images/66828924/5893147075_w640_h2048_5.jpeg" width="640" /></p>    <p><strong>Футболка мілітарі &quot;ARMY&quot;.</strong></p>    <p><strong>Колір: </strong>Olive&nbsp;(Олива).</p>    <p><strong>Склад:</strong> 100% бавовна, щільність 165 г/<span style="line-height:normal"><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">м&sup2;</span></span></span>.</p>    <p><strong>Принт:</strong> якісна, стійка до прання фарба.</p>    <p><strong>Колір або відтінок товару на фотографії може відрізнятися від реального. </strong></p>    <p><span style="line-height:normal"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">Більш детальна інформація у розділі </span></span></b><a href="/poshyreni-pytannia/" target="_blank"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times=""><span style="color:blue">&quot;Поширені питання&quot;</span></span></span></b></a><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">.</span></span></b></span></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ ФУТБОЛКИ:</strong></p>    <p><img alt="" height="247" loading="lazy" src="/content/uploads/images/66828924/3697453465_w640_h2048_futbolka_fruit_ua.jpeg" width="640" /></p>    <ul>   <li><strong>A - </strong>Вимірюється поперек вироби на 1см нижче отвору рукава</li>   <li><strong>B - </strong>Вимірюється від найвищої точки на плечі до нижнього краю виробу</li>   <li>Допустима похибка + - 2&nbsp;см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви - телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Olive</param>
+    <param name="Матеріал">Коттон</param>
+    <param name="Склад">100% бавовна</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">S</param>
+   </offer>
+<offer id="637" group_id="2462" available="true">
+    <url>https://armoline.com.ua/futbolka-army-olive-bavovna/637/</url>
+    <price>528</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1078</categoryId>
+    <picture>https://armoline.com.ua/content/images/38/85057941545873_+60d1e015ea.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/38/73949577227503_+7a61671625.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/38/88626742634252_+6f0e4a502a.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/38/89836932137797_+309838e2b7.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/38/80805755786029_+391e9c209d.jpg</picture>
+    <vendorCode>00265000M0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Футболка з принтом "ARMY" OLIVE (Бавовна)]]></name>
+    <description><![CDATA[<p><img alt="" height="640" loading="lazy" src="/content/uploads/images/66828924/5893147075_w640_h2048_5.jpeg" width="640" /></p>    <p><strong>Футболка мілітарі &quot;ARMY&quot;.</strong></p>    <p><strong>Колір: </strong>Olive&nbsp;(Олива).</p>    <p><strong>Склад:</strong> 100% бавовна, щільність 165 г/<span style="line-height:normal"><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">м&sup2;</span></span></span>.</p>    <p><strong>Принт:</strong> якісна, стійка до прання фарба.</p>    <p><strong>Колір або відтінок товару на фотографії може відрізнятися від реального. </strong></p>    <p><span style="line-height:normal"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">Більш детальна інформація у розділі </span></span></b><a href="/poshyreni-pytannia/" target="_blank"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times=""><span style="color:blue">&quot;Поширені питання&quot;</span></span></span></b></a><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">.</span></span></b></span></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ ФУТБОЛКИ:</strong></p>    <p><img alt="" height="247" loading="lazy" src="/content/uploads/images/66828924/3697453465_w640_h2048_futbolka_fruit_ua.jpeg" width="640" /></p>    <ul>   <li><strong>A - </strong>Вимірюється поперек вироби на 1см нижче отвору рукава</li>   <li><strong>B - </strong>Вимірюється від найвищої точки на плечі до нижнього краю виробу</li>   <li>Допустима похибка + - 2&nbsp;см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви - телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Olive</param>
+    <param name="Матеріал">Коттон</param>
+    <param name="Склад">100% бавовна</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">M</param>
+   </offer>
+<offer id="638" group_id="2462" available="true">
+    <url>https://armoline.com.ua/futbolka-army-olive-bavovna/638/</url>
+    <price>528</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1078</categoryId>
+    <picture>https://armoline.com.ua/content/images/39/92488969851890_+e7d7f04787.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/39/35936531358253_+9a9bfc1b5f.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/39/99811550564754_+ebb67826c2.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/39/58767249825294_+522f37cf02.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/39/20385375837629_+5341f9aec8.jpg</picture>
+    <vendorCode>00265000L0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Футболка з принтом "ARMY" OLIVE (Бавовна)]]></name>
+    <description><![CDATA[<p><img alt="" height="640" loading="lazy" src="/content/uploads/images/66828924/5893147075_w640_h2048_5.jpeg" width="640" /></p>    <p><strong>Футболка мілітарі &quot;ARMY&quot;.</strong></p>    <p><strong>Колір: </strong>Olive&nbsp;(Олива).</p>    <p><strong>Склад:</strong> 100% бавовна, щільність 165 г/<span style="line-height:normal"><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">м&sup2;</span></span></span>.</p>    <p><strong>Принт:</strong> якісна, стійка до прання фарба.</p>    <p><strong>Колір або відтінок товару на фотографії може відрізнятися від реального. </strong></p>    <p><span style="line-height:normal"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">Більш детальна інформація у розділі </span></span></b><a href="/poshyreni-pytannia/" target="_blank"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times=""><span style="color:blue">&quot;Поширені питання&quot;</span></span></span></b></a><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">.</span></span></b></span></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ ФУТБОЛКИ:</strong></p>    <p><img alt="" height="247" loading="lazy" src="/content/uploads/images/66828924/3697453465_w640_h2048_futbolka_fruit_ua.jpeg" width="640" /></p>    <ul>   <li><strong>A - </strong>Вимірюється поперек вироби на 1см нижче отвору рукава</li>   <li><strong>B - </strong>Вимірюється від найвищої точки на плечі до нижнього краю виробу</li>   <li>Допустима похибка + - 2&nbsp;см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви - телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Olive</param>
+    <param name="Матеріал">Коттон</param>
+    <param name="Склад">100% бавовна</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">L</param>
+   </offer>
+<offer id="639" group_id="2462" available="true">
+    <url>https://armoline.com.ua/futbolka-army-olive-bavovna/639/</url>
+    <price>528</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1078</categoryId>
+    <picture>https://armoline.com.ua/content/images/40/36779010320094_+88b2e88dcc.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/40/37111319805600_+41b6357a85.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/40/14944255581862_+ffeeeae52e.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/40/82641361926559_+fff48d70e8.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/40/97839874256930_+f97466a890.jpg</picture>
+    <vendorCode>0026500XL0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Футболка з принтом "ARMY" OLIVE (Бавовна)]]></name>
+    <description><![CDATA[<p><img alt="" height="640" loading="lazy" src="/content/uploads/images/66828924/5893147075_w640_h2048_5.jpeg" width="640" /></p>    <p><strong>Футболка мілітарі &quot;ARMY&quot;.</strong></p>    <p><strong>Колір: </strong>Olive&nbsp;(Олива).</p>    <p><strong>Склад:</strong> 100% бавовна, щільність 165 г/<span style="line-height:normal"><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">м&sup2;</span></span></span>.</p>    <p><strong>Принт:</strong> якісна, стійка до прання фарба.</p>    <p><strong>Колір або відтінок товару на фотографії може відрізнятися від реального. </strong></p>    <p><span style="line-height:normal"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">Більш детальна інформація у розділі </span></span></b><a href="/poshyreni-pytannia/" target="_blank"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times=""><span style="color:blue">&quot;Поширені питання&quot;</span></span></span></b></a><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">.</span></span></b></span></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ ФУТБОЛКИ:</strong></p>    <p><img alt="" height="247" loading="lazy" src="/content/uploads/images/66828924/3697453465_w640_h2048_futbolka_fruit_ua.jpeg" width="640" /></p>    <ul>   <li><strong>A - </strong>Вимірюється поперек вироби на 1см нижче отвору рукава</li>   <li><strong>B - </strong>Вимірюється від найвищої точки на плечі до нижнього краю виробу</li>   <li>Допустима похибка + - 2&nbsp;см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви - телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Olive</param>
+    <param name="Матеріал">Коттон</param>
+    <param name="Склад">100% бавовна</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">XL</param>
+   </offer>
+<offer id="640" group_id="2462" available="true">
+    <url>https://armoline.com.ua/futbolka-army-olive-bavovna/640/</url>
+    <price>528</price>
+    <currencyId>UAH</currencyId>
+    <categoryId>1078</categoryId>
+    <picture>https://armoline.com.ua/content/images/41/22996038770239_+bb9c085292.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/41/20561870309314_+3fb3bcd62c.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/41/40062664876569_+f023e86230.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/41/13381540287196_+7da53523a4.jpg</picture>
+    <picture>https://armoline.com.ua/content/images/41/42957227600279_+e45399e804.jpg</picture>
+    <vendorCode>0026502XL0000000</vendorCode>
+    <vendor>Армолайн</vendor>
+    <name><![CDATA[Футболка з принтом "ARMY" OLIVE (Бавовна)]]></name>
+    <description><![CDATA[<p><img alt="" height="640" loading="lazy" src="/content/uploads/images/66828924/5893147075_w640_h2048_5.jpeg" width="640" /></p>    <p><strong>Футболка мілітарі &quot;ARMY&quot;.</strong></p>    <p><strong>Колір: </strong>Olive&nbsp;(Олива).</p>    <p><strong>Склад:</strong> 100% бавовна, щільність 165 г/<span style="line-height:normal"><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">м&sup2;</span></span></span>.</p>    <p><strong>Принт:</strong> якісна, стійка до прання фарба.</p>    <p><strong>Колір або відтінок товару на фотографії може відрізнятися від реального. </strong></p>    <p><span style="line-height:normal"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">Більш детальна інформація у розділі </span></span></b><a href="/poshyreni-pytannia/" target="_blank"><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times=""><span style="color:blue">&quot;Поширені питання&quot;</span></span></span></b></a><b><span style="font-size:12.0pt"><span new="" roman="" style="font-family:" times="">.</span></span></b></span></p>    <p><strong>ТАБЛИЦЯ РОЗМІРІВ ФУТБОЛКИ:</strong></p>    <p><img alt="" height="247" loading="lazy" src="/content/uploads/images/66828924/3697453465_w640_h2048_futbolka_fruit_ua.jpeg" width="640" /></p>    <ul>   <li><strong>A - </strong>Вимірюється поперек вироби на 1см нижче отвору рукава</li>   <li><strong>B - </strong>Вимірюється від найвищої точки на плечі до нижнього краю виробу</li>   <li>Допустима похибка + - 2&nbsp;см.</li>  </ul>    <p><u><strong>Якщо залишилися сумніви - телефонуйте, наші менеджери допоможуть визначити ваш розмір!</strong></u></p>  ]]></description>
+    <param name="Цвет">Olive</param>
+    <param name="Матеріал">Коттон</param>
+    <param name="Склад">100% бавовна</param>
+    <param name="Сезон">Літо</param>
+    <param name="Стать">Для чоловіків</param>
+    <param name="Стан">Нове</param>
+    <param name="Країна виробник">Україна</param>
+    <param name="Розміри">2XL</param>
+   </offer>
+</offers>
+</shop>
+</yml_catalog>
