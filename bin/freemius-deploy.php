@@ -102,6 +102,19 @@ require_once $sdk_main;
 
 $entity_id = 'plugin' === $scope ? (int) $plugin_id : (int) $dev_id;
 
+/**
+ * Freemius SDK CanonizePath() already prefixes /plugins/{id}/ for plugin scope
+ * and /developers/{id}/ for developer scope. Paths below must be relative to that.
+ *
+ * @param string $scope     plugin|developer.
+ * @param string $plugin_id Plugin ID.
+ * @param string $suffix    Path after the plugin root, e.g. tags.json.
+ */
+$fs_path = static function ( string $scope, string $plugin_id, string $suffix ): string {
+	$suffix = ltrim( $suffix, '/' );
+	return 'plugin' === $scope ? $suffix : 'plugins/' . $plugin_id . '/' . $suffix;
+};
+
 f2000cs_fs_deploy_log( "Deploying plugin {$plugin_id} version {$version}" );
 f2000cs_fs_deploy_log( "API scope={$scope}, entity_id={$entity_id}" );
 f2000cs_fs_deploy_log( 'Zip: ' . $zip_path . ' (' . filesize( $zip_path ) . ' bytes)' );
@@ -114,7 +127,7 @@ try {
 }
 
 try {
-	$tags_response = $api->Api( 'plugins/' . $plugin_id . '/tags.json', 'GET', array( 'count' => 50 ) );
+	$tags_response = $api->Api( $fs_path( $scope, $plugin_id, 'tags.json' ), 'GET', array( 'count' => 50 ) );
 } catch ( Exception $e ) {
 	f2000cs_fs_deploy_fail(
 		'Failed to list tags (check API scope / keys / PLUGIN_ID): ' . $e->getMessage()
@@ -146,7 +159,7 @@ if ( $existing ) {
 	f2000cs_fs_deploy_log( 'Uploading zip…' );
 	try {
 		$deploy = $api->Api(
-			'plugins/' . $plugin_id . '/tags.json',
+			$fs_path( $scope, $plugin_id, 'tags.json' ),
 			'POST',
 			array( 'add_contributor' => false ),
 			array( 'file' => $zip_path )
@@ -166,7 +179,7 @@ if ( ! isset( $deploy->release_mode ) || (string) $deploy->release_mode !== $rel
 	f2000cs_fs_deploy_log( "Setting release_mode={$release_mode}…" );
 	try {
 		$updated = $api->Api(
-			'plugins/' . $plugin_id . '/tags/' . $deploy->id . '.json',
+			$fs_path( $scope, $plugin_id, 'tags/' . $deploy->id . '.json' ),
 			'PUT',
 			array( 'release_mode' => $release_mode )
 		);
@@ -185,8 +198,8 @@ $pro_out  = $out_dir . '/' . pathinfo( $zip_path, PATHINFO_FILENAME ) . '__premi
 
 f2000cs_fs_deploy_log( 'Downloading generated free/premium packages…' );
 try {
-	$free_url = $api->GetSignedUrl( 'plugins/' . $plugin_id . '/tags/' . $deploy->id . '.zip?is_premium=false' );
-	$pro_url  = $api->GetSignedUrl( 'plugins/' . $plugin_id . '/tags/' . $deploy->id . '.zip?is_premium=true' );
+	$free_url = $api->GetSignedUrl( $fs_path( $scope, $plugin_id, 'tags/' . $deploy->id . '.zip?is_premium=false' ) );
+	$pro_url  = $api->GetSignedUrl( $fs_path( $scope, $plugin_id, 'tags/' . $deploy->id . '.zip?is_premium=true' ) );
 	$free_bin = file_get_contents( $free_url );
 	$pro_bin  = file_get_contents( $pro_url );
 } catch ( Exception $e ) {
