@@ -3,12 +3,17 @@
  * Deploy a plugin zip to Freemius (developer scope).
  *
  * Required env:
- *   FREEMIUS_DEV_ID, FREEMIUS_PUBLIC_KEY, FREEMIUS_SECRET_KEY,
+ *   FREEMIUS_PUBLIC_KEY, FREEMIUS_SECRET_KEY,
  *   FREEMIUS_PLUGIN_ID, ZIP_PATH, VERSION
  * Optional:
+ *   FREEMIUS_API_SCOPE=plugin|developer (default: plugin)
+ *   FREEMIUS_DEV_ID — required only for developer scope
  *   FREEMIUS_RELEASE_MODE=pending|beta|released (default: pending)
  *   FREEMIUS_SANDBOX=true|false (default: false)
  *   FREEMIUS_SDK_PATH=/path/to/freemius-php-sdk
+ *
+ * Prefer plugin scope keys from Freemius → Product → Settings → Keys.
+ * Developer scope keys are under Freemius → My Profile → Keys.
  *
  * Exit codes: 0 success, 1 failure.
  */
@@ -42,27 +47,31 @@ function f2000cs_fs_deploy_dump( $value ): string {
 	return false !== $encoded ? $encoded : print_r( $value, true );
 }
 
-$dev_id      = trim( (string) getenv( 'FREEMIUS_DEV_ID' ) );
-$public_key  = trim( (string) getenv( 'FREEMIUS_PUBLIC_KEY' ) );
-$secret_key  = trim( (string) getenv( 'FREEMIUS_SECRET_KEY' ) );
-$plugin_id   = trim( (string) getenv( 'FREEMIUS_PLUGIN_ID' ) );
-$zip_path    = trim( (string) getenv( 'ZIP_PATH' ) );
-$version     = trim( (string) getenv( 'VERSION' ) );
+$scope        = strtolower( trim( (string) ( getenv( 'FREEMIUS_API_SCOPE' ) ?: 'plugin' ) ) );
+$dev_id       = trim( (string) getenv( 'FREEMIUS_DEV_ID' ) );
+$public_key   = trim( (string) getenv( 'FREEMIUS_PUBLIC_KEY' ) );
+$secret_key   = trim( (string) getenv( 'FREEMIUS_SECRET_KEY' ) );
+$plugin_id    = trim( (string) getenv( 'FREEMIUS_PLUGIN_ID' ) );
+$zip_path     = trim( (string) getenv( 'ZIP_PATH' ) );
+$version      = trim( (string) getenv( 'VERSION' ) );
 $release_mode = trim( (string) ( getenv( 'FREEMIUS_RELEASE_MODE' ) ?: 'pending' ) );
-$sandbox     = filter_var( getenv( 'FREEMIUS_SANDBOX' ) ?: 'false', FILTER_VALIDATE_BOOLEAN );
-$sdk_path    = trim( (string) ( getenv( 'FREEMIUS_SDK_PATH' ) ?: '' ) );
+$sandbox      = filter_var( getenv( 'FREEMIUS_SANDBOX' ) ?: 'false', FILTER_VALIDATE_BOOLEAN );
+$sdk_path     = trim( (string) ( getenv( 'FREEMIUS_SDK_PATH' ) ?: '' ) );
 
-if ( '' === $dev_id || ! ctype_digit( $dev_id ) ) {
-	f2000cs_fs_deploy_fail( 'FREEMIUS_DEV_ID must be a numeric Developer ID from Freemius → My Profile → Keys (not the plugin ID).' );
+if ( ! in_array( $scope, array( 'plugin', 'developer' ), true ) ) {
+	f2000cs_fs_deploy_fail( 'FREEMIUS_API_SCOPE must be plugin or developer.' );
 }
 if ( '' === $public_key || 0 !== strpos( $public_key, 'pk_' ) ) {
-	f2000cs_fs_deploy_fail( 'FREEMIUS_PUBLIC_KEY must be the developer public key (pk_…) from My Profile → Keys.' );
+	f2000cs_fs_deploy_fail( 'FREEMIUS_PUBLIC_KEY must be a Freemius public key (pk_…). For plugin scope use Product → Settings → Keys.' );
 }
 if ( '' === $secret_key || 0 !== strpos( $secret_key, 'sk_' ) ) {
-	f2000cs_fs_deploy_fail( 'FREEMIUS_SECRET_KEY must be the developer secret key (sk_…) from My Profile → Keys.' );
+	f2000cs_fs_deploy_fail( 'FREEMIUS_SECRET_KEY must be a Freemius secret key (sk_…). For plugin scope use Product → Settings → Keys.' );
 }
 if ( '' === $plugin_id || ! ctype_digit( $plugin_id ) ) {
 	f2000cs_fs_deploy_fail( 'FREEMIUS_PLUGIN_ID must be numeric.' );
+}
+if ( 'developer' === $scope && ( '' === $dev_id || ! ctype_digit( $dev_id ) ) ) {
+	f2000cs_fs_deploy_fail( 'FREEMIUS_DEV_ID must be a numeric Developer ID from Freemius → My Profile → Keys.' );
 }
 if ( '' === $version ) {
 	f2000cs_fs_deploy_fail( 'VERSION is required.' );
@@ -91,12 +100,15 @@ if ( ! is_file( $sdk_base ) || ! is_file( $sdk_main ) ) {
 require_once $sdk_base;
 require_once $sdk_main;
 
+$entity_id = 'plugin' === $scope ? (int) $plugin_id : (int) $dev_id;
+
 f2000cs_fs_deploy_log( "Deploying plugin {$plugin_id} version {$version}" );
+f2000cs_fs_deploy_log( "API scope={$scope}, entity_id={$entity_id}" );
 f2000cs_fs_deploy_log( 'Zip: ' . $zip_path . ' (' . filesize( $zip_path ) . ' bytes)' );
 f2000cs_fs_deploy_log( 'Release mode: ' . $release_mode . ( $sandbox ? ' (sandbox)' : '' ) );
 
 try {
-	$api = new Freemius_Api( 'developer', (int) $dev_id, $public_key, $secret_key, $sandbox );
+	$api = new Freemius_Api( $scope, $entity_id, $public_key, $secret_key, $sandbox );
 } catch ( Exception $e ) {
 	f2000cs_fs_deploy_fail( 'Failed to init Freemius API: ' . $e->getMessage() );
 }
@@ -105,12 +117,16 @@ try {
 	$tags_response = $api->Api( 'plugins/' . $plugin_id . '/tags.json', 'GET', array( 'count' => 50 ) );
 } catch ( Exception $e ) {
 	f2000cs_fs_deploy_fail(
-		'Failed to list tags (check DEV_ID / developer keys / PLUGIN_ID): ' . $e->getMessage()
+		'Failed to list tags (check API scope / keys / PLUGIN_ID): ' . $e->getMessage()
 	);
 }
 
 if ( is_object( $tags_response ) && isset( $tags_response->error ) ) {
-	f2000cs_fs_deploy_fail( 'List tags API error: ' . f2000cs_fs_deploy_dump( $tags_response ) );
+	$hint = 'UnauthorizedAccess' === ( $tags_response->error->code ?? '' )
+		|| 'unauthorized_access' === ( $tags_response->error->code ?? '' )
+		? ' Hint: for plugin scope put Product → Settings → Keys into FREEMIUS_PUBLIC_KEY / FREEMIUS_SECRET_KEY (not My Profile developer keys, and not only the public pk_ from the SDK snippet).'
+		: '';
+	f2000cs_fs_deploy_fail( 'List tags API error: ' . f2000cs_fs_deploy_dump( $tags_response ) . $hint );
 }
 
 $existing = null;

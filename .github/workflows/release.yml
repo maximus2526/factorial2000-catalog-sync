@@ -127,6 +127,8 @@ jobs:
       - name: Deploy to Freemius
         id: freemius
         env:
+          # Product → Settings → Keys (plugin scope). Override to developer only if needed.
+          FREEMIUS_API_SCOPE: plugin
           FREEMIUS_DEV_ID: ${{ secrets.FREEMIUS_DEV_ID }}
           FREEMIUS_PUBLIC_KEY: ${{ secrets.FREEMIUS_PUBLIC_KEY }}
           FREEMIUS_SECRET_KEY: ${{ secrets.FREEMIUS_SECRET_KEY }}
