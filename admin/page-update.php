@@ -95,7 +95,14 @@ function f2000cs_update_page() {
 								<p class="description f2000cs-update-run__limit">
 									<?php
 									if ( $can_update ) {
-										esc_html_e( 'Free: сьогодні ще можна запустити 1 оновлення. У Pro — без ліміту.', 'factorial2000-catalog-sync' );
+										$remaining = function_exists( 'f2000cs_free_updates_remaining' ) ? f2000cs_free_updates_remaining() : 1;
+										echo esc_html(
+											sprintf(
+												/* translators: %d: number of remaining free updates today */
+												_n( 'Free: сьогодні ще %d оновлення. У Pro — без ліміту.', 'Free: сьогодні ще %d оновлень. У Pro — без ліміту.', $remaining, 'factorial2000-catalog-sync' ),
+												$remaining
+											)
+										);
 									} else {
 										echo esc_html( f2000cs_get_free_update_limit_message() );
 										echo ' <a href="' . esc_url( f2000cs_get_upgrade_url() ) . '">' . esc_html__( 'Оформити Pro', 'factorial2000-catalog-sync' ) . '</a>';
@@ -122,7 +129,8 @@ function f2000cs_update_page() {
 								<li>
 									<span class="f2000cs-status__label"><?php esc_html_e( 'Ліміт Free сьогодні', 'factorial2000-catalog-sync' ); ?></span>
 									<?php if ( $can_update ) : ?>
-										<span class="f2000cs-status__badge is-active"><?php esc_html_e( '1 оновлення доступне', 'factorial2000-catalog-sync' ); ?></span>
+										<?php $remaining = function_exists( 'f2000cs_free_updates_remaining' ) ? f2000cs_free_updates_remaining() : 1; ?>
+										<span class="f2000cs-status__badge is-active"><?php echo esc_html( sprintf( _n( '%d оновлення доступне', '%d оновлень доступно', $remaining, 'factorial2000-catalog-sync' ), $remaining ) ); ?></span>
 									<?php else : ?>
 										<span class="f2000cs-status__badge is-inactive"><?php esc_html_e( 'вже використано', 'factorial2000-catalog-sync' ); ?></span>
 									<?php endif; ?>

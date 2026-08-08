@@ -60,7 +60,8 @@ function f2000cs_uninstall_cleanup() {
 	delete_option( 'f2000cs_telegram_token_id' );
 	delete_option( 'f2000cs_legacy_trial_ends' );
 	delete_option( 'f2000cs_legacy_trial_initialized' );
-	delete_option( 'f2000cs_last_stock_update_day' );
+	delete_option( 'f2000cs_free_update_day' );
+	delete_option( 'f2000cs_free_update_count' );
 	delete_option( 'f2000cs_db_version' );
 	delete_option( 'f2000cs_sku_prefix' );
 

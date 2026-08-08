@@ -80,7 +80,8 @@ function f2000cs_fs() {
 					'is_require_payment' => false,
 				),
 				'menu'                => array(
-					'slug' => 'f2000cs-update',
+					'slug'    => 'f2000cs-update',
+					'support' => false, // Hide "Support Forum" submenu (wp.org / Freemius).
 				),
 			)
 		);
@@ -114,6 +115,46 @@ function f2000cs_fs_init() {
 	do_action( 'f2000cs_fs_loaded' );
 }
 add_action( 'plugins_loaded', 'f2000cs_fs_init', 1 );
+
+/**
+ * Restore license-key activation UI on Freemius free builds.
+ *
+ * Freemius free zips omit has_premium_version; the SDK then defaults it to
+ * has_paid_plans (true) and skips Activate License / AJAX handlers. Pro in this
+ * plugin is unlocked by license/trial in the same codebase, so free sites still
+ * need a key field without going through checkout.
+ *
+ * @return void
+ */
+function f2000cs_enable_license_key_on_free_build() {
+	$fs = f2000cs_fs();
+	if ( ! $fs || ! method_exists( $fs, 'is_premium' ) || $fs->is_premium() ) {
+		return;
+	}
+
+	if ( ! method_exists( $fs, 'has_paid_plan' ) || ! $fs->has_paid_plan() ) {
+		return;
+	}
+
+	if ( ! method_exists( $fs, 'is_user_admin' ) || ! $fs->is_user_admin() ) {
+		return;
+	}
+
+	// Freemius only attaches AJAX callbacks during the matching admin-ajax request.
+	if ( method_exists( $fs, 'add_ajax_action' ) ) {
+		$fs->add_ajax_action( 'activate_license', array( $fs, '_activate_license_ajax_action' ) );
+		$fs->add_ajax_action( 'resend_license_key', array( $fs, '_resend_license_key_ajax_action' ) );
+	}
+
+	if (
+		method_exists( 'Freemius', 'is_plugins_page' )
+		&& Freemius::is_plugins_page()
+		&& method_exists( $fs, '_add_license_action_link' )
+	) {
+		$fs->_add_license_action_link();
+	}
+}
+add_action( 'admin_init', 'f2000cs_enable_license_key_on_free_build', 20 );
 
 /**
  * Whether the site has an active Freemius paid license (not trial).
@@ -382,16 +423,50 @@ function f2000cs_get_today_key() {
 }
 
 /**
- * Whether Free already used today's stock update.
+ * Free daily update limit.
+ */
+define( 'F2000CS_FREE_DAILY_UPDATES', 3 );
+
+/**
+ * Whether Free already exhausted today's stock updates.
  *
  * @return bool
  */
 function f2000cs_free_update_used_today() {
-	return f2000cs_get_today_key() === (string) get_option( 'f2000cs_last_stock_update_day', '' );
+	$today     = f2000cs_get_today_key();
+	$last_day  = (string) get_option( 'f2000cs_free_update_day', '' );
+	$run_count = (int) get_option( 'f2000cs_free_update_count', 0 );
+
+	if ( $last_day !== $today ) {
+		return false;
+	}
+
+	return $run_count >= F2000CS_FREE_DAILY_UPDATES;
 }
 
 /**
- * Whether a stock update may run now (Pro/trial unlimited; Free = 1×/day).
+ * Count of remaining Free updates today.
+ *
+ * @return int
+ */
+function f2000cs_free_updates_remaining() {
+	if ( f2000cs_is_pro() ) {
+		return 999;
+	}
+
+	$today     = f2000cs_get_today_key();
+	$last_day  = (string) get_option( 'f2000cs_free_update_day', '' );
+	$run_count = (int) get_option( 'f2000cs_free_update_count', 0 );
+
+	if ( $last_day !== $today ) {
+		return F2000CS_FREE_DAILY_UPDATES;
+	}
+
+	return max( 0, F2000CS_FREE_DAILY_UPDATES - $run_count );
+}
+
+/**
+ * Whether a stock update may run now (Pro/trial unlimited; Free = 3×/day).
  *
  * @return bool
  */
@@ -409,7 +484,16 @@ function f2000cs_can_run_stock_update() {
  * @return void
  */
 function f2000cs_record_stock_update_run() {
-	update_option( 'f2000cs_last_stock_update_day', f2000cs_get_today_key(), false );
+	$today     = f2000cs_get_today_key();
+	$last_day  = (string) get_option( 'f2000cs_free_update_day', '' );
+	$run_count = (int) get_option( 'f2000cs_free_update_count', 0 );
+
+	if ( $last_day !== $today ) {
+		$run_count = 0;
+	}
+
+	update_option( 'f2000cs_free_update_day', $today, false );
+	update_option( 'f2000cs_free_update_count', $run_count + 1, false );
 }
 
 /**
@@ -418,7 +502,7 @@ function f2000cs_record_stock_update_run() {
  * @return string
  */
 function f2000cs_get_free_update_limit_message() {
-	return __( 'У безкоштовній версії оновлення доступне 1 раз на добу. Наступне — завтра, або оновіть до Pro для необмежених запусків.', 'factorial2000-catalog-sync' );
+	return __( 'У безкоштовній версії оновлення доступне 3 рази на добу. Ліміт вичерпано — наступне завтра, або оновіть до Pro для необмежених запусків.', 'factorial2000-catalog-sync' );
 }
 
 /**
@@ -646,7 +730,7 @@ function f2000cs_render_trial_countdown() {
 	if ( $ends <= time() ) {
 		if ( ! f2000cs_is_pro() ) {
 			echo '<div class="notice notice-info f2000cs-pro-notice"><p>';
-			echo esc_html__( 'Зараз у вас безкоштовна версія: 1 постачальник (плюс уже збережені під час тріалу) і 1 оновлення наявності на добу.', 'factorial2000-catalog-sync' );
+			echo esc_html__( 'Зараз у вас безкоштовна версія: 1 постачальник (плюс уже збережені під час тріалу) і 3 оновлення наявності на добу.', 'factorial2000-catalog-sync' );
 			echo ' <a href="' . esc_url( f2000cs_get_upgrade_url() ) . '">' . esc_html__( 'Дивитись Pro', 'factorial2000-catalog-sync' ) . '</a>';
 			echo '</p></div>';
 			f2000cs_render_pro_plans_panel();
@@ -731,7 +815,7 @@ function f2000cs_render_pro_plans_panel( $compact = false ) {
 				<div class="f2000cs-pro-plan__price">$0</div>
 				<ul class="f2000cs-pro-plan__features">
 					<li><?php esc_html_e( '1 постачальник (+ уже збережені під час тріалу)', 'factorial2000-catalog-sync' ); ?></li>
-					<li><?php esc_html_e( 'Оновлення наявності 1 раз на добу', 'factorial2000-catalog-sync' ); ?></li>
+					<li><?php esc_html_e( 'Оновлення наявності 3 рази на добу', 'factorial2000-catalog-sync' ); ?></li>
 					<li class="is-muted"><?php esc_html_e( 'Без коригування цін', 'factorial2000-catalog-sync' ); ?></li>
 					<li class="is-muted"><?php esc_html_e( 'Без налаштування вигрузки', 'factorial2000-catalog-sync' ); ?></li>
 				</ul>

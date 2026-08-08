@@ -401,38 +401,53 @@
 
 .f2000cs-import-tabs {
 	display: flex;
+	flex-wrap: wrap;
 	gap: 0;
 	margin: 0;
-	border-bottom: 0;
+	border-bottom: 1px solid var(--f2000cs-border-light);
 }
 
 .f2000cs-import-tabs__tab {
 	appearance: none;
-	margin: 0;
-	padding: 6px 12px;
-	border: 1px solid var(--f2000cs-border);
-	border-radius: 4px;
-	background: #fff;
-	color: #50575e;
+	margin: 0 0 -1px;
+	padding: 8px 4px;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	border-radius: 0;
+	background: transparent;
+	color: #646970;
 	font-size: 13px;
-	font-weight: 600;
+	font-weight: 500;
 	line-height: 1.4;
 	cursor: pointer;
+	box-shadow: none;
 }
 
 .f2000cs-import-tabs__tab + .f2000cs-import-tabs__tab {
-	margin-left: 6px;
+	margin-left: 16px;
 }
 
 .f2000cs-import-tabs__tab:hover {
 	color: var(--f2000cs-text);
-	border-color: #8c8f94;
+	background: transparent;
+	border-bottom-color: #c3c4c7;
+}
+
+.f2000cs-import-tabs__tab:focus {
+	outline: none;
+	box-shadow: none;
+}
+
+.f2000cs-import-tabs__tab:focus-visible {
+	color: var(--f2000cs-blue);
+	border-bottom-color: var(--f2000cs-blue);
 }
 
 .f2000cs-import-tabs__tab.is-active {
-	background: var(--f2000cs-blue);
-	border-color: var(--f2000cs-blue);
-	color: #fff;
+	background: transparent;
+	border-bottom-color: var(--f2000cs-blue);
+	color: var(--f2000cs-blue);
+	font-weight: 600;
 }
 
 .f2000cs-import-tab-panel {

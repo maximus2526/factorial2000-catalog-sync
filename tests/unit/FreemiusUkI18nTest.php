@@ -35,8 +35,11 @@ final class F2000CS_Unit_FreemiusUkI18nTest extends F2000CS_Unit_TestCase {
 			'expires-in-x',
 			'expired-x',
 			'opt-in-connect',
+			'opt-in',
+			'opt-out',
 			'skip',
 			'activate-license-message',
+			'have-license-key',
 			'license-expired-message',
 			'upgrade',
 			'trial-started-message',
@@ -90,5 +93,17 @@ final class F2000CS_Unit_FreemiusUkI18nTest extends F2000CS_Unit_TestCase {
 		$callbacks = array_column( F2000CS_Test_State::$hooks['plugins_loaded'], 'callback' );
 
 		$this->assertContains( 'f2000cs_apply_freemius_uk_i18n', $callbacks );
+	}
+
+	/**
+	 * Plugins-list opt-in must not read like a vague legal "agree".
+	 *
+	 * @return void
+	 */
+	public function test_opt_in_label_is_clear() {
+		$map = f2000cs_get_freemius_uk_i18n();
+
+		$this->assertSame( 'Увімкнути оновлення', $map['opt-in'] );
+		$this->assertNotSame( 'Погодитись', $map['opt-in'] );
 	}
 }

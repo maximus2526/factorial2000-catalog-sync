@@ -770,6 +770,19 @@ if ( ! function_exists( '__' ) ) {
 	}
 }
 
+if ( ! function_exists( '_n' ) ) {
+	/**
+	 * @param string $single Single.
+	 * @param string $plural Plural.
+	 * @param int    $count  Count.
+	 * @param string $domain Domain.
+	 * @return string
+	 */
+	function _n( $single, $plural, $count, $domain = 'default' ) {
+		return 1 === absint( $count ) ? $single : $plural;
+	}
+}
+
 if ( ! function_exists( '_e' ) ) {
 	/**
 	 * @param string $text Text.

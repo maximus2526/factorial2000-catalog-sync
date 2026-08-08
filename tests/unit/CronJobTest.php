@@ -132,7 +132,7 @@ final class F2000CS_Unit_CronJobTest extends F2000CS_Unit_TestCase {
 	public function test_update_stock_without_urls() {
 		Cron_Job::update_stock();
 
-		$this->assertFalse( get_option( 'f2000cs_last_stock_update_day', false ) );
+		$this->assertFalse( get_option( 'f2000cs_free_update_day', false ) );
 	}
 
 	/**
@@ -154,7 +154,7 @@ final class F2000CS_Unit_CronJobTest extends F2000CS_Unit_TestCase {
 		Cron_Job::update_stock();
 
 		// Free plan records the daily run.
-		$this->assertSame( gmdate( 'Y-m-d' ), get_option( 'f2000cs_last_stock_update_day' ) );
+		$this->assertSame( gmdate( 'Y-m-d' ), get_option( 'f2000cs_free_update_day' ) );
 
 		unlink( $tmp );
 	}

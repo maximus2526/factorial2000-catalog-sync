@@ -160,20 +160,66 @@ final class F2000CS_Unit_LicensingTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
-	 * Free plan runs one update per day, Pro runs any time.
+	 * Free plan runs three updates per day, Pro runs any time.
 	 *
 	 * @return void
 	 */
 	public function test_can_run_stock_update() {
 		$this->assertTrue( f2000cs_can_run_stock_update() );
 
+		// After 1 and 2 runs, updates are still available.
 		f2000cs_record_stock_update_run();
+		$this->assertFalse( f2000cs_free_update_used_today() );
+		$this->assertTrue( f2000cs_can_run_stock_update() );
 
+		f2000cs_record_stock_update_run();
+		$this->assertFalse( f2000cs_free_update_used_today() );
+		$this->assertTrue( f2000cs_can_run_stock_update() );
+
+		// 3rd run exhausts the limit.
+		f2000cs_record_stock_update_run();
 		$this->assertTrue( f2000cs_free_update_used_today() );
 		$this->assertFalse( f2000cs_can_run_stock_update() );
 
 		$this->enable_pro();
 		$this->assertTrue( f2000cs_can_run_stock_update() );
+	}
+
+	/**
+	 * Free update count resets when a new day comes.
+	 *
+	 * @return void
+	 */
+	public function test_free_update_count_resets_on_new_day() {
+		f2000cs_record_stock_update_run();
+		f2000cs_record_stock_update_run();
+		f2000cs_record_stock_update_run();
+
+		$this->assertTrue( f2000cs_free_update_used_today() );
+
+		// Simulate a new day.
+		update_option( 'f2000cs_free_update_day', '2000-01-01' );
+
+		$this->assertFalse( f2000cs_free_update_used_today() );
+		$this->assertTrue( f2000cs_can_run_stock_update() );
+	}
+
+	/**
+	 * f2000cs_free_updates_remaining returns correct counts.
+	 *
+	 * @return void
+	 */
+	public function test_free_updates_remaining_counts() {
+		$this->assertSame( 3, f2000cs_free_updates_remaining() );
+
+		f2000cs_record_stock_update_run();
+		$this->assertSame( 2, f2000cs_free_updates_remaining() );
+
+		f2000cs_record_stock_update_run();
+		$this->assertSame( 1, f2000cs_free_updates_remaining() );
+
+		f2000cs_record_stock_update_run();
+		$this->assertSame( 0, f2000cs_free_updates_remaining() );
 	}
 
 	/**
@@ -314,5 +360,8 @@ final class F2000CS_Unit_LicensingTest extends F2000CS_Unit_TestCase {
 		$this->assertArrayHasKey( 'plugins_loaded', F2000CS_Test_State::$hooks );
 		$this->assertArrayHasKey( 'admin_body_class', F2000CS_Test_State::$hooks );
 		$this->assertArrayHasKey( 'admin_init', F2000CS_Test_State::$hooks );
+
+		$admin_init = array_column( F2000CS_Test_State::$hooks['admin_init'], 'callback' );
+		$this->assertContains( 'f2000cs_enable_license_key_on_free_build', $admin_init );
 	}
 }
