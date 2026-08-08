@@ -112,7 +112,7 @@ function f2000cs_update_page() {
 							<?php endif; ?>
 
 							<div class="f2000cs-update-run__actions">
-								<input type="submit" name="run_script" class="button button-primary button-hero" value="<?php esc_attr_e( 'Оновити наявність', 'factorial2000-catalog-sync' ); ?>" <?php disabled( ! $can_update ); ?>>
+								<input type="submit" name="run_script" class="button button-primary button-hero" value="<?php esc_attr_e( 'Запустити оновлення', 'factorial2000-catalog-sync' ); ?>" <?php disabled( ! $can_update ); ?>>
 								<input type="submit" name="f2000cs_stop" class="button button-secondary" value="<?php esc_attr_e( 'Зупинити cron', 'factorial2000-catalog-sync' ); ?>">
 							</div>
 						</form>
@@ -130,7 +130,12 @@ function f2000cs_update_page() {
 									<span class="f2000cs-status__label"><?php esc_html_e( 'Ліміт Free сьогодні', 'factorial2000-catalog-sync' ); ?></span>
 									<?php if ( $can_update ) : ?>
 										<?php $remaining = function_exists( 'f2000cs_free_updates_remaining' ) ? f2000cs_free_updates_remaining() : 1; ?>
-										<span class="f2000cs-status__badge is-active"><?php echo esc_html( sprintf( _n( '%d оновлення доступне', '%d оновлень доступно', $remaining, 'factorial2000-catalog-sync' ), $remaining ) ); ?></span>
+										<span class="f2000cs-status__badge is-active">
+										<?php
+										/* translators: %d: remaining free stock updates today */
+										echo esc_html( sprintf( _n( '%d оновлення доступне', '%d оновлень доступно', $remaining, 'factorial2000-catalog-sync' ), $remaining ) );
+										?>
+										</span>
 									<?php else : ?>
 										<span class="f2000cs-status__badge is-inactive"><?php esc_html_e( 'вже використано', 'factorial2000-catalog-sync' ); ?></span>
 									<?php endif; ?>

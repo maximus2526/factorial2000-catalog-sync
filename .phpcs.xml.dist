@@ -5,10 +5,12 @@
 	<!-- What to scan -->
 	<file>.</file>
 	<exclude-pattern>/vendor/</exclude-pattern>
+	<exclude-pattern>/vendor-bin/</exclude-pattern>
 	<exclude-pattern>/node_modules/</exclude-pattern>
 	<exclude-pattern>/release/</exclude-pattern>
 	<exclude-pattern>/tests/</exclude-pattern>
 	<exclude-pattern>/freemius/</exclude-pattern>
+	<exclude-pattern>/bin/</exclude-pattern>
 
 	<!-- How to scan -->
 	<arg value="sp"/>

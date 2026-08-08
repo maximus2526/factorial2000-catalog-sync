@@ -9,12 +9,12 @@ on:
       release_mode:
         description: 'Freemius release status after upload'
         required: true
-        default: pending
+        default: released
         type: choice
         options:
+          - released
           - pending
           - beta
-          - released
 
 jobs:
   release:
@@ -115,7 +115,8 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             MODE="${{ inputs.release_mode }}"
           else
-            MODE="pending"
+            # Tag pushes ship as stable/released Freemius tags by default.
+            MODE="released"
           fi
           echo "mode=${MODE}" >> "$GITHUB_OUTPUT"
           echo "Freemius release_mode=${MODE}"
