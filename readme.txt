@@ -9,7 +9,7 @@ Stable tag: 0.6.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Import Prom.ua/YML XML into WooCommerce. Sync stock and prices, import products with images/attributes, edit XML feeds, and receive Telegram alerts. Free forever + 14-day Pro trial with no credit card.
+Import Prom.ua/YML into WooCommerce: sync stock/prices, import products with images, edit XML feeds. Free forever + 14-day Pro trial.
 
 == Description ==
 
