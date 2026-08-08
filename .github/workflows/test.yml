@@ -8,14 +8,14 @@ on:
 
 jobs:
   php:
-    name: PHP ${{ matrix.php }} — WP ${{ matrix.wp }}
+    name: PHP ${{ matrix.php }}
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.4', '8.2']
-        wp:  ['6.5']
+        # Dev tooling (PHPUnit 12) needs PHP >= 8.3. Plugin runtime still supports 7.4+.
+        php: ['8.3', '8.4']
 
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install Composer dependencies
