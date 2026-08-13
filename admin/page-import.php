@@ -8,9 +8,9 @@
 defined( 'ABSPATH' ) || exit;
 
 function f2000cs_import_page() {
-	$is_pro     = function_exists( 'f2000cs_is_pro' ) ? f2000cs_is_pro() : true;
-	$last       = f2000cs_get_last_import_prefs();
-	$last_url   = $last['xml_url'];
+	$is_pro      = function_exists( 'f2000cs_is_pro' ) ? f2000cs_is_pro() : true;
+	$last        = f2000cs_get_last_import_prefs();
+	$last_url    = $last['xml_url'];
 	$last_prefix = $last['sku_prefix'];
 	if ( '' === $last_prefix ) {
 		$last_prefix = (string) get_option( 'f2000cs_sku_prefix_1', '' );
@@ -451,17 +451,11 @@ function f2000cs_save_last_import_prefs( string $xml_url, string $sku_prefix ): 
 function f2000cs_remember_last_import_from_request(): void {
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Called only after nonce verification in AJAX handlers.
 	$source = isset( $_POST['import_source'] ) ? sanitize_text_field( wp_unslash( $_POST['import_source'] ) ) : '';
-	$url    = '';
-	if ( 'url' === $source && isset( $_POST['import_xml_url'] ) ) {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Same as above.
-		$url = esc_url_raw( wp_unslash( $_POST['import_xml_url'] ) );
-	}
-
-	$prefix = '';
-	if ( isset( $_POST['sku_prefix'] ) ) {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Same as above.
-		$prefix = sanitize_text_field( wp_unslash( $_POST['sku_prefix'] ) );
-	}
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Same as above.
+	$raw_url = isset( $_POST['import_xml_url'] ) ? esc_url_raw( wp_unslash( $_POST['import_xml_url'] ) ) : '';
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Same as above.
+	$prefix = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( wp_unslash( $_POST['sku_prefix'] ) ) : '';
+	$url    = ( 'url' === $source ) ? $raw_url : '';
 
 	f2000cs_save_last_import_prefs( $url, $prefix );
 }
