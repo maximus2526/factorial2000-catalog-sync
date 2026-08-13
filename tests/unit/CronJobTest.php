@@ -153,8 +153,8 @@ final class F2000CS_Unit_CronJobTest extends F2000CS_Unit_TestCase {
 
 		Cron_Job::update_stock();
 
-		// Free plan records the daily run.
-		$this->assertSame( gmdate( 'Y-m-d' ), get_option( 'f2000cs_free_update_day' ) );
+		// The scheduled cron must NOT consume the Free manual-update quota.
+		$this->assertFalse( get_option( 'f2000cs_free_update_day', false ) );
 
 		unlink( $tmp );
 	}

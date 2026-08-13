@@ -132,16 +132,21 @@ final class F2000CS_Unit_ImageProcessorTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
-	 * Extension sniff for PNG URLs.
+	 * Extension sniff for image URLs returns mime types.
 	 *
 	 * @return void
 	 */
-	public function test_looks_like_png() {
+	public function test_detect_image_mime() {
 		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs' );
 		file_put_contents( $tmp, 'x' );
 
-		$this->assertTrue( Image_Processor::looks_like_png( $tmp, 'https://x.test/a.png' ) );
-		$this->assertFalse( Image_Processor::looks_like_png( $tmp, 'https://x.test/a.jpg' ) );
+		$this->assertSame( 'image/png', Image_Processor::detect_image_mime( $tmp, 'https://x.test/a.png' ) );
+		$this->assertSame( 'image/jpeg', Image_Processor::detect_image_mime( $tmp, 'https://x.test/a.jpg' ) );
+		$this->assertSame( 'image/jpeg', Image_Processor::detect_image_mime( $tmp, 'https://x.test/a.jpeg' ) );
+		$this->assertSame( 'image/webp', Image_Processor::detect_image_mime( $tmp, 'https://x.test/a.webp' ) );
+		$this->assertSame( 'image/avif', Image_Processor::detect_image_mime( $tmp, 'https://x.test/a.avif' ) );
+		$this->assertSame( 'image/gif', Image_Processor::detect_image_mime( $tmp, 'https://x.test/a.gif' ) );
+		$this->assertSame( '', Image_Processor::detect_image_mime( $tmp, 'https://x.test/a.svg' ) );
 
 		wp_delete_file( $tmp );
 	}
@@ -280,5 +285,114 @@ final class F2000CS_Unit_ImageProcessorTest extends F2000CS_Unit_TestCase {
 		$this->assertFileExists( $result['tmp_name'] );
 
 		wp_delete_file( $result['tmp_name'] );
+	}
+
+	/**
+	 * JPG → WebP: non-PNG sources are now converted too.
+	 *
+	 * @return void
+	 */
+	public function test_prepare_sideload_converts_jpg_to_webp() {
+		$this->unlock_pro();
+		update_option( Image_Processor::OPTION_PNG_CONVERT, 'webp' );
+		update_option( Image_Processor::OPTION_QUALITY, '80' );
+		update_option( Image_Processor::OPTION_OPTIMIZE, '0' );
+
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs' );
+		file_put_contents( $tmp, 'jpgdata' );
+
+		$editor = new F2000CS_Fake_Image_Editor( $tmp, 200, 200 );
+		F2000CS_Test_State::$image_editor_factory = static function () use ( $editor ) {
+			return $editor;
+		};
+
+		$result = Image_Processor::prepare_sideload( $tmp, 'https://cdn.example/shot.jpg' );
+
+		$this->assertSame( 'image/webp', $editor->last_mime );
+		$this->assertSame( 80, $editor->quality );
+		$this->assertStringEndsWith( '.webp', $result['name'] );
+		$this->assertFileExists( $result['tmp_name'] );
+		$this->assertNotSame( $tmp, $result['tmp_name'] );
+
+		wp_delete_file( $result['tmp_name'] );
+	}
+
+	/**
+	 * GIF → JPG: gif sources convert too.
+	 *
+	 * @return void
+	 */
+	public function test_prepare_sideload_converts_gif_to_jpg() {
+		$this->unlock_pro();
+		update_option( Image_Processor::OPTION_PNG_CONVERT, 'jpg' );
+		update_option( Image_Processor::OPTION_OPTIMIZE, '0' );
+
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs' );
+		file_put_contents( $tmp, 'gifdata' );
+
+		$editor = new F2000CS_Fake_Image_Editor( $tmp, 200, 200 );
+		F2000CS_Test_State::$image_editor_factory = static function () use ( $editor ) {
+			return $editor;
+		};
+
+		$result = Image_Processor::prepare_sideload( $tmp, 'https://cdn.example/anim.gif' );
+
+		$this->assertSame( 'image/jpeg', $editor->last_mime );
+		$this->assertStringEndsWith( '.jpg', $result['name'] );
+
+		wp_delete_file( $result['tmp_name'] );
+	}
+
+	/**
+	 * WebP → WebP: no re-encode when source is already the target.
+	 *
+	 * @return void
+	 */
+	public function test_prepare_sideload_skips_when_already_target() {
+		$this->unlock_pro();
+		update_option( Image_Processor::OPTION_PNG_CONVERT, 'webp' );
+		update_option( Image_Processor::OPTION_OPTIMIZE, '0' );
+
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs' );
+		file_put_contents( $tmp, 'webpdata' );
+
+		$editor = new F2000CS_Fake_Image_Editor( $tmp, 200, 200 );
+		F2000CS_Test_State::$image_editor_factory = static function () use ( $editor ) {
+			return $editor;
+		};
+
+		$result = Image_Processor::prepare_sideload( $tmp, 'https://cdn.example/already.webp' );
+
+		// Passthrough: same temp file, no conversion.
+		$this->assertSame( $tmp, $result['tmp_name'] );
+		$this->assertSame( 'already.webp', $result['name'] );
+
+		wp_delete_file( $tmp );
+	}
+
+	/**
+	 * SVG never gets converted even when conversion is enabled.
+	 *
+	 * @return void
+	 */
+	public function test_prepare_sideload_never_converts_svg() {
+		$this->unlock_pro();
+		update_option( Image_Processor::OPTION_PNG_CONVERT, 'webp' );
+		update_option( Image_Processor::OPTION_OPTIMIZE, '0' );
+
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs' );
+		file_put_contents( $tmp, '<svg/>' );
+
+		$editor = new F2000CS_Fake_Image_Editor( $tmp, 200, 200 );
+		F2000CS_Test_State::$image_editor_factory = static function () use ( $editor ) {
+			return $editor;
+		};
+
+		$result = Image_Processor::prepare_sideload( $tmp, 'https://cdn.example/logo.svg' );
+
+		$this->assertSame( $tmp, $result['tmp_name'] );
+		$this->assertSame( 'logo.svg', $result['name'] );
+
+		wp_delete_file( $tmp );
 	}
 }

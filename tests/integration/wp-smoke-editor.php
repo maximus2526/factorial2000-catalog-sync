@@ -155,13 +155,13 @@ check( 'oldprice stripped', 0 === count( (array) $generated->shop->offers->offer
 
 // Save to real uploads dir.
 $saved = $editor->save( $result['xml'] );
-check( 'save success + url', $saved['success'] && false !== strpos( $saved['url'], 'f2000cs-exports' ) );
-
-$uploads    = wp_upload_dir();
-$saved_path = str_replace( $uploads['baseurl'], $uploads['basedir'], $saved['url'] );
-check( 'saved file exists', is_file( $saved_path ) );
-if ( is_file( $saved_path ) ) {
-	unlink( $saved_path );
+check(
+	'save success + url',
+	$saved['success'] && false !== strpos( $saved['url'], 'action=f2000cs_download_export' )
+);
+check( 'saved file exists', is_file( $saved['path'] ) );
+if ( is_file( $saved['path'] ) ) {
+	unlink( $saved['path'] );
 }
 
 // ---------------------------------------------------------------- cleanup

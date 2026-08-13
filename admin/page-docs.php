@@ -428,7 +428,7 @@ function f2000cs_docs_page() {
 						<h3><?php esc_html_e( 'Зображення при імпорті', 'factorial2000-catalog-sync' ); ?> <span class="f2000cs-pro-badge">Pro</span></h3>
 						<p><?php esc_html_e( 'Блок на сторінці «Імпорт XML» (зберігається окремою кнопкою). Діє лише на файли з тегів picture під час імпорту або оновлення поля «Фото». HTML у описах не змінюється.', 'factorial2000-catalog-sync' ); ?></p>
 						<ul>
-							<li><strong><?php esc_html_e( 'PNG → WebP / AVIF / JPG', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'конвертація PNG через Imagick/GD WordPress. JPG сумісніший; WebP/AVIF — якщо хостинг підтримує. При помилці лишається оригінал.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Формат зображень', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'усі фото з picture (PNG, JPG, WebP, AVIF, GIF) конвертуються у вибраний формат через Imagick/GD WordPress. JPG сумісніший; WebP/AVIF — якщо хостинг підтримує. При помилці лишається оригінал.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Оптимізація', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'перезбереження з обраною якістю.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Якість', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( '40–100 для оптимізації/конвертації.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Макс. сторона', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'зменшення зі збереженням пропорцій; 0 = без ліміту.', 'factorial2000-catalog-sync' ); ?></li>
@@ -533,7 +533,7 @@ function f2000cs_docs_page() {
 						<ul>
 							<li><?php esc_html_e( '1 слот нового постачальника;', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'імпорт товарів, skip price, Telegram, Vendor Code на товарі;', 'factorial2000-catalog-sync' ); ?></li>
-							<li><?php esc_html_e( 'автооновлення раз на добу + 1 ручний запуск на добу;', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'автооновлення раз на добу + 3 ручні запуски на добу;', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'без вигрузки, без оновлення окремих полів, без обробки зображень, без коригування ціни / кількості / правила малої наявності.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 					</div>
@@ -590,7 +590,7 @@ function f2000cs_docs_page() {
 
 					<div class="f2000cs-docs-card">
 						<h3><?php esc_html_e( 'WebP не конвертується', 'factorial2000-catalog-sync' ); ?></h3>
-						<p><?php esc_html_e( 'Дивіться блок «Цей хостинг» на сторінці імпорту. Якщо PNG → WebP / AVIF = ні — оберіть PNG → JPG або попросіть хостинг увімкнути WebP/AVIF у GD/Imagick.', 'factorial2000-catalog-sync' ); ?></p>
+						<p><?php esc_html_e( 'Дивіться блок «Цей хостинг» на сторінці імпорту. Якщо запис у WebP / AVIF = ні — оберіть JPG або попросіть хостинг увімкнути WebP/AVIF у GD/Imagick.', 'factorial2000-catalog-sync' ); ?></p>
 					</div>
 
 					<div class="f2000cs-docs-card">

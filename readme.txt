@@ -5,7 +5,7 @@ Tags: woocommerce, import, xml, stock, prom
 Requires at least: 5.8
 Tested up to: 7.0.2
 Requires PHP: 7.4
-Stable tag: 0.6.6
+Stable tag: 0.6.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -103,6 +103,12 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 4. XML export filter for creating a clean feed with new products only.
 
 == Changelog ==
+
+= 0.6.7 =
+* Added: image conversion now covers ALL source formats (PNG, JPG, WebP, AVIF, GIF) — not just PNG — with same-format and SVG passthrough. UI label shortened to «Формат зображень».
+* Added: Free plan now allows 3 manual stock updates per day (was 1).
+* Fixed: the scheduled cron no longer consumes or is blocked by the Free manual-update quota.
+* Fixed: Freemius `is_premium` flag set to false for the wp.org build so the 14-day trial offer works on manual installs.
 
 = 0.6.6 =
 * Added: PNG → AVIF conversion on import (Pro), with host capability check.

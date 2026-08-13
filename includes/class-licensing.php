@@ -68,7 +68,10 @@ function f2000cs_fs() {
 				'premium_slug'        => 'factorial2000-catalog-sync-for-promua-premium',
 				'type'                => 'plugin',
 				'public_key'          => F2000CS_FS_PUBLIC_KEY,
-				'is_premium'          => true,
+				// The wp.org build is the FREE version. Marking it as premium
+				// forces the connect screen to demand a license key instead of
+				// offering opt-in + free trial (manual installs were blocked).
+				'is_premium'          => false,
 				'premium_suffix'      => 'Pro',
 				'has_premium_version' => true,
 				'has_addons'          => false,
@@ -80,8 +83,7 @@ function f2000cs_fs() {
 					'is_require_payment' => false,
 				),
 				'menu'                => array(
-					'slug'    => 'f2000cs-update',
-					'support' => false, // Hide "Support Forum" submenu (wp.org / Freemius).
+					'slug' => 'f2000cs-update',
 				),
 			)
 		);

@@ -100,10 +100,6 @@ class Cron_Job {
 	 * @return void
 	 */
 	public static function update_stock() {
-		if ( function_exists( 'f2000cs_can_run_stock_update' ) && ! f2000cs_can_run_stock_update() ) {
-			return;
-		}
-
 		$xml_urls = function_exists( 'f2000cs_get_active_supplier_urls' )
 			? f2000cs_get_active_supplier_urls()
 			: array();
@@ -121,9 +117,9 @@ class Cron_Job {
 		}
 
 		if ( ! empty( $xml_urls ) ) {
-			if ( function_exists( 'f2000cs_record_stock_update_run' ) ) {
-				f2000cs_record_stock_update_run();
-			}
+			// The scheduled cron does not consume the Free manual-update quota:
+			// the quota gates only the «Запустити оновлення» button in the admin.
+			// The cron frequency itself is already limited by the effective interval.
 
 			// Clean up transients before starting the update process
 			f2000cs_cleanup_wc_transients();

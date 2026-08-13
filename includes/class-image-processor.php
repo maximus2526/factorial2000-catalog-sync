@@ -231,14 +231,14 @@ class Image_Processor {
 	}
 
 	/**
-	 * Build sideload filename, optionally changing extension for PNG conversion.
+	 * Build sideload filename, optionally changing extension for conversion.
 	 *
 	 * @param string $source_url Original remote URL.
-	 * @param string $png_convert off|webp|avif|jpg
-	 * @param bool   $is_png      Whether source is PNG.
+	 * @param string $convert    off|webp|avif|jpg
+	 * @param bool   $do_convert Whether the file will be converted.
 	 * @return string
 	 */
-	public static function build_filename( string $source_url, string $png_convert, bool $is_png ): string {
+	public static function build_filename( string $source_url, string $convert, bool $do_convert ): string {
 		$path = self::url_path( $source_url );
 		$name = $path ? basename( $path ) : 'image';
 		$name = self::safe_filename( $name );
@@ -252,27 +252,27 @@ class Image_Processor {
 			'jpg'  => '.jpg',
 		);
 
-		if ( $is_png && isset( $ext_map[ $png_convert ] ) ) {
-			return (string) preg_replace( '/\.[^.]+$/', '', $name ) . $ext_map[ $png_convert ];
+		if ( $do_convert && isset( $ext_map[ $convert ] ) ) {
+			return (string) preg_replace( '/\.[^.]+$/', '', $name ) . $ext_map[ $convert ];
 		}
 
 		return $name;
 	}
 
 	/**
-	 * Mime type for PNG conversion target, or null when not converting.
+	 * Mime type for the conversion target, or null when not converting.
 	 *
-	 * @param string $png_convert off|webp|avif|jpg
+	 * @param string $convert off|webp|avif|jpg
 	 * @return string|null
 	 */
-	public static function mime_for_png_convert( string $png_convert ): ?string {
+	public static function mime_for_png_convert( string $convert ): ?string {
 		$map = array(
 			'webp' => 'image/webp',
 			'avif' => 'image/avif',
 			'jpg'  => 'image/jpeg',
 		);
 
-		return $map[ $png_convert ] ?? null;
+		return $map[ $convert ] ?? null;
 	}
 
 	/**
@@ -305,34 +305,43 @@ class Image_Processor {
 	}
 
 	/**
-	 * Detect PNG from path / URL extension (fast path before opening editor).
+	 * Detect source image MIME type from path / URL extension, then content.
 	 *
-	 * @param string $tmp_path Temp file.
+	 * @param string $tmp_path   Temp file.
 	 * @param string $source_url Source URL.
-	 * @return bool
+	 * @return string Mime type ('image/png', 'image/jpeg', 'image/webp',
+	 *                'image/avif', 'image/gif', ...) or '' when unknown.
 	 */
-	public static function looks_like_png( string $tmp_path, string $source_url ): bool {
-		$candidates = array( $tmp_path, self::url_path( $source_url ) );
-		foreach ( $candidates as $candidate ) {
+	public static function detect_image_mime( string $tmp_path, string $source_url ): string {
+		$ext_map = array(
+			'png'  => 'image/png',
+			'jpg'  => 'image/jpeg',
+			'jpeg' => 'image/jpeg',
+			'webp' => 'image/webp',
+			'avif' => 'image/avif',
+			'gif'  => 'image/gif',
+		);
+
+		foreach ( array( $tmp_path, self::url_path( $source_url ) ) as $candidate ) {
 			$ext = strtolower( pathinfo( (string) $candidate, PATHINFO_EXTENSION ) );
-			if ( 'png' === $ext ) {
-				return true;
+			if ( isset( $ext_map[ $ext ] ) ) {
+				return $ext_map[ $ext ];
 			}
 		}
 
 		if ( function_exists( 'wp_getimagesize' ) ) {
 			$info = @wp_getimagesize( $tmp_path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-			if ( is_array( $info ) && ! empty( $info['mime'] ) && 'image/png' === $info['mime'] ) {
-				return true;
+			if ( is_array( $info ) && ! empty( $info['mime'] ) ) {
+				return (string) $info['mime'];
 			}
 		} elseif ( function_exists( 'getimagesize' ) ) {
 			$info = @getimagesize( $tmp_path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-			if ( is_array( $info ) && ! empty( $info['mime'] ) && 'image/png' === $info['mime'] ) {
-				return true;
+			if ( is_array( $info ) && ! empty( $info['mime'] ) ) {
+				return (string) $info['mime'];
 			}
 		}
 
-		return false;
+		return '';
 	}
 
 	/**
@@ -353,8 +362,19 @@ class Image_Processor {
 			return $fallback;
 		}
 
-		$is_png = self::looks_like_png( $tmp_path, $source_url );
-		$name   = self::build_filename( $source_url, $settings['png_convert'], $is_png );
+		$source_mime = self::detect_image_mime( $tmp_path, $source_url );
+		$target_mime = 'off' !== $settings['png_convert']
+			? self::mime_for_png_convert( $settings['png_convert'] )
+			: null;
+
+		// Convert every supported source format to the target, except:
+		//  - unknown formats (e.g. SVG, BMP) — never touched,
+		//  - when source is already the target format.
+		$do_convert = $target_mime
+			&& '' !== $source_mime
+			&& $source_mime !== $target_mime;
+
+		$name = self::build_filename( $source_url, $settings['png_convert'], $do_convert );
 
 		if ( ! function_exists( 'wp_get_image_editor' ) ) {
 			$image_inc = ABSPATH . 'wp-admin/includes/image.php';
@@ -385,7 +405,6 @@ class Image_Processor {
 			}
 		}
 
-		$do_convert  = $is_png && 'off' !== $settings['png_convert'];
 		$do_reencode = $do_convert || $settings['optimize'] || $did_resize;
 
 		if ( ! $do_reencode ) {
@@ -397,7 +416,7 @@ class Image_Processor {
 
 		$editor->set_quality( (int) $settings['quality'] );
 
-		$mime = $do_convert ? self::mime_for_png_convert( $settings['png_convert'] ) : null;
+		$mime = $do_convert ? $target_mime : null;
 
 		$dest = $tmp_path;
 		if ( $do_convert ) {
@@ -414,7 +433,7 @@ class Image_Processor {
 			}
 			return array(
 				'tmp_name' => $tmp_path,
-				'name'     => self::build_filename( $source_url, 'off', $is_png ),
+				'name'     => self::build_filename( $source_url, 'off', false ),
 			);
 		}
 
