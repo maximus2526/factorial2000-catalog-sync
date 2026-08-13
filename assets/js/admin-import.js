@@ -26,8 +26,6 @@
 
 		if (isUrl) {
 			$('#import_xml_file').val('');
-		} else {
-			$('#import_xml_url').val('');
 		}
 
 		importSession = '';

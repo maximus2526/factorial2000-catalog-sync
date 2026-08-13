@@ -20,6 +20,20 @@ final class F2000CS_Test_State {
 	public static $options = array();
 
 	/**
+	 * User meta store: [ user_id => [ meta_key => value ] ].
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	public static $user_meta = array();
+
+	/**
+	 * Current user ID for get_current_user_id().
+	 *
+	 * @var int
+	 */
+	public static $current_user_id = 0;
+
+	/**
 	 * Transients store.
 	 *
 	 * @var array<string, mixed>
@@ -156,6 +170,8 @@ final class F2000CS_Test_State {
 	 */
 	public static function reset() {
 		self::$options       = array();
+		self::$user_meta     = array();
+		self::$current_user_id = 0;
 		self::$transients    = array();
 		self::$cron_events   = array();
 		self::$http_get_responses = array();
@@ -435,6 +451,100 @@ if ( ! function_exists( 'delete_option' ) ) {
 		}
 
 		return false;
+	}
+}
+
+if ( ! function_exists( 'get_current_user_id' ) ) {
+	/**
+	 * @return int
+	 */
+	function get_current_user_id() {
+		return (int) F2000CS_Test_State::$current_user_id;
+	}
+}
+
+if ( ! function_exists( 'get_user_meta' ) ) {
+	/**
+	 * @param int    $user_id User ID.
+	 * @param string $key     Meta key.
+	 * @param bool   $single  Whether to return a single value.
+	 * @return mixed
+	 */
+	function get_user_meta( $user_id, $key = '', $single = false ) {
+		$user_id = (int) $user_id;
+		$store   = isset( F2000CS_Test_State::$user_meta[ $user_id ] ) ? F2000CS_Test_State::$user_meta[ $user_id ] : array();
+
+		if ( '' === $key ) {
+			return $store;
+		}
+
+		if ( ! array_key_exists( $key, $store ) ) {
+			return $single ? '' : array();
+		}
+
+		return $single ? $store[ $key ] : array( $store[ $key ] );
+	}
+}
+
+if ( ! function_exists( 'update_user_meta' ) ) {
+	/**
+	 * @param int    $user_id    User ID.
+	 * @param string $meta_key   Meta key.
+	 * @param mixed  $meta_value Meta value.
+	 * @return int|bool
+	 */
+	function update_user_meta( $user_id, $meta_key, $meta_value, $prev_value = '' ) {
+		$user_id = (int) $user_id;
+		if ( ! isset( F2000CS_Test_State::$user_meta[ $user_id ] ) ) {
+			F2000CS_Test_State::$user_meta[ $user_id ] = array();
+		}
+		F2000CS_Test_State::$user_meta[ $user_id ][ $meta_key ] = $meta_value;
+
+		return true;
+	}
+}
+
+if ( ! function_exists( 'delete_user_meta' ) ) {
+	/**
+	 * @param int    $user_id  User ID.
+	 * @param string $meta_key Meta key.
+	 * @return bool
+	 */
+	function delete_user_meta( $user_id, $meta_key, $meta_value = '' ) {
+		$user_id = (int) $user_id;
+		if ( isset( F2000CS_Test_State::$user_meta[ $user_id ][ $meta_key ] ) ) {
+			unset( F2000CS_Test_State::$user_meta[ $user_id ][ $meta_key ] );
+
+			return true;
+		}
+
+		return false;
+	}
+}
+
+if ( ! function_exists( 'delete_metadata' ) ) {
+	/**
+	 * @param string $meta_type  Meta type (user, post, …).
+	 * @param int    $object_id  Object ID (0 + delete_all = all objects).
+	 * @param string $meta_key   Meta key.
+	 * @param mixed  $meta_value Unused.
+	 * @param bool   $delete_all Delete for all objects.
+	 * @return bool
+	 */
+	function delete_metadata( $meta_type, $object_id, $meta_key, $meta_value = '', $delete_all = false ) {
+		if ( 'user' !== $meta_type ) {
+			return false;
+		}
+
+		if ( $delete_all ) {
+			foreach ( F2000CS_Test_State::$user_meta as $uid => $meta ) {
+				unset( F2000CS_Test_State::$user_meta[ $uid ][ $meta_key ] );
+			}
+
+			return true;
+		}
+
+		return delete_user_meta( (int) $object_id, $meta_key );
 	}
 }
 
@@ -846,6 +956,21 @@ if ( ! function_exists( 'esc_url' ) ) {
 	 */
 	function esc_url( $url ) {
 		return (string) $url;
+	}
+}
+
+if ( ! function_exists( 'esc_url_raw' ) ) {
+	/**
+	 * @param string $url URL.
+	 * @return string
+	 */
+	function esc_url_raw( $url ) {
+		$url = trim( (string) $url );
+		if ( ! preg_match( '#^https?://#i', $url ) ) {
+			return '';
+		}
+
+		return $url;
 	}
 }
 

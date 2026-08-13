@@ -5,7 +5,7 @@ Tags: woocommerce, import, xml, stock, prom
 Requires at least: 5.8
 Tested up to: 7.0.2
 Requires PHP: 7.4
-Stable tag: 0.6.5
+Stable tag: 0.6.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,7 +26,7 @@ This plugin connects your WooCommerce store with supplier XML feeds for automati
 * Telegram notifications with sync reports
 * XML export: filter to keep only new products, or use the visual XML editor to build a custom feed by category/product (Pro) — **key differentiator** for marketplace sellers
 * Fields updater (Pro): update selected fields (name, description, images, attributes, categories, tags, vendorCode) on already-imported products
-* Image processing (Pro): convert PNG→WebP/JPG, optimize, resize on import
+* Image processing (Pro): convert PNG→WebP/AVIF/JPG, optimize, resize on import
 * Currency conversion via XML currencies/currencyId
 * Built-in documentation page with sticky sidebar navigation
 * Clean uninstall removes plugin settings, transients, and cron jobs
@@ -103,6 +103,17 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 4. XML export filter for creating a clean feed with new products only.
 
 == Changelog ==
+
+= 0.6.6 =
+* Added: PNG → AVIF conversion on import (Pro), with host capability check.
+* Improved: the Import page remembers the last XML URL and SKU prefix per admin.
+* Fixed: Freemius 14-day Pro trial starts without a credit card.
+
+= 0.6.5 =
+* Improved: wordpress.org short description trimmed to the 150-character limit.
+
+= 0.6.4 =
+* Improved: Freemius free license activation UX and Ukrainian opt-in strings.
 
 = 0.6.3 =
 * Fixed: Freemius plugin-scope API paths (avoid duplicated /plugins/{id}/ prefix).

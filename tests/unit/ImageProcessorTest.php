@@ -76,6 +76,8 @@ final class F2000CS_Unit_ImageProcessorTest extends F2000CS_Unit_TestCase {
 	public function test_sanitize_helpers() {
 		$this->assertSame( 'off', Image_Processor::sanitize_png_convert( 'gif' ) );
 		$this->assertSame( 'webp', Image_Processor::sanitize_png_convert( 'webp' ) );
+		$this->assertSame( 'avif', Image_Processor::sanitize_png_convert( 'avif' ) );
+		$this->assertSame( 'image/avif', Image_Processor::mime_for_png_convert( 'avif' ) );
 		$this->assertSame( '1', Image_Processor::sanitize_optimize( 'on' ) );
 		$this->assertSame( '0', Image_Processor::sanitize_optimize( 'no' ) );
 		$this->assertSame( 40, Image_Processor::sanitize_quality( 10 ) );
@@ -92,7 +94,7 @@ final class F2000CS_Unit_ImageProcessorTest extends F2000CS_Unit_TestCase {
 	public function test_get_host_capabilities_shape() {
 		$caps = Image_Processor::get_host_capabilities();
 
-		foreach ( array( 'gd', 'imagick', 'editor', 'jpeg', 'webp', 'resize' ) as $key ) {
+		foreach ( array( 'gd', 'imagick', 'editor', 'jpeg', 'webp', 'avif', 'resize' ) as $key ) {
 			$this->assertArrayHasKey( $key, $caps );
 			$this->assertIsBool( $caps[ $key ] );
 		}
@@ -124,6 +126,7 @@ final class F2000CS_Unit_ImageProcessorTest extends F2000CS_Unit_TestCase {
 
 		$this->assertSame( 'photo.PNG', Image_Processor::build_filename( $url, 'off', true ) );
 		$this->assertSame( 'photo.webp', Image_Processor::build_filename( $url, 'webp', true ) );
+		$this->assertSame( 'photo.avif', Image_Processor::build_filename( $url, 'avif', true ) );
 		$this->assertSame( 'photo.jpg', Image_Processor::build_filename( $url, 'jpg', true ) );
 		$this->assertSame( 'photo.PNG', Image_Processor::build_filename( $url, 'webp', false ) );
 	}
@@ -215,6 +218,36 @@ final class F2000CS_Unit_ImageProcessorTest extends F2000CS_Unit_TestCase {
 		$this->assertSame( 'image/webp', $editor->last_mime );
 		$this->assertSame( 75, $editor->quality );
 		$this->assertStringEndsWith( '.webp', $result['name'] );
+		$this->assertFileExists( $result['tmp_name'] );
+		$this->assertNotSame( $tmp, $result['tmp_name'] );
+
+		wp_delete_file( $result['tmp_name'] );
+	}
+
+	/**
+	 * PNG → AVIF conversion sets mime and renames the file.
+	 *
+	 * @return void
+	 */
+	public function test_prepare_sideload_converts_png_to_avif() {
+		$this->unlock_pro();
+		update_option( Image_Processor::OPTION_PNG_CONVERT, 'avif' );
+		update_option( Image_Processor::OPTION_QUALITY, '70' );
+		update_option( Image_Processor::OPTION_OPTIMIZE, '0' );
+
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs' );
+		file_put_contents( $tmp, 'pngdata' );
+
+		$editor = new F2000CS_Fake_Image_Editor( $tmp, 200, 200 );
+		F2000CS_Test_State::$image_editor_factory = static function () use ( $editor ) {
+			return $editor;
+		};
+
+		$result = Image_Processor::prepare_sideload( $tmp, 'https://cdn.example/shot.png' );
+
+		$this->assertSame( 'image/avif', $editor->last_mime );
+		$this->assertSame( 70, $editor->quality );
+		$this->assertStringEndsWith( '.avif', $result['name'] );
 		$this->assertFileExists( $result['tmp_name'] );
 		$this->assertNotSame( $tmp, $result['tmp_name'] );
 

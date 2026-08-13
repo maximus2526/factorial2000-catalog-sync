@@ -59,11 +59,11 @@ class Image_Processor {
 
 	/**
 	 * @param mixed $value Raw option.
-	 * @return string off|webp|jpg
+	 * @return string off|webp|avif|jpg
 	 */
 	public static function sanitize_png_convert( $value ): string {
 		$value   = sanitize_text_field( (string) $value );
-		$allowed = array( 'off', 'webp', 'jpg' );
+		$allowed = array( 'off', 'webp', 'avif', 'jpg' );
 
 		return in_array( $value, $allowed, true ) ? $value : 'off';
 	}
@@ -129,6 +129,7 @@ class Image_Processor {
 	 *     editor:bool,
 	 *     jpeg:bool,
 	 *     webp:bool,
+	 *     avif:bool,
 	 *     resize:bool
 	 * }
 	 */
@@ -140,19 +141,22 @@ class Image_Processor {
 
 		$jpeg   = false;
 		$webp   = false;
+		$avif   = false;
 		$resize = false;
 
 		if ( function_exists( 'wp_image_editor_supports' ) ) {
 			$jpeg   = (bool) wp_image_editor_supports( array( 'mime_type' => 'image/jpeg' ) );
 			$webp   = (bool) wp_image_editor_supports( array( 'mime_type' => 'image/webp' ) );
+			$avif   = (bool) wp_image_editor_supports( array( 'mime_type' => 'image/avif' ) );
 			$resize = (bool) wp_image_editor_supports( array( 'methods' => array( 'resize' ) ) );
 		} else {
 			$jpeg   = $gd || $imagick;
-			$webp   = ( $gd && function_exists( 'imagewebp' ) ) || self::imagick_supports_webp();
+			$webp   = ( $gd && function_exists( 'imagewebp' ) ) || self::imagick_supports_format( 'WEBP' );
+			$avif   = ( $gd && function_exists( 'imageavif' ) ) || self::imagick_supports_format( 'AVIF' );
 			$resize = $gd || $imagick;
 		}
 
-		$editor = function_exists( 'wp_get_image_editor' ) && ( $jpeg || $webp || $resize || $gd || $imagick );
+		$editor = function_exists( 'wp_get_image_editor' ) && ( $jpeg || $webp || $avif || $resize || $gd || $imagick );
 
 		return array(
 			'gd'      => $gd,
@@ -160,6 +164,7 @@ class Image_Processor {
 			'editor'  => $editor,
 			'jpeg'    => $jpeg,
 			'webp'    => $webp,
+			'avif'    => $avif,
 			'resize'  => $resize,
 		);
 	}
@@ -179,15 +184,18 @@ class Image_Processor {
 	}
 
 	/**
+	 * Whether Imagick can encode the given format (e.g. WEBP, AVIF).
+	 *
+	 * @param string $format Imagick format name.
 	 * @return bool
 	 */
-	private static function imagick_supports_webp(): bool {
+	private static function imagick_supports_format( string $format ): bool {
 		if ( ! extension_loaded( 'imagick' ) || ! class_exists( '\Imagick', false ) ) {
 			return false;
 		}
 
 		try {
-			$formats = \Imagick::queryFormats( 'WEBP' );
+			$formats = \Imagick::queryFormats( strtoupper( $format ) );
 			if ( is_array( $formats ) && ! empty( $formats ) ) {
 				return true;
 			}
@@ -226,7 +234,7 @@ class Image_Processor {
 	 * Build sideload filename, optionally changing extension for PNG conversion.
 	 *
 	 * @param string $source_url Original remote URL.
-	 * @param string $png_convert off|webp|jpg
+	 * @param string $png_convert off|webp|avif|jpg
 	 * @param bool   $is_png      Whether source is PNG.
 	 * @return string
 	 */
@@ -238,14 +246,33 @@ class Image_Processor {
 			$name = 'image';
 		}
 
-		if ( $is_png && 'webp' === $png_convert ) {
-			return (string) preg_replace( '/\.[^.]+$/', '', $name ) . '.webp';
-		}
-		if ( $is_png && 'jpg' === $png_convert ) {
-			return (string) preg_replace( '/\.[^.]+$/', '', $name ) . '.jpg';
+		$ext_map = array(
+			'webp' => '.webp',
+			'avif' => '.avif',
+			'jpg'  => '.jpg',
+		);
+
+		if ( $is_png && isset( $ext_map[ $png_convert ] ) ) {
+			return (string) preg_replace( '/\.[^.]+$/', '', $name ) . $ext_map[ $png_convert ];
 		}
 
 		return $name;
+	}
+
+	/**
+	 * Mime type for PNG conversion target, or null when not converting.
+	 *
+	 * @param string $png_convert off|webp|avif|jpg
+	 * @return string|null
+	 */
+	public static function mime_for_png_convert( string $png_convert ): ?string {
+		$map = array(
+			'webp' => 'image/webp',
+			'avif' => 'image/avif',
+			'jpg'  => 'image/jpeg',
+		);
+
+		return $map[ $png_convert ] ?? null;
 	}
 
 	/**
@@ -370,12 +397,7 @@ class Image_Processor {
 
 		$editor->set_quality( (int) $settings['quality'] );
 
-		$mime = null;
-		if ( $do_convert && 'webp' === $settings['png_convert'] ) {
-			$mime = 'image/webp';
-		} elseif ( $do_convert && 'jpg' === $settings['png_convert'] ) {
-			$mime = 'image/jpeg';
-		}
+		$mime = $do_convert ? self::mime_for_png_convert( $settings['png_convert'] ) : null;
 
 		$dest = $tmp_path;
 		if ( $do_convert ) {

@@ -640,13 +640,13 @@ function f2000cs_render_import_images_panel() {
 
 	$rows = array(
 		array(
-			'label'    => __( 'PNG → WebP / JPG', 'factorial2000-catalog-sync' ),
-			'tip'      => __( 'Конвертує PNG-фото з тегів picture у легший формат перед збереженням у медіатеку. JPG сумісніший; WebP легший, але потрібна підтримка на хостингу.', 'factorial2000-catalog-sync' ),
+			'label'    => __( 'PNG → WebP / AVIF / JPG', 'factorial2000-catalog-sync' ),
+			'tip'      => __( 'Конвертує PNG-фото з тегів picture у легший формат перед збереженням у медіатеку. JPG сумісніший; WebP/AVIF легші, але потрібна підтримка на хостингу.', 'factorial2000-catalog-sync' ),
 			'callback' => 'f2000cs_img_png_convert_render',
 		),
 		array(
 			'label'    => __( 'Оптимізація', 'factorial2000-catalog-sync' ),
-			'tip'      => __( 'Перезберігає JPG/WebP/PNG з обраною якістю під час імпорту, щоб зменшити вагу файлів.', 'factorial2000-catalog-sync' ),
+			'tip'      => __( 'Перезберігає JPG/WebP/AVIF/PNG з обраною якістю під час імпорту, щоб зменшити вагу файлів.', 'factorial2000-catalog-sync' ),
 			'callback' => 'f2000cs_img_optimize_render',
 		),
 		array(
@@ -712,12 +712,13 @@ function f2000cs_img_png_convert_render() {
 		<select name="f2000cs_img_png_convert" <?php disabled( ! $is_pro ); ?>>
 			<option value="off" <?php selected( $val, 'off' ); ?>><?php esc_html_e( 'Не конвертувати', 'factorial2000-catalog-sync' ); ?></option>
 			<option value="webp" <?php selected( $val, 'webp' ); ?>><?php esc_html_e( 'PNG → WebP', 'factorial2000-catalog-sync' ); ?></option>
+			<option value="avif" <?php selected( $val, 'avif' ); ?>><?php esc_html_e( 'PNG → AVIF', 'factorial2000-catalog-sync' ); ?></option>
 			<option value="jpg" <?php selected( $val, 'jpg' ); ?>><?php esc_html_e( 'PNG → JPG', 'factorial2000-catalog-sync' ); ?></option>
 		</select>
 		<?php if ( ! $is_pro ) : ?>
 			<span class="f2000cs-pro-badge"><?php esc_html_e( 'Pro', 'factorial2000-catalog-sync' ); ?></span>
 		<?php endif; ?>
-		<p class="description"><?php esc_html_e( 'Якщо у вигрузці для товару є PNG у picture — конвертувати перед збереженням у медіатеку. Працює через Imagick/GD WordPress: JPG майже всюди, WebP — лише якщо хостинг підтримує WebP. Якщо конвертація не вдалась — лишається оригінальний PNG.', 'factorial2000-catalog-sync' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Якщо у вигрузці для товару є PNG у picture — конвертувати перед збереженням у медіатеку. Працює через Imagick/GD WordPress: JPG майже всюди; WebP/AVIF — лише якщо хостинг їх підтримує. Якщо конвертація не вдалась — лишається оригінальний PNG.', 'factorial2000-catalog-sync' ); ?></p>
 	</div>
 	<?php
 }
@@ -738,7 +739,7 @@ function f2000cs_img_optimize_render() {
 				<span class="f2000cs-pro-badge"><?php esc_html_e( 'Pro', 'factorial2000-catalog-sync' ); ?></span>
 			<?php endif; ?>
 		</label>
-		<p class="description"><?php esc_html_e( 'Перезберігає JPG/WebP/PNG з обраною якістю під час імпорту.', 'factorial2000-catalog-sync' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Перезберігає JPG/WebP/AVIF/PNG з обраною якістю під час імпорту.', 'factorial2000-catalog-sync' ); ?></p>
 	</div>
 	<?php
 }
@@ -850,8 +851,13 @@ function f2000cs_img_host_caps_render() {
 		),
 		array(
 			'label' => __( 'PNG → WebP', 'factorial2000-catalog-sync' ),
-			'tip'   => __( 'Чи вміє сервер зберігати WebP. Якщо ні — оберіть конвертацію в JPG.', 'factorial2000-catalog-sync' ),
+			'tip'   => __( 'Чи вміє сервер зберігати WebP. Якщо ні — оберіть JPG або AVIF (якщо доступний).', 'factorial2000-catalog-sync' ),
 			'ok'    => ! empty( $caps['webp'] ),
+		),
+		array(
+			'label' => __( 'PNG → AVIF', 'factorial2000-catalog-sync' ),
+			'tip'   => __( 'Чи вміє сервер зберігати AVIF (зазвичай через Imagick / GD з libavif). Якщо ні — оберіть WebP або JPG.', 'factorial2000-catalog-sync' ),
+			'ok'    => ! empty( $caps['avif'] ),
 		),
 		array(
 			'label' => __( 'Зменшення / оптимізація', 'factorial2000-catalog-sync' ),
@@ -877,8 +883,10 @@ function f2000cs_img_host_caps_render() {
 		</ul>
 		<?php if ( empty( $caps['imagick'] ) && empty( $caps['gd'] ) ) : ?>
 			<p class="f2000cs-img-host-caps__note"><?php esc_html_e( 'Без Imagick або GD на сервері конвертація й оптимізація під час імпорту не працюватимуть.', 'factorial2000-catalog-sync' ); ?></p>
-		<?php elseif ( empty( $caps['webp'] ) ) : ?>
-			<p class="f2000cs-img-host-caps__note"><?php esc_html_e( 'WebP на цьому сервері недоступний — для сумісності оберіть PNG → JPG.', 'factorial2000-catalog-sync' ); ?></p>
+		<?php elseif ( empty( $caps['webp'] ) && empty( $caps['avif'] ) ) : ?>
+			<p class="f2000cs-img-host-caps__note"><?php esc_html_e( 'WebP і AVIF на цьому сервері недоступні — для сумісності оберіть PNG → JPG.', 'factorial2000-catalog-sync' ); ?></p>
+		<?php elseif ( empty( $caps['avif'] ) ) : ?>
+			<p class="f2000cs-img-host-caps__note"><?php esc_html_e( 'AVIF на цьому сервері недоступний — оберіть WebP або JPG.', 'factorial2000-catalog-sync' ); ?></p>
 		<?php endif; ?>
 	</div>
 	<?php

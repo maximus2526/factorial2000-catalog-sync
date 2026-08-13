@@ -65,6 +65,8 @@ function f2000cs_uninstall_cleanup() {
 	delete_option( 'f2000cs_db_version' );
 	delete_option( 'f2000cs_sku_prefix' );
 
+	delete_metadata( 'user', 0, 'f2000cs_last_import', '', true );
+
 	// Remove leftover transients created during import sessions
 	delete_transient( 'f2000cs_import_variations_temp' );
 	delete_transient( 'f2000cs_selected_attributes_temp' );

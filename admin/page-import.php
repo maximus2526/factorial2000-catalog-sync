@@ -8,7 +8,13 @@
 defined( 'ABSPATH' ) || exit;
 
 function f2000cs_import_page() {
-	$is_pro = function_exists( 'f2000cs_is_pro' ) ? f2000cs_is_pro() : true;
+	$is_pro     = function_exists( 'f2000cs_is_pro' ) ? f2000cs_is_pro() : true;
+	$last       = f2000cs_get_last_import_prefs();
+	$last_url   = $last['xml_url'];
+	$last_prefix = $last['sku_prefix'];
+	if ( '' === $last_prefix ) {
+		$last_prefix = (string) get_option( 'f2000cs_sku_prefix_1', '' );
+	}
 	?>
 	<div class="wrap f2000cs-import-page">
 		<?php f2000cs_render_admin_page_title( __( 'Factorial2000 Catalog Sync – Імпорт', 'factorial2000-catalog-sync' ) ); ?>
@@ -51,7 +57,7 @@ function f2000cs_import_page() {
 								<div class="f2000cs-import-source-fields">
 									<div id="import-source-url-row" class="f2000cs-import-field-block">
 										<label for="import_xml_url"><?php esc_html_e( 'URL XML файлу', 'factorial2000-catalog-sync' ); ?></label>
-										<input type="url" name="import_xml_url" id="import_xml_url" class="regular-text" value="" placeholder="<?php esc_attr_e( 'https://example.com/products.xml', 'factorial2000-catalog-sync' ); ?>">
+										<input type="url" name="import_xml_url" id="import_xml_url" class="regular-text" value="<?php echo esc_attr( $last_url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products.xml', 'factorial2000-catalog-sync' ); ?>">
 										<p class="description"><?php esc_html_e( 'Пряме посилання на XML/YML вигрузку Prom або постачальника.', 'factorial2000-catalog-sync' ); ?></p>
 									</div>
 									<div id="import-source-file-row" class="f2000cs-import-field-block is-hidden" hidden>
@@ -60,7 +66,7 @@ function f2000cs_import_page() {
 									</div>
 									<div class="f2000cs-import-field-block">
 										<label for="import_sku_prefix"><?php esc_html_e( 'SKU Prefix', 'factorial2000-catalog-sync' ); ?></label>
-										<input type="text" name="import_sku_prefix" id="import_sku_prefix" class="regular-text" placeholder="<?php esc_attr_e( 'Наприклад: NEW_', 'factorial2000-catalog-sync' ); ?>" required>
+										<input type="text" name="import_sku_prefix" id="import_sku_prefix" class="regular-text" value="<?php echo esc_attr( $last_prefix ); ?>" placeholder="<?php esc_attr_e( 'Наприклад: NEW_', 'factorial2000-catalog-sync' ); ?>" required>
 										<p class="description"><?php esc_html_e( 'Унікальний префікс, щоб не змішати артикули різних постачальників.', 'factorial2000-catalog-sync' ); ?></p>
 									</div>
 								</div>
@@ -370,6 +376,97 @@ function f2000cs_import_page() {
 }
 
 /**
+ * User meta key for last import URL / SKU prefix.
+ */
+const F2000CS_LAST_IMPORT_META = 'f2000cs_last_import';
+
+/**
+ * Last import URL and SKU prefix for the current admin.
+ *
+ * @return array{xml_url:string,sku_prefix:string}
+ */
+function f2000cs_get_last_import_prefs(): array {
+	$user_id = get_current_user_id();
+	$raw     = $user_id ? get_user_meta( $user_id, F2000CS_LAST_IMPORT_META, true ) : array();
+	if ( ! is_array( $raw ) ) {
+		$raw = array();
+	}
+
+	$url    = isset( $raw['xml_url'] ) ? esc_url_raw( (string) $raw['xml_url'] ) : '';
+	$prefix = isset( $raw['sku_prefix'] ) ? sanitize_text_field( (string) $raw['sku_prefix'] ) : '';
+
+	if ( $url && ! preg_match( '#^https?://#i', $url ) ) {
+		$url = '';
+	}
+
+	return array(
+		'xml_url'    => $url,
+		'sku_prefix' => $prefix,
+	);
+}
+
+/**
+ * Persist last import URL and SKU prefix for the current admin.
+ *
+ * Empty fields keep the previously stored value so a file-source import
+ * does not wipe a remembered URL.
+ *
+ * @param string $xml_url    Remote XML URL (optional).
+ * @param string $sku_prefix SKU prefix (optional).
+ * @return void
+ */
+function f2000cs_save_last_import_prefs( string $xml_url, string $sku_prefix ): void {
+	$user_id = get_current_user_id();
+	if ( ! $user_id ) {
+		return;
+	}
+
+	$current = f2000cs_get_last_import_prefs();
+	$url     = $xml_url ? esc_url_raw( $xml_url ) : $current['xml_url'];
+	$prefix  = '' !== $sku_prefix ? sanitize_text_field( $sku_prefix ) : $current['sku_prefix'];
+
+	if ( $url && ! preg_match( '#^https?://#i', $url ) ) {
+		$url = $current['xml_url'];
+	}
+
+	if ( $url === $current['xml_url'] && $prefix === $current['sku_prefix'] ) {
+		return;
+	}
+
+	update_user_meta(
+		$user_id,
+		F2000CS_LAST_IMPORT_META,
+		array(
+			'xml_url'    => $url,
+			'sku_prefix' => $prefix,
+		)
+	);
+}
+
+/**
+ * Remember URL / SKU from the current import AJAX request.
+ *
+ * @return void
+ */
+function f2000cs_remember_last_import_from_request(): void {
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Called only after nonce verification in AJAX handlers.
+	$source = isset( $_POST['import_source'] ) ? sanitize_text_field( wp_unslash( $_POST['import_source'] ) ) : '';
+	$url    = '';
+	if ( 'url' === $source && isset( $_POST['import_xml_url'] ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Same as above.
+		$url = esc_url_raw( wp_unslash( $_POST['import_xml_url'] ) );
+	}
+
+	$prefix = '';
+	if ( isset( $_POST['sku_prefix'] ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Same as above.
+		$prefix = sanitize_text_field( wp_unslash( $_POST['sku_prefix'] ) );
+	}
+
+	f2000cs_save_last_import_prefs( $url, $prefix );
+}
+
+/**
  * Resolve local XML path for import/analyze from uploaded file or remote URL.
  *
  * For URL source the downloaded file is cached in a transient for chunked import.
@@ -387,6 +484,7 @@ function f2000cs_resolve_import_xml_source() {
 		if ( $session ) {
 			$cached = get_transient( 'f2000cs_import_xml_' . $session );
 			if ( is_string( $cached ) && $cached && file_exists( $cached ) ) {
+				f2000cs_remember_last_import_from_request();
 				return array(
 					'path'    => $cached,
 					'session' => $session,
@@ -445,6 +543,8 @@ function f2000cs_resolve_import_xml_source() {
 		$session = $session ? $session : wp_generate_password( 16, false, false );
 		set_transient( 'f2000cs_import_xml_' . $session, $temp_file, HOUR_IN_SECONDS );
 
+		f2000cs_remember_last_import_from_request();
+
 		return array(
 			'path'    => $temp_file,
 			'session' => $session,
@@ -456,6 +556,8 @@ function f2000cs_resolve_import_xml_source() {
 	if ( isset( $_FILES['import_xml_file']['error'], $_FILES['import_xml_file']['tmp_name'] ) && UPLOAD_ERR_OK === (int) $_FILES['import_xml_file']['error'] ) {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing -- Server-generated upload path; unslashing would corrupt Windows paths; nonce is verified by every caller.
 		$file_path = sanitize_text_field( $_FILES['import_xml_file']['tmp_name'] );
+
+		f2000cs_remember_last_import_from_request();
 
 		return array(
 			'path'    => $file_path,
