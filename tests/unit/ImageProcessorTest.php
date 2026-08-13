@@ -146,7 +146,8 @@ final class F2000CS_Unit_ImageProcessorTest extends F2000CS_Unit_TestCase {
 		$this->assertSame( 'image/webp', Image_Processor::detect_image_mime( $tmp, 'https://x.test/a.webp' ) );
 		$this->assertSame( 'image/avif', Image_Processor::detect_image_mime( $tmp, 'https://x.test/a.avif' ) );
 		$this->assertSame( 'image/gif', Image_Processor::detect_image_mime( $tmp, 'https://x.test/a.gif' ) );
-		$this->assertSame( '', Image_Processor::detect_image_mime( $tmp, 'https://x.test/a.svg' ) );
+		$this->assertSame( 'image/bmp', Image_Processor::detect_image_mime( $tmp, 'https://x.test/a.bmp' ) );
+		$this->assertSame( 'image/svg+xml', Image_Processor::detect_image_mime( $tmp, 'https://x.test/a.svg' ) );
 
 		wp_delete_file( $tmp );
 	}
@@ -318,14 +319,15 @@ final class F2000CS_Unit_ImageProcessorTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
-	 * GIF → JPG: gif sources convert too.
+	 * GIF is never converted or re-encoded (animation must stay).
 	 *
 	 * @return void
 	 */
-	public function test_prepare_sideload_converts_gif_to_jpg() {
+	public function test_prepare_sideload_never_converts_gif() {
 		$this->unlock_pro();
 		update_option( Image_Processor::OPTION_PNG_CONVERT, 'jpg' );
-		update_option( Image_Processor::OPTION_OPTIMIZE, '0' );
+		update_option( Image_Processor::OPTION_OPTIMIZE, '1' );
+		update_option( Image_Processor::OPTION_MAX_DIMENSION, '100' );
 
 		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs' );
 		file_put_contents( $tmp, 'gifdata' );
@@ -337,10 +339,38 @@ final class F2000CS_Unit_ImageProcessorTest extends F2000CS_Unit_TestCase {
 
 		$result = Image_Processor::prepare_sideload( $tmp, 'https://cdn.example/anim.gif' );
 
-		$this->assertSame( 'image/jpeg', $editor->last_mime );
-		$this->assertStringEndsWith( '.jpg', $result['name'] );
+		$this->assertNull( $editor->last_mime );
+		$this->assertSame( $tmp, $result['tmp_name'] );
+		$this->assertSame( 'anim.gif', $result['name'] );
 
-		wp_delete_file( $result['tmp_name'] );
+		wp_delete_file( $tmp );
+	}
+
+	/**
+	 * BMP is never converted or re-encoded.
+	 *
+	 * @return void
+	 */
+	public function test_prepare_sideload_never_converts_bmp() {
+		$this->unlock_pro();
+		update_option( Image_Processor::OPTION_PNG_CONVERT, 'webp' );
+		update_option( Image_Processor::OPTION_OPTIMIZE, '1' );
+
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs' );
+		file_put_contents( $tmp, 'bmpdata' );
+
+		$editor = new F2000CS_Fake_Image_Editor( $tmp, 200, 200 );
+		F2000CS_Test_State::$image_editor_factory = static function () use ( $editor ) {
+			return $editor;
+		};
+
+		$result = Image_Processor::prepare_sideload( $tmp, 'https://cdn.example/photo.bmp' );
+
+		$this->assertNull( $editor->last_mime );
+		$this->assertSame( $tmp, $result['tmp_name'] );
+		$this->assertSame( 'photo.bmp', $result['name'] );
+
+		wp_delete_file( $tmp );
 	}
 
 	/**

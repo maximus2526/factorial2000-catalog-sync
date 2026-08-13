@@ -27,6 +27,23 @@ class Image_Processor {
 	const MIN_MAX_DIMENSION = 0;
 	const MAX_MAX_DIMENSION = 8000;
 
+	/** @var array<int, string> Source MIME types that may be converted. */
+	const CONVERTIBLE_MIMES = array(
+		'image/png',
+		'image/jpeg',
+		'image/webp',
+		'image/avif',
+	);
+
+	/** @var array<int, string> Left untouched (no convert / optimize / resize). */
+	const PASSTHROUGH_MIMES = array(
+		'image/gif',
+		'image/bmp',
+		'image/x-ms-bmp',
+		'image/x-bmp',
+		'image/svg+xml',
+	);
+
 	/**
 	 * Settings with Free plan always disabled.
 	 *
@@ -310,7 +327,7 @@ class Image_Processor {
 	 * @param string $tmp_path   Temp file.
 	 * @param string $source_url Source URL.
 	 * @return string Mime type ('image/png', 'image/jpeg', 'image/webp',
-	 *                'image/avif', 'image/gif', ...) or '' when unknown.
+	 *                'image/avif', 'image/gif', 'image/bmp', ...) or '' when unknown.
 	 */
 	public static function detect_image_mime( string $tmp_path, string $source_url ): string {
 		$ext_map = array(
@@ -320,6 +337,8 @@ class Image_Processor {
 			'webp' => 'image/webp',
 			'avif' => 'image/avif',
 			'gif'  => 'image/gif',
+			'bmp'  => 'image/bmp',
+			'svg'  => 'image/svg+xml',
 		);
 
 		foreach ( array( $tmp_path, self::url_path( $source_url ) ) as $candidate ) {
@@ -345,6 +364,26 @@ class Image_Processor {
 	}
 
 	/**
+	 * Whether this source MIME may be converted to WebP / AVIF / JPG.
+	 *
+	 * @param string $mime Detected source MIME.
+	 * @return bool
+	 */
+	public static function is_convertible_source_mime( string $mime ): bool {
+		return in_array( $mime, self::CONVERTIBLE_MIMES, true );
+	}
+
+	/**
+	 * GIF / BMP / SVG stay as downloaded (GIF animation must not be flattened).
+	 *
+	 * @param string $mime Detected source MIME.
+	 * @return bool
+	 */
+	public static function is_passthrough_mime( string $mime ): bool {
+		return in_array( $mime, self::PASSTHROUGH_MIMES, true );
+	}
+
+	/**
 	 * After download_url(): optionally convert/optimize/resize before sideload.
 	 *
 	 * @param string $tmp_path   Local temp path from download_url().
@@ -363,15 +402,18 @@ class Image_Processor {
 		}
 
 		$source_mime = self::detect_image_mime( $tmp_path, $source_url );
+		if ( self::is_passthrough_mime( $source_mime ) ) {
+			return $fallback;
+		}
+
 		$target_mime = 'off' !== $settings['png_convert']
 			? self::mime_for_png_convert( $settings['png_convert'] )
 			: null;
 
-		// Convert every supported source format to the target, except:
-		//  - unknown formats (e.g. SVG, BMP) — never touched,
-		//  - when source is already the target format.
+		// Convert PNG / JPEG / WebP / AVIF to the target. Skip unknown
+		// formats and sources that are already in the target format.
 		$do_convert = $target_mime
-			&& '' !== $source_mime
+			&& self::is_convertible_source_mime( $source_mime )
 			&& $source_mime !== $target_mime;
 
 		$name = self::build_filename( $source_url, $settings['png_convert'], $do_convert );

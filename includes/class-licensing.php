@@ -83,7 +83,8 @@ function f2000cs_fs() {
 					'is_require_payment' => false,
 				),
 				'menu'                => array(
-					'slug' => 'f2000cs-update',
+					'slug'    => 'f2000cs-update',
+					'support' => false, // Hide "Support Forum" submenu (wp.org / Freemius).
 				),
 			)
 		);

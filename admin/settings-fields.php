@@ -641,7 +641,7 @@ function f2000cs_render_import_images_panel() {
 	$rows = array(
 		array(
 			'label'    => __( 'Формат зображень', 'factorial2000-catalog-sync' ),
-			'tip'      => __( 'Конвертує всі фото з тегів picture (PNG, JPG, WebP, AVIF, GIF) у вибраний формат перед збереженням у медіатеку. JPG сумісніший; WebP/AVIF легші, але потрібна підтримка на хостингу.', 'factorial2000-catalog-sync' ),
+			'tip'      => __( 'Конвертує фото з тегів picture у PNG, JPG, WebP або AVIF у вибраний формат перед збереженням у медіатеку. GIF і BMP не змінюються. JPG сумісніший; WebP/AVIF легші, але потрібна підтримка на хостингу.', 'factorial2000-catalog-sync' ),
 			'callback' => 'f2000cs_img_png_convert_render',
 		),
 		array(
@@ -718,7 +718,7 @@ function f2000cs_img_png_convert_render() {
 		<?php if ( ! $is_pro ) : ?>
 			<span class="f2000cs-pro-badge"><?php esc_html_e( 'Pro', 'factorial2000-catalog-sync' ); ?></span>
 		<?php endif; ?>
-		<p class="description"><?php esc_html_e( 'Усі фото з picture (PNG, JPG, WebP, AVIF, GIF) конвертуються у вибраний формат перед збереженням у медіатеку. Працює через Imagick/GD WordPress: JPG майже всюди; WebP/AVIF — лише якщо хостинг їх підтримує. Якщо конвертація не вдалась — лишається оригінал.', 'factorial2000-catalog-sync' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Фото з picture у PNG, JPG, WebP або AVIF конвертуються у вибраний формат перед збереженням у медіатеку. GIF і BMP не змінюються. Працює через Imagick/GD WordPress: JPG майже всюди; WebP/AVIF — лише якщо хостинг їх підтримує. Якщо конвертація не вдалась — лишається оригінал.', 'factorial2000-catalog-sync' ); ?></p>
 	</div>
 	<?php
 }

@@ -5,7 +5,7 @@ Tags: woocommerce, import, xml, stock, prom
 Requires at least: 5.8
 Tested up to: 7.0.2
 Requires PHP: 7.4
-Stable tag: 0.6.7
+Stable tag: 0.6.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,7 +26,7 @@ This plugin connects your WooCommerce store with supplier XML feeds for automati
 * Telegram notifications with sync reports
 * XML export: filter to keep only new products, or use the visual XML editor to build a custom feed by category/product (Pro) — **key differentiator** for marketplace sellers
 * Fields updater (Pro): update selected fields (name, description, images, attributes, categories, tags, vendorCode) on already-imported products
-* Image processing (Pro): convert PNG→WebP/AVIF/JPG, optimize, resize on import
+* Image processing (Pro): convert PNG/JPG/WebP/AVIF to WebP, AVIF or JPG on import (GIF and BMP unchanged); optimize, resize
 * Currency conversion via XML currencies/currencyId
 * Built-in documentation page with sticky sidebar navigation
 * Clean uninstall removes plugin settings, transients, and cron jobs
@@ -103,6 +103,9 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 4. XML export filter for creating a clean feed with new products only.
 
 == Changelog ==
+
+= 0.6.8 =
+* Fixed: GIF and BMP are not converted or re-encoded on import (GIF animation preserved). Conversion applies to PNG, JPG, WebP, and AVIF only.
 
 = 0.6.7 =
 * Added: image conversion now covers ALL source formats (PNG, JPG, WebP, AVIF, GIF) — not just PNG — with same-format and SVG passthrough. UI label shortened to «Формат зображень».
