@@ -212,7 +212,7 @@ class XML_Export_Filter {
 	 * @return string Filtered XML content.
 	 */
 	private function filter_xml_content( string $xml_content ): string {
-		$xml = simplexml_load_string( $xml_content );
+		$xml = simplexml_load_string( $xml_content, null, LIBXML_NONET );
 		if ( ! $xml ) {
 			throw new Exception( 'Не вдалося розпарсити XML файл.' );
 		}

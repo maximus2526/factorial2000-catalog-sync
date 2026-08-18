@@ -197,7 +197,7 @@ class XML_Editor {
 	 * @return void
 	 */
 	private function parse_offer_element( \XMLReader $reader ): void {
-		$offer = simplexml_load_string( $reader->readOuterXML() );
+		$offer = simplexml_load_string( $reader->readOuterXML(), null, LIBXML_NONET );
 
 		if ( false === $offer ) {
 			return;
@@ -651,8 +651,8 @@ class XML_Editor {
 
 		// Re-read the file only when generating (one-time operation).
 		$xml = is_file( $this->source_path )
-			? simplexml_load_file( $this->source_path )
-			: simplexml_load_string( '' );
+			? simplexml_load_file( $this->source_path, null, LIBXML_NONET )
+			: simplexml_load_string( '', null, LIBXML_NONET );
 
 		if ( false === $xml || ! isset( $xml->shop->offers ) ) {
 			return $this->empty_generation();

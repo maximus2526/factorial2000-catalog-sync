@@ -1,7 +1,7 @@
 # Factorial2000 Catalog Sync — Агентський скіл
 
-> Остання актуальна версія: **0.6.3**
-> Тестове покриття: **162 тести / 820 асертів**, PHPCS чистий у всіх файлах.
+> Остання актуальна версія: **0.6.9**
+> Тестове покриття: **250 тестів / 1167 асертів**, PHPCS чистий у всіх файлах.
 
 Цей документ — **обов'язковий до прочитання** перед будь-якими змінами в репозиторії.
 Порушення конвенцій, описаних тут, зламають тести, білд і сумісність з wp.org.
@@ -151,7 +151,7 @@ factorial2000-catalog-sync/
 - **Усі рядки** через `__()` / `esc_html__()` з text domain `factorial2000-catalog-sync`
 - **Кожен AJAX/admin-post хендлер** перевіряє nonce (`wp_verify_nonce`/`check_ajax_referer`) + `current_user_can('manage_options')`
 - **Увесь вивід** екранується (`esc_html`, `esc_attr`, `esc_url`, `esc_html_e`, `wp_kses_post`)
-- **При зміні версії** оновлюй три місця разом: заголовок `Version:`, `F2000CS_VERSION`, `Stable tag` у readme.txt
+- **При зміні версії** оновлюй разом: заголовок `Version:`, `F2000CS_VERSION`, `Stable tag` у readme.txt (робить `gulp version:up`) + вручну `package.json`, `package-lock.json` (коренева версія) і fallback `F2000CS_VERSION` у `tests/bootstrap.php`
 - **При додаванні нового includes/ файлу** додавай `require_once` у дві точки: `factorial2000-catalog-sync.php` і `tests/bootstrap.php`
 - **Не редагуй `freemius/`** — це сторонній SDK
 - **Admin-файли** використовують `require_once` у `admin/settings-page.php` (завантажувач)
@@ -280,8 +280,8 @@ npx gulp full             # phpcs → phpunit → +patch → release
 
 ### CI (GitHub Actions)
 
-- **`.github/workflows/test.yml`** — запускається на push/PR: PHPUnit + PHPCS + gulp phpcs/phpunit на PHP 7.4 і 8.2.
-- **`.github/workflows/release.yml`** — push тега `v*` (або manual `workflow_dispatch`): PHPUnit → `gulp release` → GitHub Release zip → деплой на Freemius через `bin/freemius-deploy.php` (падає при помилці API). За замовчуванням Freemius статус = `pending`.
+- **`.github/workflows/test.yml`** — запускається на push/PR: PHPUnit + PHPCS + gulp phpcs/phpunit на PHP 8.3 і 8.4 (PHPUnit 12 вимагає ≥8.3; 7.4-сумісність контролюється сніфером PHPCompatibilityWP).
+- **`.github/workflows/release.yml`** — push тега `v*` (або manual `workflow_dispatch`): PHPUnit → `gulp release` → GitHub Release zip → деплой на Freemius через `bin/freemius-deploy.php` (падає при помилці API). За замовчуванням Freemius статус = `released` (tag push завжди released; manual dispatch — вибір released/pending).
 
 **GitHub Secrets** (Settings → Secrets and variables → Actions) — з Freemius **Product → Settings → Keys** (plugin scope):
 
@@ -349,7 +349,7 @@ npx gulp full             # phpcs → phpunit → +patch → release
 - Дубль логіки перебудови XML між `XML_Export_Filter` і `XML_Editor` (`copy_element_data`)
 - `settings-fields.php` — 33KB, можна розбити далі
 - Немає інтеграційних тестів з реальним WP — smoke-скрипт є, але не в CI
-- 35+ некомітених файлів — увесь 0.5.x, редактор, тести, білд
+- Робоча гілка містить некомічені зміни релізу 0.6.9 (17 файлів: фікси стоку/батчів, TLS-фільтр `f2000cs_ssl_verify`, XXE-захист, санітизація контенту фідів)
 - Редактор вантажить весь XML у пам'ять — для гігантських фідів межа
 
 ---

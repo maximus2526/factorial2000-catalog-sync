@@ -34,6 +34,10 @@ final class F2000CS_Unit_ExportPrefixWiringTest extends F2000CS_Unit_TestCase {
 		require_once $this->admin_dir . '/settings-fields.php';
 		require_once $this->admin_dir . '/page-export.php';
 		require_once $this->admin_dir . '/page-update.php';
+		// page-export.php renders the XML editor card, which calls
+		// f2000cs_xml_editor_render_card(); the function must be available
+		// regardless of test execution order.
+		require_once $this->admin_dir . '/xml-editor.php';
 	}
 
 	/**
@@ -76,6 +80,19 @@ final class F2000CS_Unit_ExportPrefixWiringTest extends F2000CS_Unit_TestCase {
 		$registered = F2000CS_Test_State::$registered_settings['f2000cs_settings'] ?? array();
 
 		$this->assertContains( 'f2000cs_sku_prefix_2', $registered );
+	}
+
+	/**
+	 * Settings API registers the insecure-SSL toggle.
+	 *
+	 * @return void
+	 */
+	public function test_insecure_ssl_option_registered() {
+		f2000cs_settings_init();
+
+		$registered = F2000CS_Test_State::$registered_settings['f2000cs_settings'] ?? array();
+
+		$this->assertContains( 'f2000cs_allow_insecure_ssl', $registered );
 	}
 
 	/**

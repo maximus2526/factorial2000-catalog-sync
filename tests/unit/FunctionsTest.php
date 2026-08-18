@@ -409,20 +409,54 @@ final class F2000CS_Unit_FunctionsTest extends F2000CS_Unit_TestCase {
 	// ---- f2000cs_disable_ssl_verify -----------------------------------------
 
 	/**
+	 * SSL verification is enabled by default.
+	 *
 	 * @return void
 	 */
-	public function test_disable_ssl_verify_sets_false() {
+	public function test_ssl_verify_enabled_by_default() {
 		$args = f2000cs_disable_ssl_verify( array( 'timeout' => 10 ) );
 		$this->assertArrayHasKey( 'sslverify', $args );
+		$this->assertTrue( $args['sslverify'] );
+	}
+
+	/**
+	 * The insecure-SSL setting disables verification.
+	 *
+	 * @return void
+	 */
+	public function test_ssl_verify_setting_disables() {
+		update_option( 'f2000cs_allow_insecure_ssl', '1' );
+
+		$this->assertFalse( f2000cs_ssl_verify_enabled() );
+
+		$args = f2000cs_disable_ssl_verify( array( 'sslverify' => true ) );
 		$this->assertFalse( $args['sslverify'] );
 	}
 
 	/**
+	 * The f2000cs_ssl_verify filter overrides the setting.
+	 *
 	 * @return void
 	 */
-	public function test_disable_ssl_verify_overrides_existing() {
-		$args = f2000cs_disable_ssl_verify( array( 'sslverify' => true ) );
-		$this->assertFalse( $args['sslverify'] );
+	public function test_ssl_verify_filter_overrides_setting() {
+		update_option( 'f2000cs_allow_insecure_ssl', '1' );
+		add_filter( 'f2000cs_ssl_verify', '__return_true' );
+
+		$this->assertTrue( f2000cs_ssl_verify_enabled() );
+
+		remove_filter( 'f2000cs_ssl_verify', '__return_true' );
+	}
+
+	/**
+	 * The f2000cs_ssl_verify filter can opt out for suppliers with
+	 * self-signed or expired certificates.
+	 *
+	 * @return void
+	 */
+	public function test_ssl_verify_filter_can_disable() {
+		add_filter( 'f2000cs_ssl_verify', '__return_false' );
+		$this->assertFalse( f2000cs_ssl_verify_enabled() );
+		remove_filter( 'f2000cs_ssl_verify', '__return_false' );
 	}
 
 	// ---- f2000cs_download_url -----------------------------------------------
@@ -571,7 +605,7 @@ final class F2000CS_Unit_FunctionsTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
-	 * Protected download URL goes through admin-post + nonce.
+	 * Download URL goes through admin-post and carries a server-side token.
 	 *
 	 * @return void
 	 */
@@ -580,8 +614,69 @@ final class F2000CS_Unit_FunctionsTest extends F2000CS_Unit_TestCase {
 
 		$this->assertStringContainsString( 'admin-post.php', $url );
 		$this->assertStringContainsString( 'action=f2000cs_download_export', $url );
-		$this->assertStringContainsString( '_wpnonce=', $url );
+		$this->assertStringContainsString( 'file=filtered-xml-', $url );
+		$this->assertStringContainsString( 'token=', $url );
+		$this->assertStringNotContainsString( '_wpnonce=', $url );
 		$this->assertSame( '', f2000cs_get_export_download_url( 'evil.xml' ) );
+	}
+
+	/**
+	 * The download token is stored as a 24h transient bound to the filename.
+	 *
+	 * @return void
+	 */
+	public function test_export_download_token_transient_stored() {
+		f2000cs_get_export_download_url( 'editor-xml-2026-01-01-12-00-00-xyz12345.xml' );
+
+		$stored = array();
+		foreach ( F2000CS_Test_State::$transients as $key => $entry ) {
+			if ( 0 === strpos( $key, 'f2000cs_dl_' ) ) {
+				$stored[ $key ] = $entry['value'];
+			}
+		}
+
+		$this->assertCount( 1, $stored );
+		$this->assertContains( 'editor-xml-2026-01-01-12-00-00-xyz12345.xml', $stored );
+	}
+
+	/**
+	 * Download handler rejects an invalid/expired token.
+	 *
+	 * @return void
+	 */
+	public function test_export_download_handler_rejects_bad_token() {
+		$this->enable_pro();
+
+		$_GET['file']  = 'filtered-xml-2026-01-01-12-00-00-Ab12Cd34.xml';
+		$_GET['token'] = 'deadbeef';
+
+		try {
+			f2000cs_handle_export_download();
+			$this->fail( 'Expected wp_die for an invalid download token.' );
+		} catch ( RuntimeException $e ) {
+			$this->assertStringContainsString( 'Посилання недійсне', $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Download handler rejects a token that belongs to another file.
+	 *
+	 * @return void
+	 */
+	public function test_export_download_handler_rejects_token_for_other_file() {
+		$this->enable_pro();
+
+		set_transient( 'f2000cs_dl_ab12', 'editor-xml-2026-01-01-12-00-00-xyz12345.xml', DAY_IN_SECONDS );
+
+		$_GET['file']  = 'filtered-xml-2026-01-01-12-00-00-Ab12Cd34.xml';
+		$_GET['token'] = 'ab12';
+
+		try {
+			f2000cs_handle_export_download();
+			$this->fail( 'Expected wp_die for a token belonging to another file.' );
+		} catch ( RuntimeException $e ) {
+			$this->assertStringContainsString( 'Посилання недійсне', $e->getMessage() );
+		}
 	}
 
 	// ---- f2000cs_migrate_sku_prefix_slot_1 ---------------------------------

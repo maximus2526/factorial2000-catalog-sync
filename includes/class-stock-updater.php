@@ -224,6 +224,15 @@ class XML_Stock_Updater {
 			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.NoSilencedErrors.Discouraged -- Needed to avoid timeouts on large catalogs; failure is non-fatal.
 			@set_time_limit( 600 );
 		}
+
+		// Re-read the limit after raising it: the constructor value may still
+		// reflect the hosting default (often 30s), which would abort batch
+		// processing long before the raised limit.
+		$current_limit = ini_get( 'max_execution_time' );
+		if ( false === $current_limit ) {
+			$current_limit = 0;
+		}
+		$this->max_execution_time = ( (int) $current_limit > 0 ) ? (int) $current_limit - 5 : 0;
 	}
 
 	/**
@@ -257,37 +266,45 @@ class XML_Stock_Updater {
 	private function load_currencies_from_xml(): array {
 		$currencies = array();
 		$reader     = new XMLReader();
+		$temp_file  = null;
 
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Fallback path catches open failure.
-		if ( ! @$reader->open( $this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING ) ) {
-			$xml_data = $this->fetch_xml_data();
-			if ( ! $xml_data ) {
-				return $currencies;
-			}
+		try {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Fallback path catches open failure.
+			if ( ! @$reader->open( $this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET ) ) {
+				$xml_data = $this->fetch_xml_data();
+				if ( ! $xml_data ) {
+					return $currencies;
+				}
 
-			$temp_file = wp_tempnam( 'f2000cs_curr_' );
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Temp file for XMLReader.
-			if ( ! file_put_contents( $temp_file, $xml_data ) ) {
-				return $currencies;
-			}
+				$temp_file = wp_tempnam( 'f2000cs_curr_' );
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Temp file for XMLReader.
+				if ( ! file_put_contents( $temp_file, $xml_data ) ) {
+					return $currencies;
+				}
 
-			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Local temp open failure returns empty map.
-			if ( ! @$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING ) ) {
-				return $currencies;
-			}
-		}
-
-		while ( $reader->read() ) {
-			if ( XMLReader::ELEMENT === $reader->nodeType && 'currency' === $reader->name ) {
-				$currency_id = $reader->getAttribute( 'id' );
-				$rate        = $reader->getAttribute( 'rate' );
-				if ( $currency_id && is_numeric( $rate ) && (float) $rate > 0 ) {
-					$currencies[ $currency_id ] = (float) $rate;
+				// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Local temp open failure returns empty map.
+				if ( ! @$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET ) ) {
+					return $currencies;
 				}
 			}
+
+			while ( $reader->read() ) {
+				if ( XMLReader::ELEMENT === $reader->nodeType && 'currency' === $reader->name ) {
+					$currency_id = $reader->getAttribute( 'id' );
+					$rate        = $reader->getAttribute( 'rate' );
+					if ( $currency_id && is_numeric( $rate ) && (float) $rate > 0 ) {
+						$currencies[ $currency_id ] = (float) $rate;
+					}
+				}
+			}
+		} finally {
+			$reader->close();
+
+			if ( $temp_file !== null && file_exists( $temp_file ) ) {
+				wp_delete_file( $temp_file );
+			}
 		}
 
-		$reader->close();
 		return $currencies;
 	}
 
@@ -311,7 +328,7 @@ class XML_Stock_Updater {
 			// PHP error log or leaking warning output before wp_safe_redirect() on hosts with
 			// display_errors enabled.
 			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Failure path is fully handled via the return-value check and fallback below.
-			if ( ! @$reader->open( $this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING ) ) {
+			if ( ! @$reader->open( $this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET ) ) {
 				// If direct URL open fails, try to download the file first
 				$xml_data = $this->fetch_xml_data();
 				if ( ! $xml_data ) {
@@ -322,7 +339,7 @@ class XML_Stock_Updater {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Temp file is consumed by XMLReader; WP_Filesystem cannot write to a wp_tempnam() path outside the uploads dir.
 				if ( file_put_contents( $temp_file, $xml_data ) ) {
 					// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Local temp file open failure is caught by the subsequent read() check below.
-					@$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING );
+					@$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET );
 				} else {
 					throw new Exception( 'Failed to create temporary XML file' );
 				}
@@ -339,7 +356,7 @@ class XML_Stock_Updater {
 					$group_id  = (string) $reader->getAttribute( 'group_id' );
 
 					// Get the offer node as SimpleXML to extract pricing
-					$offer_xml = simplexml_load_string( $reader->readOuterXML() );
+					$offer_xml = simplexml_load_string( $reader->readOuterXML(), null, LIBXML_NONET );
 					if ( false === $offer_xml ) {
 						continue;
 					}
@@ -528,6 +545,18 @@ class XML_Stock_Updater {
 
 					$changes_made = false;
 
+					// Quantity must be updated BEFORE stock status and price:
+					// WC_Product::save() writes every prop from the in-memory
+					// object, so a stale object would otherwise overwrite the
+					// stock status and prices written directly via postmeta below.
+					if ( $this->update_stock_qty && isset( $product_data['quantity'] ) && null !== $product_data['quantity'] ) {
+						$qty_changed = $this->update_product_quantity( $product, (int) $product_data['quantity'] );
+						if ( $qty_changed ) {
+							++$updated_qty;
+							$changes_made = true;
+						}
+					}
+
 					$stock_status_changed = $this->update_product_stock( $product, $product_data['stock_status'] );
 					if ( $stock_status_changed ) {
 						$product_data['stock_status'] === 'instock' ? ++$updated_in_stock : ++$updated_out_of_stock;
@@ -542,14 +571,6 @@ class XML_Stock_Updater {
 						}
 					}
 
-					if ( $this->update_stock_qty && isset( $product_data['quantity'] ) && null !== $product_data['quantity'] ) {
-						$qty_changed = $this->update_product_quantity( $product, (int) $product_data['quantity'] );
-						if ( $qty_changed ) {
-							++$updated_qty;
-							$changes_made = true;
-						}
-					}
-
 					if ( ! empty( $product_data['vendor_code'] ) ) {
 						$current_vendor = get_post_meta( $product_id, 'f2000cs-updater-vendor', true );
 						if ( empty( $current_vendor ) ) {
@@ -560,8 +581,17 @@ class XML_Stock_Updater {
 					if ( ! $changes_made ) {
 						++$skipped_unchanged;
 					}
-				} catch ( Exception $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- Silent error handling.
-					// Silent error handling
+				} catch ( Exception $e ) {
+					// Cap the log volume: a systematic failure must not flood
+					// the error log with one line per product.
+					static $logged_errors = 0;
+					++$logged_errors;
+
+					if ( $logged_errors <= 10 ) {
+						f2000cs_log( sprintf( 'Product update error (SKU %s): %s', $sku, $e->getMessage() ), 'error' );
+					} elseif ( 11 === $logged_errors ) {
+						f2000cs_log( 'Product update error: further per-product errors suppressed for this run.', 'error' );
+					}
 				}
 
 				++$processed;
@@ -627,7 +657,7 @@ class XML_Stock_Updater {
 			array(
 				'timeout'     => 60,
 				'httpversion' => '1.1',
-				'sslverify'   => false,
+				'sslverify'   => f2000cs_ssl_verify_enabled(),
 			)
 		);
 

@@ -97,6 +97,15 @@ function f2000cs_settings_init() {
 			},
 		)
 	);
+	register_setting(
+		'f2000cs_settings',
+		'f2000cs_allow_insecure_ssl',
+		array(
+			'sanitize_callback' => function ( $value ) {
+				return ( $value === '1' || $value === 'yes' || $value === 'on' ) ? '1' : '0';
+			},
+		)
+	);
 	// Image options are saved from the Import page (group f2000cs_import_images).
 	register_setting(
 		'f2000cs_import_images',
@@ -186,6 +195,16 @@ function f2000cs_settings_init() {
 			__( 'Показує адміністратору на сторінці товару блок vendorCode (з XML) для швидкого копіювання. Відвідувачі сайту його не бачать.', 'factorial2000-catalog-sync' )
 		),
 		'f2000cs_show_vendor_code_render',
+		'f2000cs',
+		'f2000cs_section_schedule'
+	);
+	add_settings_field(
+		'f2000cs_allow_insecure_ssl',
+		f2000cs_with_tip(
+			__( 'Слабкі SSL-сертифікати', 'factorial2000-catalog-sync' ),
+			__( 'Вимикає перевірку SSL-сертифікатів при завантаженні XML і зображень. Вмикайте ТІЛЬКИ якщо сервер постачальника використовує self-signed або прострочений сертифікат і завантаження не працює. За замовчуванням перевірку ввімкнено (безпечно).', 'factorial2000-catalog-sync' )
+		),
+		'f2000cs_allow_insecure_ssl_render',
 		'f2000cs',
 		'f2000cs_section_schedule'
 	);
@@ -630,6 +649,23 @@ function f2000cs_show_vendor_code_render() {
 }
 
 /**
+ * Toggle SSL certificate verification for supplier downloads.
+ *
+ * @return void
+ */
+function f2000cs_allow_insecure_ssl_render() {
+	$val = get_option( 'f2000cs_allow_insecure_ssl', '0' );
+	?>
+	<input type="hidden" name="f2000cs_allow_insecure_ssl" value="0">
+	<label>
+		<input type="checkbox" name="f2000cs_allow_insecure_ssl" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Не перевіряти SSL-сертифікати при завантаженні XML і зображень', 'factorial2000-catalog-sync' ); ?>
+	</label>
+	<p class="description"><?php esc_html_e( 'За замовчуванням вимкнено: сертифікати перевіряються. Увімкніть лише якщо сервер постачальника має self-signed або прострочений сертифікат і завантаження повертає помилку SSL.', 'factorial2000-catalog-sync' ); ?></p>
+	<?php
+}
+
+/**
  * Import-page panel: image processing options + host capability check.
  *
  * @return void
@@ -641,12 +677,12 @@ function f2000cs_render_import_images_panel() {
 	$rows = array(
 		array(
 			'label'    => __( 'Формат зображень', 'factorial2000-catalog-sync' ),
-			'tip'      => __( 'Конвертує фото з тегів picture у PNG, JPG, WebP або AVIF у вибраний формат перед збереженням у медіатеку. GIF і BMP не змінюються. JPG сумісніший; WebP/AVIF легші, але потрібна підтримка на хостингу.', 'factorial2000-catalog-sync' ),
+			'tip'      => __( 'Конвертує фото з тегів picture у PNG, JPG, WebP або AVIF у вибраний формат перед збереженням у медіатеку. GIF і BMP не змінюються. JPG сумісніший; WebP/AVIF легші, але потрібна підтримка на хостингу. Увага: кожне фото обробляється окремо — це навантажує сервер, і процес імпорту може йти довше. За замовчуванням — «Не конвертувати».', 'factorial2000-catalog-sync' ),
 			'callback' => 'f2000cs_img_png_convert_render',
 		),
 		array(
 			'label'    => __( 'Оптимізація', 'factorial2000-catalog-sync' ),
-			'tip'      => __( 'Перезберігає JPG/WebP/AVIF/PNG з обраною якістю під час імпорту, щоб зменшити вагу файлів.', 'factorial2000-catalog-sync' ),
+			'tip'      => __( 'Перезберігає JPG/WebP/AVIF/PNG з обраною якістю під час імпорту, щоб зменшити вагу файлів. Увага: кожне фото обробляється окремо — це навантажує сервер, і процес імпорту може йти довше. За замовчуванням вимкнено.', 'factorial2000-catalog-sync' ),
 			'callback' => 'f2000cs_img_optimize_render',
 		),
 		array(
@@ -718,7 +754,7 @@ function f2000cs_img_png_convert_render() {
 		<?php if ( ! $is_pro ) : ?>
 			<span class="f2000cs-pro-badge"><?php esc_html_e( 'Pro', 'factorial2000-catalog-sync' ); ?></span>
 		<?php endif; ?>
-		<p class="description"><?php esc_html_e( 'Фото з picture у PNG, JPG, WebP або AVIF конвертуються у вибраний формат перед збереженням у медіатеку. GIF і BMP не змінюються. Працює через Imagick/GD WordPress: JPG майже всюди; WebP/AVIF — лише якщо хостинг їх підтримує. Якщо конвертація не вдалась — лишається оригінал.', 'factorial2000-catalog-sync' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Фото з picture у PNG, JPG, WebP або AVIF конвертуються у вибраний формат перед збереженням у медіатеку. GIF і BMP не змінюються. Працює через Imagick/GD WordPress: JPG майже всюди; WebP/AVIF — лише якщо хостинг їх підтримує. Якщо конвертація не вдалась — лишається оригінал. Увага: кожне фото обробляється окремо — це навантажує сервер, і процес імпорту може йти довше. За замовчуванням — «Не конвертувати».', 'factorial2000-catalog-sync' ); ?></p>
 	</div>
 	<?php
 }
@@ -734,12 +770,12 @@ function f2000cs_img_optimize_render() {
 		<input type="hidden" name="f2000cs_img_optimize" value="0">
 		<label>
 			<input type="checkbox" name="f2000cs_img_optimize" value="1" <?php checked( $val, '1' ); ?> <?php disabled( ! $is_pro ); ?>>
-			<?php esc_html_e( 'Оптимізувати зображення через редактор WordPress (Imagick / GD)', 'factorial2000-catalog-sync' ); ?>
+			<?php esc_html_e( 'Оптимізація зображень (Imagick / GD)', 'factorial2000-catalog-sync' ); ?>
 			<?php if ( ! $is_pro ) : ?>
 				<span class="f2000cs-pro-badge"><?php esc_html_e( 'Pro', 'factorial2000-catalog-sync' ); ?></span>
 			<?php endif; ?>
 		</label>
-		<p class="description"><?php esc_html_e( 'Перезберігає JPG/WebP/AVIF/PNG з обраною якістю під час імпорту.', 'factorial2000-catalog-sync' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Перезберігає JPG/WebP/AVIF/PNG з обраною якістю під час імпорту. Увага: кожне фото обробляється окремо — це навантажує сервер, і процес імпорту може йти довше. За замовчуванням вимкнено.', 'factorial2000-catalog-sync' ); ?></p>
 	</div>
 	<?php
 }

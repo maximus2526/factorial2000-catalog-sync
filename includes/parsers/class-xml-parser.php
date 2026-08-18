@@ -264,7 +264,7 @@ class XML_Parser {
 
 		$reader = new XMLReader();
 
-		if ( ! $reader->open( $this->xml_url ) ) {
+		if ( ! $reader->open( $this->xml_url, null, LIBXML_NONET ) ) {
 			throw new Exception( 'Failed to open XML file.' );
 		}
 
@@ -280,7 +280,7 @@ class XML_Parser {
 				continue;
 			}
 
-			$offer = simplexml_load_string( $reader->readOuterXML() );
+			$offer = simplexml_load_string( $reader->readOuterXML(), null, LIBXML_NONET );
 			++$total_offers;
 
 			$offer_data = $this->extract_offer_data( $offer );
@@ -540,6 +540,11 @@ class XML_Parser {
 			return false;
 		}
 
+		// Feed content is third-party: strip unsafe tags from titles and
+		// sanitize descriptions against the post_content allowed set.
+		$title = wp_strip_all_tags( (string) $title );
+		$desc  = wp_kses_post( (string) $desc );
+
 		// Check if product already exists (передаємо SKU без префіксу)
 		$existing_product = $this->get_product_ids_by_skus( array( $sku ) );
 		if ( ! empty( $existing_product ) && isset( $existing_product[ $sku ] ) ) {
@@ -644,9 +649,9 @@ class XML_Parser {
 		// Create parent variable product
 		$parent_id = wp_insert_post(
 			array(
-				'post_title'   => $parent_name,
+				'post_title'   => wp_strip_all_tags( (string) $parent_name ),
 				'post_name'    => $this->sanitize_slug( $parent_name ),
-				'post_content' => $base_data['desc'],
+				'post_content' => wp_kses_post( (string) $base_data['desc'] ),
 				'post_status'  => 'publish',
 				'post_type'    => 'product',
 			)
@@ -1052,7 +1057,7 @@ class XML_Parser {
 
 		foreach ( $variations_data as $variation_data ) {
 			$original_sku = isset( $variation_data['sku'] ) ? (string) $variation_data['sku'] : '';
-			$title        = isset( $variation_data['title'] ) ? (string) $variation_data['title'] : '';
+			$title        = isset( $variation_data['title'] ) ? wp_strip_all_tags( (string) $variation_data['title'] ) : '';
 			$price        = isset( $variation_data['price'] ) ? (float) $variation_data['price'] : 0;
 
 			if ( '' === $original_sku || '' === $title || $price <= 0 ) {
@@ -1075,8 +1080,8 @@ class XML_Parser {
 
 			$variation_id = wp_insert_post(
 				array(
-					'post_title'  => $variation_data['title'],
-					'post_name'   => $this->sanitize_slug( $variation_data['title'] ),
+					'post_title'  => $title,
+					'post_name'   => $this->sanitize_slug( $title ),
 					'post_status' => 'publish',
 					'post_parent' => $parent_id,
 					'post_type'   => 'product_variation',
@@ -1231,7 +1236,7 @@ class XML_Parser {
 		$categories = array();
 		$reader     = new XMLReader();
 
-		if ( ! $reader->open( $this->xml_url ) ) {
+		if ( ! $reader->open( $this->xml_url, null, LIBXML_NONET ) ) {
 			return $categories;
 		}
 
@@ -1263,37 +1268,45 @@ class XML_Parser {
 	private function load_currencies_from_xml(): array {
 		$currencies = array();
 		$reader     = new XMLReader();
+		$temp_file  = null;
 
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Fallback path catches open failure (same as stock updater).
-		if ( ! @$reader->open( $this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING ) ) {
-			$xml_data = $this->fetch_xml_data();
-			if ( ! $xml_data ) {
-				return $currencies;
-			}
+		try {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Fallback path catches open failure (same as stock updater).
+			if ( ! @$reader->open( $this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET ) ) {
+				$xml_data = $this->fetch_xml_data();
+				if ( ! $xml_data ) {
+					return $currencies;
+				}
 
-			$temp_file = wp_tempnam( 'f2000cs_curr_' );
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Temp file for XMLReader.
-			if ( ! file_put_contents( $temp_file, $xml_data ) ) {
-				return $currencies;
-			}
+				$temp_file = wp_tempnam( 'f2000cs_curr_' );
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Temp file for XMLReader.
+				if ( ! file_put_contents( $temp_file, $xml_data ) ) {
+					return $currencies;
+				}
 
-			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Local temp open failure returns empty map.
-			if ( ! @$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING ) ) {
-				return $currencies;
-			}
-		}
-
-		while ( $reader->read() ) {
-			if ( XMLReader::ELEMENT === $reader->nodeType && 'currency' === $reader->name ) {
-				$currency_id = $reader->getAttribute( 'id' );
-				$rate        = $reader->getAttribute( 'rate' );
-				if ( $currency_id && is_numeric( $rate ) && (float) $rate > 0 ) {
-					$currencies[ $currency_id ] = (float) $rate;
+				// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Local temp open failure returns empty map.
+				if ( ! @$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET ) ) {
+					return $currencies;
 				}
 			}
+
+			while ( $reader->read() ) {
+				if ( XMLReader::ELEMENT === $reader->nodeType && 'currency' === $reader->name ) {
+					$currency_id = $reader->getAttribute( 'id' );
+					$rate        = $reader->getAttribute( 'rate' );
+					if ( $currency_id && is_numeric( $rate ) && (float) $rate > 0 ) {
+						$currencies[ $currency_id ] = (float) $rate;
+					}
+				}
+			}
+		} finally {
+			$reader->close();
+
+			if ( $temp_file !== null && file_exists( $temp_file ) ) {
+				wp_delete_file( $temp_file );
+			}
 		}
 
-		$reader->close();
 		return $currencies;
 	}
 
@@ -1598,7 +1611,7 @@ class XML_Parser {
 			$this->xml_url,
 			array(
 				'timeout'   => 90,  // below Cloudflare's 100 s proxy timeout
-				'sslverify' => false,
+				'sslverify' => f2000cs_ssl_verify_enabled(),
 			)
 		);
 

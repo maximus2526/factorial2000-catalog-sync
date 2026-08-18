@@ -671,8 +671,9 @@
 			$result.append(
 				$('<p></p>').append(
 					$('<a class="button button-primary" target="_blank" rel="noopener"></a>')
-						.attr('href', response.data.download_url)
-						.text(t('download') + ' ' + response.data.file_name)
+						.attr('href', String(response.data.download_url || '').replace(/&amp;/g, '&'))
+						.attr('title', response.data.file_name)
+						.text(t('download'))
 				)
 			);
 

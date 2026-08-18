@@ -481,6 +481,10 @@ class Image_Processor {
 
 		$out_path = is_array( $saved ) && ! empty( $saved['path'] ) ? (string) $saved['path'] : $dest;
 
+		if ( $out_path !== $dest && file_exists( $dest ) ) {
+			wp_delete_file( $dest );
+		}
+
 		if ( $out_path !== $tmp_path && file_exists( $tmp_path ) ) {
 			wp_delete_file( $tmp_path );
 		}

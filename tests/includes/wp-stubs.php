@@ -197,6 +197,9 @@ final class F2000CS_Test_State {
 		self::$products            = array();
 		self::$post_meta           = array();
 
+		// Mirror a fresh WP request: no stale globals from previous tests.
+		unset( $GLOBALS['product'] );
+
 		if ( isset( $GLOBALS['wpdb'] ) && is_object( $GLOBALS['wpdb'] ) ) {
 			if ( property_exists( $GLOBALS['wpdb'], 'col_queue' ) ) {
 				$GLOBALS['wpdb']->col_queue = array();
@@ -998,6 +1001,41 @@ if ( ! function_exists( 'wp_nonce_url' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_hash' ) ) {
+	/**
+	 * Deterministic stand-in for WP's salted hash.
+	 *
+	 * @param string $data   Data to hash.
+	 * @param string $scheme Hash scheme.
+	 * @return string
+	 */
+	function wp_hash( $data, $scheme = 'auth' ) {
+		return hash( 'md5', $data . '|' . $scheme );
+	}
+}
+
+if ( ! function_exists( 'wp_get_session_token' ) ) {
+	/**
+	 * @return string
+	 */
+	function wp_get_session_token() {
+		return 'test-session-token';
+	}
+}
+
+if ( ! function_exists( 'wp_rand' ) ) {
+	/**
+	 * Deterministic stand-in for random_int().
+	 *
+	 * @param int $min Minimum.
+	 * @param int $max Maximum.
+	 * @return int
+	 */
+	function wp_rand( $min = 0, $max = 0 ) {
+		return 424242;
+	}
+}
+
 if ( ! function_exists( 'check_admin_referer' ) ) {
 	/**
 	 * @param string $action Action.
@@ -1065,6 +1103,18 @@ if ( ! function_exists( 'sanitize_text_field' ) ) {
 	 */
 	function sanitize_text_field( $text ) {
 		return trim( (string) $text );
+	}
+}
+
+if ( ! function_exists( 'sanitize_key' ) ) {
+	/**
+	 * Lowercases and keeps only a-z0-9, dashes and underscores (WP behavior).
+	 *
+	 * @param string $key Key.
+	 * @return string
+	 */
+	function sanitize_key( $key ) {
+		return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) );
 	}
 }
 
@@ -1702,6 +1752,26 @@ if ( ! function_exists( 'wp_kses_post' ) ) {
 	 */
 	function wp_kses_post( $data ) {
 		return (string) $data;
+	}
+}
+
+if ( ! function_exists( 'wp_strip_all_tags' ) ) {
+	/**
+	 * Strips all HTML tags (mirrors WP core).
+	 *
+	 * @param string $text          Text to strip.
+	 * @param bool   $remove_breaks Whether to collapse line breaks into spaces.
+	 * @return string
+	 */
+	function wp_strip_all_tags( $text, $remove_breaks = false ) {
+		$text = (string) preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $text );
+		$text = strip_tags( $text );
+
+		if ( $remove_breaks ) {
+			$text = preg_replace( '/[\r\n\t ]+/', ' ', $text );
+		}
+
+		return trim( $text );
 	}
 }
 

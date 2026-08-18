@@ -11,6 +11,10 @@ defined( 'ABSPATH' ) || exit;
  * Export settings page
  */
 function f2000cs_export_page() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
 	if ( function_exists( 'f2000cs_is_pro' ) && ! f2000cs_is_pro() ) {
 		echo '<div class="wrap">';
 		f2000cs_render_admin_page_title( __( 'Налаштування вигрузки', 'factorial2000-catalog-sync' ) );

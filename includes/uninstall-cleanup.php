@@ -52,6 +52,7 @@ function f2000cs_uninstall_cleanup() {
 	delete_option( 'f2000cs_hide_variable_low_instock' );
 	delete_option( 'f2000cs_variable_low_instock_max' );
 	delete_option( 'f2000cs_show_vendor_code' );
+	delete_option( 'f2000cs_allow_insecure_ssl' );
 	delete_option( 'f2000cs_img_png_convert' );
 	delete_option( 'f2000cs_img_optimize' );
 	delete_option( 'f2000cs_img_quality' );

@@ -111,7 +111,7 @@ class Fields_Updater extends XML_Parser {
 				break;
 			}
 
-			$offer  = simplexml_load_string( $reader->readOuterXML() );
+			$offer  = simplexml_load_string( $reader->readOuterXML(), null, LIBXML_NONET );
 			$result = $this->update_single_offer( $offer );
 
 			switch ( $result ) {
@@ -253,18 +253,24 @@ class Fields_Updater extends XML_Parser {
 			$title = (string) $offer->name_ua;
 		}
 
-		$title = trim( $title );
+		$title = trim( wp_strip_all_tags( $title ) );
 
 		if ( '' === $title || get_the_title( $product_id ) === $title ) {
 			return false;
 		}
 
-		wp_update_post(
+		$result = wp_update_post(
 			array(
 				'ID'         => $product_id,
 				'post_title' => $title,
-			)
+			),
+			true
 		);
+
+		if ( is_wp_error( $result ) ) {
+			f2000cs_log( sprintf( 'Failed to update title for product #%d: %s', $product_id, $result->get_error_message() ), 'error' );
+			return false;
+		}
 
 		return true;
 	}
@@ -281,6 +287,8 @@ class Fields_Updater extends XML_Parser {
 			$desc = (string) $offer->description_ua;
 		}
 
+		$desc = wp_kses_post( $desc );
+
 		if ( '' === trim( $desc ) ) {
 			return false;
 		}
@@ -289,12 +297,18 @@ class Fields_Updater extends XML_Parser {
 			return false;
 		}
 
-		wp_update_post(
+		$result = wp_update_post(
 			array(
 				'ID'           => $product_id,
 				'post_content' => $desc,
-			)
+			),
+			true
 		);
+
+		if ( is_wp_error( $result ) ) {
+			f2000cs_log( sprintf( 'Failed to update description for product #%d: %s', $product_id, $result->get_error_message() ), 'error' );
+			return false;
+		}
 
 		return true;
 	}
@@ -318,6 +332,8 @@ class Fields_Updater extends XML_Parser {
 			$short_desc = (string) $offer->short_description_ua;
 		}
 
+		$short_desc = wp_kses_post( $short_desc );
+
 		if ( '' === trim( $short_desc ) ) {
 			return false;
 		}
@@ -326,12 +342,18 @@ class Fields_Updater extends XML_Parser {
 			return false;
 		}
 
-		wp_update_post(
+		$result = wp_update_post(
 			array(
 				'ID'           => $product_id,
 				'post_excerpt' => $short_desc,
-			)
+			),
+			true
 		);
+
+		if ( is_wp_error( $result ) ) {
+			f2000cs_log( sprintf( 'Failed to update short description for product #%d: %s', $product_id, $result->get_error_message() ), 'error' );
+			return false;
+		}
 
 		return true;
 	}

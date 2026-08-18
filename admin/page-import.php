@@ -498,7 +498,7 @@ function f2000cs_resolve_import_xml_source() {
 			array(
 				'timeout'     => 90,  // below Cloudflare's 100 s proxy timeout
 				'httpversion' => '1.1',
-				'sslverify'   => false,
+				'sslverify'   => f2000cs_ssl_verify_enabled(),
 				'redirection' => 5,
 			)
 		);
@@ -940,7 +940,7 @@ function f2000cs_analyze_variable_groups( string $file_path ): array {
 	$reader = new XMLReader();
 
 	// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- XMLReader emits warnings on broken/missing files; the return value is checked and an Exception is thrown instead.
-	if ( ! @$reader->open( $file_path ) ) {
+	if ( ! @$reader->open( $file_path, null, LIBXML_NONET ) ) {
 		throw new Exception( 'Failed to open XML file.' );
 	}
 
@@ -951,7 +951,7 @@ function f2000cs_analyze_variable_groups( string $file_path ): array {
 			continue;
 		}
 
-		$offer = simplexml_load_string( $reader->readOuterXML() );
+		$offer = simplexml_load_string( $reader->readOuterXML(), null, LIBXML_NONET );
 
 		// Only offers with a real group_id (empty( '0' ) is true in PHP — do not use empty()).
 		$group_id = isset( $offer['group_id'] ) ? trim( (string) $offer['group_id'] ) : '';

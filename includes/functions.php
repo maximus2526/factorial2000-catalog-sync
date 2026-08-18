@@ -190,9 +190,28 @@ function f2000cs_parse_price( $value ) {
 }
 
 /**
- * Download a URL to a temporary file, with SSL verification disabled.
+ * Whether SSL/TLS certificates must be verified on outbound requests.
  *
- * Many supplier XML/image servers use self-signed or expired certificates.
+ * Verification is ON by default. Sites whose supplier servers use self-signed
+ * or expired certificates can either enable the «Слабкі SSL-сертифікати»
+ * setting on the update page or override this via:
+ *     add_filter( 'f2000cs_ssl_verify', '__return_false' );
+ *
+ * @return bool
+ */
+function f2000cs_ssl_verify_enabled() {
+	$default = '1' !== (string) get_option( 'f2000cs_allow_insecure_ssl', '0' );
+
+	return (bool) apply_filters( 'f2000cs_ssl_verify', $default );
+}
+
+/**
+ * Download a URL to a temporary file, with SSL verification enabled by default.
+ *
+ * Sites whose supplier servers use self-signed or expired certificates can
+ * enable the «Weak SSL certificates» setting on the update page, or disable
+ * verification in code with:
+ *     add_filter( 'f2000cs_ssl_verify', '__return_false' );
  *
  * @param string $url     The URL to download.
  * @param int    $timeout Download timeout in seconds.
@@ -208,13 +227,16 @@ function f2000cs_download_url( $url, $timeout = 300 ) {
 }
 
 /**
- * Filter callback: disable SSL verification on HTTP requests.
+ * Filter callback: control SSL verification on HTTP requests.
+ *
+ * Verification is ON by default; the f2000cs_ssl_verify filter allows opting
+ * out for suppliers that use self-signed or expired certificates.
  *
  * @param array $args Request arguments.
  * @return array Modified arguments.
  */
 function f2000cs_disable_ssl_verify( $args ) {
-	$args['sslverify'] = false;
+	$args['sslverify'] = f2000cs_ssl_verify_enabled();
 	return $args;
 }
 
@@ -413,16 +435,15 @@ function f2000cs_cleanup_wc_transients( $aggressive = false ) {
 	// Delete specific WooCommerce transients that might be using memory
 	if ( $aggressive ) {
 		// More aggressive cleanup for production environments.
+		// Prefix-scoped so unrelated plugins' transients are never touched.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk transient cleanup with static query; caching not applicable.
 		$wpdb->query(
 			"
             DELETE FROM $wpdb->options 
-            WHERE option_name LIKE '%_transient_%' 
-            AND (
-                option_name LIKE '%_wc_%' 
-                OR option_name LIKE '%_product_%' 
-                OR option_name LIKE '%_woocommerce_%'
-            )
+            WHERE option_name LIKE '_transient_wc_%' 
+            OR option_name LIKE '_transient_timeout_wc_%'
+            OR option_name LIKE '_transient_product_%'
+            OR option_name LIKE '_transient_timeout_product_%'
         "
 		);
 	} else {
@@ -1211,6 +1232,10 @@ function f2000cs_sanitize_export_filename( $filename ) {
 /**
  * Capability-gated download URL for an export XML (admin-post proxy).
  *
+ * The URL carries a server-side token (24h transient) bound to the current
+ * user session instead of a nonce, so the link keeps working when WordPress
+ * rotates session tokens (nonce-based links then die with «link expired»).
+ *
  * @param string $filename Export basename.
  * @return string
  */
@@ -1220,9 +1245,13 @@ function f2000cs_get_export_download_url( $filename ) {
 		return '';
 	}
 
-	return wp_nonce_url(
-		admin_url( 'admin-post.php?action=f2000cs_download_export&file=' . rawurlencode( $filename ) ),
-		'f2000cs_download_export'
+	$session = function_exists( 'wp_get_session_token' ) ? wp_get_session_token() : '';
+	$token   = md5( wp_hash( $filename . '|' . get_current_user_id() . '|' . $session . '|' . wp_rand() ) );
+
+	set_transient( 'f2000cs_dl_' . $token, $filename, DAY_IN_SECONDS );
+
+	return admin_url(
+		'admin-post.php?action=f2000cs_download_export&file=' . rawurlencode( $filename ) . '&token=' . $token
 	);
 }
 
@@ -1248,9 +1277,7 @@ function f2000cs_handle_export_download() {
 		);
 	}
 
-	check_admin_referer( 'f2000cs_download_export' );
-
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified by check_admin_referer() above.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Downloads are gated by a server-side token (see f2000cs_get_export_download_url).
 	$raw_file = isset( $_GET['file'] ) ? sanitize_text_field( wp_unslash( $_GET['file'] ) ) : '';
 	$filename = f2000cs_sanitize_export_filename( $raw_file );
 	if ( '' === $filename ) {
@@ -1258,6 +1285,16 @@ function f2000cs_handle_export_download() {
 			esc_html__( 'Невірне імʼя файлу.', 'factorial2000-catalog-sync' ),
 			esc_html__( 'Помилка', 'factorial2000-catalog-sync' ),
 			array( 'response' => 400 )
+		);
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Token-gated download.
+	$token = isset( $_GET['token'] ) ? sanitize_key( wp_unslash( $_GET['token'] ) ) : '';
+	if ( '' === $token || get_transient( 'f2000cs_dl_' . $token ) !== $filename ) {
+		wp_die(
+			esc_html__( 'Посилання недійсне або прострочене. Згенеруйте файл ще раз.', 'factorial2000-catalog-sync' ),
+			esc_html__( 'Помилка', 'factorial2000-catalog-sync' ),
+			array( 'response' => 403 )
 		);
 	}
 

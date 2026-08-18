@@ -287,7 +287,14 @@
 					$('#import-status').text(imported + ' / ' + total + ' ' + t('productsImported'));
 				}
 
-				if (!response.data.finished && !stopImport) {
+				if (!response.data.finished) {
+					if (stopImport) {
+						$('#import-status').text(options.stoppedMessage || t('importStopped'));
+						setVisible( $( stopButton ), false );
+						options.onFinish();
+						return;
+					}
+
 					formData.set('offset', imported);
 					runImportChunk(formData, options);
 					return;
@@ -578,7 +585,9 @@
 			$('#new_category').prop('checked', !!pending.context.new_category);
 
 			// Lock the form so the source can't be changed mid-resume.
-			$('#xml-import-form input, #xml-import-form select, #xml-import-form button:not(.f2000cs-import-resume__btn)')
+			// The stop buttons stay active so a resumed import can be
+			// cancelled without reloading the page.
+			$('#xml-import-form input, #xml-import-form select, #xml-import-form button:not(.f2000cs-import-resume__btn):not(#stop-import):not(#stop-update-fields)')
 				.prop('disabled', true).addClass('f2000cs-import--resume-locked');
 
 			// Rebuild FormData for chunked resume via runImportChunk.
@@ -613,6 +622,11 @@
 				withSelection: !!pending.context.import_variations,
 				onFinish: function () {
 					setVisible($('#stop-import'), false);
+					if (pending.context.import_variations) {
+						setVisible($('#analyze-xml'), true);
+					} else {
+						setVisible($('#start-import'), true);
+					}
 					$('#xml-import-form input, #xml-import-form select, #xml-import-form button')
 						.prop('disabled', false)
 						.removeClass('f2000cs-import--resume-locked');

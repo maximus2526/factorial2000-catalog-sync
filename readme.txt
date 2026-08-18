@@ -5,7 +5,7 @@ Tags: woocommerce, import, xml, stock, prom
 Requires at least: 5.8
 Tested up to: 7.0.2
 Requires PHP: 7.4
-Stable tag: 0.6.8
+Stable tag: 0.6.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -103,6 +103,17 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 4. XML export filter for creating a clean feed with new products only.
 
 == Changelog ==
+
+= 0.6.9 =
+* Fixed: a resumed import can now be stopped — the stop button stays active during resume and shows «stopped» instead of a fake 100% completion.
+* Fixed: generated XML download links could die with «link expired» — downloads now use a server-side token instead of a nonce, and the button label no longer repeats the long filename.
+* Fixed: stock quantity updates no longer revert stock status and prices written by the same sync run (Pro).
+* Fixed: batch processing now respects the raised execution-time limit, so large catalogs keep making progress on shared hosting.
+* Fixed: aggressive transient cleanup no longer deletes transients belonging to other plugins.
+* Fixed: temporary currency files are removed on all exit paths (no temp-file leaks).
+* Fixed: per-product update failures are now logged instead of being silently swallowed (capped at 10 lines per run to protect the log).
+* Security: SSL/TLS certificate verification is now enabled for feed and image downloads by default; a new «Weak SSL certificates» setting (Update page) lets you opt out for suppliers with self-signed or expired certificates, as does the `f2000cs_ssl_verify` filter.
+* Security: XML feeds are parsed with network entity loading disabled (XXE hardening) and feed content (titles/descriptions) is sanitized before it is stored.
 
 = 0.6.8 =
 * Fixed: GIF and BMP are not converted or re-encoded on import (GIF animation preserved). Conversion applies to PNG, JPG, WebP, and AVIF only.

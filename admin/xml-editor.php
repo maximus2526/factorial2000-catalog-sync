@@ -201,7 +201,7 @@ function f2000cs_xml_editor_fetch_from_url( string $source_url, array $result ):
 		array(
 			'timeout'     => 90,  // below Cloudflare's 100 s proxy timeout
 			'redirection' => 5,
-			'sslverify'   => false,
+			'sslverify'   => f2000cs_ssl_verify_enabled(),
 		)
 	);
 
