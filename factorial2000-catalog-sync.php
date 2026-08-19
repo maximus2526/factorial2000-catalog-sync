@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Factorial2000 Catalog Sync for Prom.ua
  * Description:       Імпорт та синхронізація товарів WooCommerce з XML (YML/Prom.ua). Оновлення стоку й цін за розкладом, імпорт простих і варіативних товарів з фото/атрибутами/категоріями, оновлення окремих полів (Pro), редактор вигрузок XML (Pro), обробка зображень (Pro), Telegram-сповіщення. Free назавжди + безкоштовний Pro-тріал 14 днів без карти. Підтримка кількох постачальників, SKU-префіксів, конвертації валют. Містить автоматизовані PHPUnit-тести.
- * Version:           0.6.9
+ * Version:           0.6.10
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -28,7 +28,7 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 	}
 } else {
 
-	define( 'F2000CS_VERSION', '0.6.9' );
+	define( 'F2000CS_VERSION', '0.6.10' );
 	define( 'F2000CS_DB_VERSION', 1 ); // Increment when DB migrations are needed.
 	define( 'F2000CS_PATH', plugin_dir_path( __FILE__ ) );
 	define( 'F2000CS_URL', plugin_dir_url( __FILE__ ) );
@@ -51,6 +51,18 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 	require_once F2000CS_PATH . 'admin/xml-editor.php';
 	require_once F2000CS_PATH . 'admin/admin-assets.php';
 	require_once F2000CS_PATH . 'admin/support-widget.php';
+
+	/**
+	 * Initialize Freemius immediately.
+	 *
+	 * During plugin activation this file is included AFTER plugins_loaded
+	 * has already fired, so the deferred f2000cs_fs_init() would be too
+	 * late: the SDK would never register its activation hook and the
+	 * post-activation opt-in wizard would silently never appear.
+	 */
+	if ( function_exists( 'f2000cs_fs' ) ) {
+		f2000cs_fs();
+	}
 
 	register_activation_hook( __FILE__, 'f2000cs_activate' );
 	register_deactivation_hook( __FILE__, array( 'F2000CS\Cron_Job', 'deactivate' ) );

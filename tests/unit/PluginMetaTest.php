@@ -85,6 +85,21 @@ final class F2000CS_Unit_PluginMetaTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * Freemius must be initialized at plugin-load time (top level), not only
+	 * on plugins_loaded: during activation the file is included after
+	 * plugins_loaded has fired, so a deferred init would never register the
+	 * SDK activation hook and the post-activation opt-in wizard would never
+	 * appear.
+	 *
+	 * @return void
+	 */
+	public function test_freemius_init_runs_before_activation_hook_registration() {
+		$top_level_init = "if ( function_exists( 'f2000cs_fs' ) ) {\n\t\tf2000cs_fs();\n\t}";
+
+		$this->assertStringContainsString( $top_level_init, preg_replace( "/\r\n/", "\n", $this->main_file ) );
+	}
+
+	/**
 	 * Required plugin header fields must exist.
 	 *
 	 * @return void

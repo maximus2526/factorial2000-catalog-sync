@@ -3,9 +3,9 @@ Contributors: factorial2000
 Donate link: https://send.monobank.ua/jar/8CiFBAfJKK
 Tags: woocommerce, import, xml, stock, prom
 Requires at least: 5.8
-Tested up to: 7.0.2
+Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 0.6.9
+Stable tag: 0.6.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -104,6 +104,10 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 
 == Changelog ==
 
+= 0.6.10 =
+* Fixed: the Freemius setup wizard now appears after activation, so new users can opt in and start the 14-day Pro trial (SDK was initialized too late to register its activation hook).
+* Improved: compatibility verified with WordPress 7.0.4.
+
 = 0.6.9 =
 * Fixed: a resumed import can now be stopped — the stop button stays active during resume and shows «stopped» instead of a fake 100% completion.
 * Fixed: generated XML download links could die with «link expired» — downloads now use a server-side token instead of a nonce, and the button label no longer repeats the long filename.
@@ -112,6 +116,9 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 * Fixed: aggressive transient cleanup no longer deletes transients belonging to other plugins.
 * Fixed: temporary currency files are removed on all exit paths (no temp-file leaks).
 * Fixed: per-product update failures are now logged instead of being silently swallowed (capped at 10 lines per run to protect the log).
+* Fixed: field updates (title, description, short description) now report and log failures instead of silently claiming success.
+* Fixed: leftover temporary files are removed after image conversion, and the export page now checks admin capabilities explicitly.
+* Improved: image processing settings default to «Не конвертувати» and their tooltips explain that processing loads the server and can slow the import down.
 * Security: SSL/TLS certificate verification is now enabled for feed and image downloads by default; a new «Weak SSL certificates» setting (Update page) lets you opt out for suppliers with self-signed or expired certificates, as does the `f2000cs_ssl_verify` filter.
 * Security: XML feeds are parsed with network entity loading disabled (XXE hardening) and feed content (titles/descriptions) is sanitized before it is stored.
 
