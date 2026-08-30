@@ -498,6 +498,14 @@ class XML_Parser {
 		$barcode    = isset( $offer->barcode ) ? (string) $offer->barcode : '';
 		$dimensions = isset( $offer->dimensions ) ? (string) $offer->dimensions : '';
 
+		// Stock quantity from XML
+		$quantity = null;
+		if ( isset( $offer->quantity ) && '' !== trim( (string) $offer->quantity ) ) {
+			$quantity = max( 0, (int) $offer->quantity );
+		} elseif ( isset( $offer->stock_quantity ) && '' !== trim( (string) $offer->stock_quantity ) ) {
+			$quantity = max( 0, (int) $offer->stock_quantity );
+		}
+
 		return array(
 			'sku'        => $sku,
 			'group_id'   => $group_id,
@@ -513,6 +521,7 @@ class XML_Parser {
 			'weight'     => $weight,
 			'barcode'    => $barcode,
 			'dimensions' => $dimensions,
+			'quantity'   => $quantity,
 		);
 	}
 
@@ -535,6 +544,7 @@ class XML_Parser {
 		$weight     = isset( $offer_data['weight'] ) ? (float) $offer_data['weight'] : 0;
 		$barcode    = isset( $offer_data['barcode'] ) ? (string) $offer_data['barcode'] : '';
 		$dimensions = isset( $offer_data['dimensions'] ) ? (string) $offer_data['dimensions'] : '';
+		$quantity   = isset( $offer_data['quantity'] ) ? $offer_data['quantity'] : null;
 
 		if ( empty( $sku ) || empty( $title ) || $price <= 0 ) {
 			return false;
@@ -583,7 +593,14 @@ class XML_Parser {
 		}
 
 		f2000cs_update_stock_status( $post_id, $available );
-		update_post_meta( $post_id, '_manage_stock', 'no' );
+
+		// Set manage_stock and quantity based on XML data
+		if ( null !== $quantity ) {
+			update_post_meta( $post_id, '_manage_stock', 'yes' );
+			update_post_meta( $post_id, '_stock', $quantity );
+		} else {
+			update_post_meta( $post_id, '_manage_stock', 'no' );
+		}
 
 		if ( $weight > 0 ) {
 			update_post_meta( $post_id, '_weight', $weight );
@@ -1059,6 +1076,7 @@ class XML_Parser {
 			$original_sku = isset( $variation_data['sku'] ) ? (string) $variation_data['sku'] : '';
 			$title        = isset( $variation_data['title'] ) ? wp_strip_all_tags( (string) $variation_data['title'] ) : '';
 			$price        = isset( $variation_data['price'] ) ? (float) $variation_data['price'] : 0;
+			$quantity     = isset( $variation_data['quantity'] ) ? $variation_data['quantity'] : null;
 
 			if ( '' === $original_sku || '' === $title || $price <= 0 ) {
 				f2000cs_log( sprintf( 'Skipping variation with invalid sku/title/price (sku=%s)', $original_sku ) );
@@ -1107,7 +1125,14 @@ class XML_Parser {
 			}
 
 			f2000cs_update_stock_status( $variation_id, $variation_data['available'] );
-			update_post_meta( $variation_id, '_manage_stock', 'no' );
+
+			// Set manage_stock and quantity based on XML data
+			if ( null !== $quantity ) {
+				update_post_meta( $variation_id, '_manage_stock', 'yes' );
+				update_post_meta( $variation_id, '_stock', $quantity );
+			} else {
+				update_post_meta( $variation_id, '_manage_stock', 'no' );
+			}
 
 			if ( ! empty( $variation_data['weight'] ) && (float) $variation_data['weight'] > 0 ) {
 				update_post_meta( $variation_id, '_weight', (float) $variation_data['weight'] );

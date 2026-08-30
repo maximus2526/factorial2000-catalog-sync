@@ -77,6 +77,21 @@ class Cron_Job {
 			);
 		}
 
+		$schedules['8_times_daily'] = array(
+			'interval' => 10800,
+			'display'  => __( '8 разів на день', 'factorial2000-catalog-sync' ),
+		);
+
+		$schedules['6_times_daily'] = array(
+			'interval' => 14400,
+			'display'  => __( '6 разів на день', 'factorial2000-catalog-sync' ),
+		);
+
+		$schedules['4_times_daily'] = array(
+			'interval' => 21600,
+			'display'  => __( '4 рази на день', 'factorial2000-catalog-sync' ),
+		);
+
 		if ( ! isset( $schedules['twicedaily'] ) ) {
 			$schedules['twicedaily'] = array(
 				'interval' => 43200,

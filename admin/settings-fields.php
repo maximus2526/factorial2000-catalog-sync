@@ -65,7 +65,7 @@ function f2000cs_settings_init() {
 				if ( function_exists( 'f2000cs_get_effective_update_interval' ) ) {
 					return f2000cs_get_effective_update_interval( $value );
 				}
-				$allowed = array( '5_minute', '10_minute', '15_minute', '30_minute', 'hourly', 'twicedaily', 'daily' );
+				$allowed = array( '5_minute', '10_minute', '15_minute', '30_minute', 'hourly', '8_times_daily', '6_times_daily', '4_times_daily', 'twicedaily', 'daily' );
 				return in_array( $value, $allowed, true ) ? $value : 'hourly';
 			},
 		)
@@ -583,6 +583,9 @@ function f2000cs_interval_render() {
 			<option value="15_minute" <?php selected( $interval, '15_minute' ); ?>><?php esc_html_e( 'Що 15 хв', 'factorial2000-catalog-sync' ); ?></option>
 			<option value="30_minute" <?php selected( $interval, '30_minute' ); ?>><?php esc_html_e( 'Що 30 хв', 'factorial2000-catalog-sync' ); ?></option>
 			<option value="hourly" <?php selected( $interval, 'hourly' ); ?>><?php esc_html_e( 'Щогодини', 'factorial2000-catalog-sync' ); ?></option>
+			<option value="8_times_daily" <?php selected( $interval, '8_times_daily' ); ?>><?php esc_html_e( '8 разів на день', 'factorial2000-catalog-sync' ); ?></option>
+			<option value="6_times_daily" <?php selected( $interval, '6_times_daily' ); ?>><?php esc_html_e( '6 разів на день', 'factorial2000-catalog-sync' ); ?></option>
+			<option value="4_times_daily" <?php selected( $interval, '4_times_daily' ); ?>><?php esc_html_e( '4 рази на день', 'factorial2000-catalog-sync' ); ?></option>
 			<option value="twicedaily" <?php selected( $interval, 'twicedaily' ); ?>><?php esc_html_e( 'Двічі на день', 'factorial2000-catalog-sync' ); ?></option>
 		<?php endif; ?>
 		<option value="daily" <?php selected( $interval, 'daily' ); ?>><?php esc_html_e( 'Щодня', 'factorial2000-catalog-sync' ); ?></option>

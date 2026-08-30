@@ -235,6 +235,9 @@ final class F2000CS_Unit_LicensingTest extends F2000CS_Unit_TestCase {
 
 		$this->assertSame( 'hourly', f2000cs_get_effective_update_interval() );
 		$this->assertSame( '5_minute', f2000cs_get_effective_update_interval( '5_minute' ) );
+		$this->assertSame( '8_times_daily', f2000cs_get_effective_update_interval( '8_times_daily' ) );
+		$this->assertSame( '6_times_daily', f2000cs_get_effective_update_interval( '6_times_daily' ) );
+		$this->assertSame( '4_times_daily', f2000cs_get_effective_update_interval( '4_times_daily' ) );
 		$this->assertSame( 'daily', f2000cs_get_effective_update_interval( 'daily' ) );
 		$this->assertSame( 'hourly', f2000cs_get_effective_update_interval( 'bogus' ), 'Unknown intervals fall back to hourly' );
 	}

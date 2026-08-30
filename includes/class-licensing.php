@@ -523,7 +523,7 @@ function f2000cs_get_effective_update_interval( $interval = null ) {
 		return 'daily';
 	}
 
-	$allowed = array( '5_minute', '10_minute', '15_minute', '30_minute', 'hourly', 'twicedaily', 'daily' );
+	$allowed = array( '5_minute', '10_minute', '15_minute', '30_minute', 'hourly', '8_times_daily', '6_times_daily', '4_times_daily', 'twicedaily', 'daily' );
 
 	return in_array( $interval, $allowed, true ) ? $interval : 'hourly';
 }

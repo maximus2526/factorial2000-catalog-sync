@@ -50,6 +50,9 @@ final class F2000CS_Unit_CronJobTest extends F2000CS_Unit_TestCase {
 		$this->assertSame( 900, $schedules['15_minute']['interval'] );
 		$this->assertSame( 1800, $schedules['30_minute']['interval'] );
 		$this->assertSame( 3600, $schedules['hourly']['interval'], 'Existing hourly must not be replaced' );
+		$this->assertSame( 10800, $schedules['8_times_daily']['interval'] );
+		$this->assertSame( 14400, $schedules['6_times_daily']['interval'] );
+		$this->assertSame( 21600, $schedules['4_times_daily']['interval'] );
 		$this->assertArrayHasKey( 'twicedaily', $schedules );
 		$this->assertArrayHasKey( 'daily', $schedules );
 	}
