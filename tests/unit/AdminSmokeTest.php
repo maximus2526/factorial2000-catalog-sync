@@ -255,4 +255,92 @@ final class F2000CS_Unit_AdminSmokeTest extends F2000CS_Unit_TestCase {
 		$this->assertNotSame( '', $r['error'] );
 		$this->assertStringContainsString( 'Connection refused', $r['error'] );
 	}
+
+	// ---------------------------------------------------------------- session token
+
+	/**
+	 * The session token issued by 'load' must resolve back to the same
+	 * session file once sanitized.
+	 *
+	 * f2000cs_xml_editor_sanitize_token() runs every subsequent request's
+	 * token through sanitize_key(), which lowercases it. wp_generate_password()
+	 * returns mixed-case strings, so an unlowercased token would build a
+	 * session path that never matches the saved file on a case-sensitive
+	 * (Linux) filesystem — the editor would then report "Сесію не знайдено"
+	 * the moment a category or product is selected, even though 'load' itself
+	 * succeeded. Regression test for that bug.
+	 *
+	 * @return void
+	 */
+	public function test_session_token_survives_sanitize_key_round_trip(): void {
+		$this->enable_pro();
+
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs_tok_' );
+		file_put_contents( $tmp, '<yml_catalog><shop><categories><category id="1">Cat</category></categories><offers><offer id="1" available="true"><name>P</name><price>10</price><categoryId>1</categoryId></offer></offers></shop></yml_catalog>' );
+
+		$_POST['source_type'] = 'file';
+		$_FILES['xml_file']   = array( 'error' => 0, 'name' => 'feed.xml', 'tmp_name' => $tmp, 'size' => filesize( $tmp ) );
+
+		try {
+			f2000cs_xml_editor_ajax_load();
+			$this->fail( 'Expected wp_send_json_success to abort the handler' );
+		} catch ( F2000CS_JsonResponseException $response ) {
+			$this->assertTrue( $response->success, (string) ( $response->data['message'] ?? '' ) );
+			$token = $response->data['token'];
+		}
+
+		unset( $_FILES['xml_file'] );
+
+		// String-level check (OS-independent): a case-insensitive filesystem
+		// (e.g. Windows/NTFS, used to run this suite locally) would make
+		// f2000cs_xml_editor_session_path() succeed below even with a
+		// mixed-case token, masking the bug that only shows up on Linux.
+		$this->assertSame(
+			$token,
+			f2000cs_xml_editor_sanitize_token( $token ),
+			'Token returned by load must already be sanitize_key()-safe (lowercase a-z0-9), or every later request (offers/generate) fails to resolve the session on case-sensitive (Linux) filesystems.'
+		);
+
+		$this->assertNotSame(
+			'',
+			f2000cs_xml_editor_session_path( $token ),
+			'Token returned by load must resolve to a session file after sanitize_key().'
+		);
+	}
+
+	/**
+	 * End-to-end: selecting a category right after loading must return
+	 * offers, not a "session not found" error caused by the token casing bug.
+	 *
+	 * @return void
+	 */
+	public function test_offers_request_succeeds_right_after_load(): void {
+		$this->enable_pro();
+
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs_tok_' );
+		file_put_contents( $tmp, '<yml_catalog><shop><categories><category id="1">Cat</category></categories><offers><offer id="1" available="true"><name>P</name><price>10</price><categoryId>1</categoryId></offer></offers></shop></yml_catalog>' );
+
+		$_POST['source_type'] = 'file';
+		$_FILES['xml_file']   = array( 'error' => 0, 'name' => 'feed.xml', 'tmp_name' => $tmp, 'size' => filesize( $tmp ) );
+
+		try {
+			f2000cs_xml_editor_ajax_load();
+			$this->fail( 'Expected wp_send_json_success to abort the handler' );
+		} catch ( F2000CS_JsonResponseException $response ) {
+			$token = $response->data['token'];
+		}
+
+		unset( $_FILES['xml_file'] );
+
+		$_POST['token']        = $token;
+		$_POST['category_ids'] = array( '1' );
+
+		try {
+			f2000cs_xml_editor_ajax_offers();
+			$this->fail( 'Expected wp_send_json_success to abort the handler' );
+		} catch ( F2000CS_JsonResponseException $response ) {
+			$this->assertTrue( $response->success, 'Offers request must succeed: ' . ( $response->data['message'] ?? '' ) );
+			$this->assertCount( 1, $response->data['offers'] );
+		}
+	}
 }

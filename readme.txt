@@ -5,7 +5,7 @@ Tags: woocommerce, import, xml, stock, prom
 Requires at least: 5.8
 Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 0.6.10
+Stable tag: 0.6.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -103,6 +103,14 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 4. XML export filter for creating a clean feed with new products only.
 
 == Changelog ==
+
+= 0.6.12 =
+* Fixed: the XML editor (Pro) failed to list any products after selecting a category — the session token generated on load could contain uppercase letters, which was silently lowercased on every later request, breaking the lookup on case-sensitive (Linux) hosting.
+
+= 0.6.11 =
+* Fixed: stock quantity from XML (`<quantity>` or `<stock_quantity>`) is now properly extracted and imported during product import (both simple and variable products/variations).
+* Fixed: `_manage_stock` is now automatically enabled when quantity is available from XML during import (previously always set to 'no').
+* Improved: stock quantity handling is now consistent across import, field updates, and scheduled stock sync operations.
 
 = 0.6.10 =
 * Fixed: the Freemius setup wizard now appears after activation, so new users can opt in and start the 14-day Pro trial (SDK was initialized too late to register its activation hook).

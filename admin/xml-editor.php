@@ -339,7 +339,12 @@ function f2000cs_xml_editor_ajax_load() {
 
 	f2000cs_xml_editor_prune_sessions();
 
-	$token     = wp_generate_password( 20, false, false );
+	// Must be lowercase a-z0-9: f2000cs_xml_editor_sanitize_token() runs every
+	// subsequent request's token through sanitize_key(), which lowercases and
+	// strips other characters. wp_generate_password() includes uppercase
+	// letters, so an unmodified token would build a session path that never
+	// matches the saved file on case-sensitive (Linux) filesystems.
+	$token     = strtolower( wp_generate_password( 20, false, false ) );
 	$file_path = $dir . '/' . $token . '.xml';
 
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Session temp file consumed by SimpleXML; WP_Filesystem is not applicable here.

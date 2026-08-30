@@ -2024,8 +2024,26 @@ if ( ! function_exists( 'number_format_i18n' ) ) {
 }
 
 if ( ! function_exists( 'wp_generate_password' ) ) {
+	/**
+	 * Mirrors real WordPress: mixed-case letters + digits by default, so tests
+	 * catch code that assumes a lowercase-only token (e.g. one later passed
+	 * through sanitize_key(), which would silently lowercase it).
+	 */
 	function wp_generate_password( $length = 12, $special_chars = true, $extra_special_chars = false ) {
-		return substr( str_shuffle( 'abcdefghijklmnopqrstuvwxyz0123456789' ), 0, $length );
+		$chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+		if ( $special_chars ) {
+			$chars .= '!@#$%^&*()';
+		}
+		if ( $extra_special_chars ) {
+			$chars .= '-_ []{}<>~`+=,.;:/?|';
+		}
+
+		$password = '';
+		for ( $i = 0; $i < $length; $i++ ) {
+			$password .= $chars[ random_int( 0, strlen( $chars ) - 1 ) ];
+		}
+
+		return $password;
 	}
 }
 
