@@ -5,7 +5,7 @@ Tags: woocommerce, import, xml, stock, prom
 Requires at least: 5.8
 Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 0.6.12
+Stable tag: 0.6.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -103,6 +103,10 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 4. XML export filter for creating a clean feed with new products only.
 
 == Changelog ==
+
+= 0.6.13 =
+* Added: option to add product categories from the XML feed as subcategories under "Новинки" (instead of creating separate category trees) — improves organization for feeds with many categories.
+* Improved: import checkpoint now includes the new `new_category_subcats` option for seamless resume of imports with category nesting enabled.
 
 = 0.6.12 =
 * Fixed: the XML editor (Pro) failed to list any products after selecting a category — the session token generated on load could contain uppercase letters, which was silently lowercased on every later request, breaking the lookup on case-sensitive (Linux) hosting.

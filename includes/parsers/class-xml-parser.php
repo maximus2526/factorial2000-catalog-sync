@@ -17,10 +17,13 @@ defined( 'ABSPATH' ) || exit;
  */
 class XML_Parser {
 	protected string $xml_url;
-	protected array $categories  = array(); // Cache for categories
-	private array $term_cache    = array(); // Cache for terms
-	private array $sku_cache     = array(); // Cache for product SKUs
-	private bool $new_category   = false;
+	protected array $categories        = array(); // Cache for categories
+	private array $term_cache          = array(); // Cache for terms
+	private array $sku_cache           = array(); // Cache for product SKUs
+	private bool $new_category         = false;
+	private bool $new_category_subcats = false;
+	private ?int $new_arrivals_term_id = null; // Cache for the "Новинки" term ID.
+	private array $new_category_term_cache = array(); // Cache for terms nested under "Новинки".
 	protected string $sku_prefix = '';
 	protected array $currencies  = array(); // Cache for currency rates (id => rate)
 
@@ -30,11 +33,15 @@ class XML_Parser {
 	 * @param string $file_path Path to the XML file.
 	 * @param bool   $new_category Whether to add new products to "New" category.
 	 * @param string $sku_prefix Prefix to add to SKU values.
+	 * @param bool   $new_category_subcats Whether the feed's own categories should be nested
+	 *                                     under "Новинки" as subcategories (only relevant when
+	 *                                     $new_category is true).
 	 */
-	public function __construct( string $file_path, bool $new_category, string $sku_prefix = '' ) {
-		$this->xml_url      = $file_path;
-		$this->new_category = $new_category;
-		$this->sku_prefix   = $sku_prefix;
+	public function __construct( string $file_path, bool $new_category, string $sku_prefix = '', bool $new_category_subcats = false ) {
+		$this->xml_url              = $file_path;
+		$this->new_category         = $new_category;
+		$this->sku_prefix           = $sku_prefix;
+		$this->new_category_subcats = $new_category_subcats;
 	}
 
 	/**
@@ -622,15 +629,10 @@ class XML_Parser {
 			$this->handle_product_images( $post_id, $images );
 		}
 
-		if ( ! $this->new_category ) {
-			$this->set_product_category( $post_id, $category );
-		}
-
 		if ( $this->new_category ) {
-			if ( term_exists( 'Новинки', 'product_cat' ) === 0 ) {
-				$this->insert_term_with_slug( 'Новинки', 'product_cat' );
-			}
-			wp_set_object_terms( $post_id, 'Новинки', 'product_cat', true );
+			$this->assign_new_arrivals_category( $post_id, $category );
+		} else {
+			$this->set_product_category( $post_id, $category );
 		}
 
 		return true;
@@ -693,15 +695,10 @@ class XML_Parser {
 			update_post_meta( $parent_id, '_dimensions', (string) $base_data['dimensions'] );
 		}
 
-		if ( ! $this->new_category ) {
-			$this->set_product_category( $parent_id, $base_data['category'] );
-		}
-
 		if ( $this->new_category ) {
-			if ( term_exists( 'Новинки', 'product_cat' ) === 0 ) {
-				$this->insert_term_with_slug( 'Новинки', 'product_cat' );
-			}
-			wp_set_object_terms( $parent_id, 'Новинки', 'product_cat', true );
+			$this->assign_new_arrivals_category( $parent_id, $base_data['category'] );
+		} else {
+			$this->set_product_category( $parent_id, $base_data['category'] );
 		}
 
 		// Handle parent product images (from first variation)
@@ -1407,6 +1404,137 @@ class XML_Parser {
 			$term_id = $term['term_id'];
 		} else {
 			$term_id = $term->term_id;
+		}
+
+		$cache[ $category_id ] = $term_id;
+		return $term_id;
+	}
+
+	/**
+	 * Assigns a product to the "Новинки" category and, when enabled, also nests the
+	 * feed's own category (and its parents) underneath "Новинки" as subcategories.
+	 *
+	 * @param int    $post_id      Product ID.
+	 * @param string $category_ids Comma-separated XML category IDs.
+	 */
+	private function assign_new_arrivals_category( int $post_id, string $category_ids ): void {
+		$new_arrivals_term_id = $this->get_new_arrivals_term_id();
+		if ( ! $new_arrivals_term_id ) {
+			return;
+		}
+
+		$term_ids = array( $new_arrivals_term_id );
+
+		if ( $this->new_category_subcats ) {
+			$term_ids = array_merge( $term_ids, $this->get_new_category_term_ids( $category_ids, $new_arrivals_term_id ) );
+		}
+
+		wp_set_object_terms( $post_id, array_unique( $term_ids ), 'product_cat' );
+	}
+
+	/**
+	 * Ensures the "Новинки" term exists and returns (and caches) its term ID.
+	 *
+	 * @return int The term ID, or 0 on failure.
+	 */
+	private function get_new_arrivals_term_id(): int {
+		if ( null !== $this->new_arrivals_term_id ) {
+			return $this->new_arrivals_term_id;
+		}
+
+		$term = get_term_by( 'name', 'Новинки', 'product_cat' );
+		if ( ! $term ) {
+			$inserted = $this->insert_term_with_slug( 'Новинки', 'product_cat' );
+			$term_id  = is_wp_error( $inserted ) ? 0 : (int) $inserted['term_id'];
+		} else {
+			$term_id = (int) $term->term_id;
+		}
+
+		$this->new_arrivals_term_id = $term_id;
+		return $term_id;
+	}
+
+	/**
+	 * Resolves the feed category IDs to term IDs nested under "Новинки" (root parent),
+	 * creating any missing category/subcategory terms along the way.
+	 *
+	 * @param string $category_ids     Comma-separated XML category IDs.
+	 * @param int    $new_arrivals_id Term ID of "Новинки", used as the root parent.
+	 * @return array<int, int> Resolved term IDs.
+	 */
+	private function get_new_category_term_ids( string $category_ids, int $new_arrivals_id ): array {
+		$ids = array_filter( array_map( 'trim', explode( ',', $category_ids ) ) );
+		if ( empty( $ids ) ) {
+			return array();
+		}
+
+		$term_ids = array();
+		foreach ( $ids as $category_id ) {
+			if ( ! isset( $this->categories[ $category_id ] ) ) {
+				continue;
+			}
+			$term_id = $this->ensure_category_term_nested( $category_id, $this->categories, $this->new_category_term_cache, $new_arrivals_id );
+			if ( $term_id ) {
+				$term_ids[] = $term_id;
+			}
+		}
+
+		return $term_ids;
+	}
+
+	/**
+	 * Recursively ensures a product category term exists *underneath* a given root
+	 * parent (used to nest feed categories under "Новинки"), and returns its term ID.
+	 *
+	 * Unlike ensure_category_term(), lookups are scoped by parent so that a
+	 * same-named category that already exists elsewhere in the tree (e.g. as a
+	 * regular top-level category) is not reused here — a distinct term is created
+	 * under the correct parent instead.
+	 *
+	 * @param string $category_id    Category ID from XML.
+	 * @param array  $categories     Full list of categories from XML.
+	 * @param array  $cache          Reference to already created term cache (nested-mode only).
+	 * @param int    $root_parent_id Term ID to use as the parent for top-level feed categories.
+	 *
+	 * @return int|null The term ID or null on failure.
+	 */
+	private function ensure_category_term_nested( string $category_id, array $categories, array &$cache, int $root_parent_id ): ?int {
+		if ( isset( $cache[ $category_id ] ) ) {
+			return $cache[ $category_id ];
+		}
+
+		if ( ! isset( $categories[ $category_id ] ) ) {
+			return null;
+		}
+
+		$name          = $categories[ $category_id ]['name'];
+		$xml_parent_id = $categories[ $category_id ]['parent'];
+
+		$parent_term_id = $xml_parent_id
+			? $this->ensure_category_term_nested( $xml_parent_id, $categories, $cache, $root_parent_id )
+			: $root_parent_id;
+
+		if ( ! $parent_term_id ) {
+			$parent_term_id = $root_parent_id;
+		}
+
+		$existing = term_exists( $name, 'product_cat', $parent_term_id );
+		if ( $existing ) {
+			$term_id = (int) ( is_array( $existing ) ? $existing['term_id'] : $existing );
+		} else {
+			$term = $this->insert_term_with_slug(
+				$name,
+				'product_cat',
+				array(
+					'parent' => $parent_term_id,
+				)
+			);
+
+			if ( is_wp_error( $term ) ) {
+				return null;
+			}
+
+			$term_id = (int) $term['term_id'];
 		}
 
 		$cache[ $category_id ] = $term_id;

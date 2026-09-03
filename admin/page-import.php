@@ -119,6 +119,16 @@ function f2000cs_import_page() {
 										<input type="checkbox" name="new_category" id="new_category" value="1">
 										<?php esc_html_e( 'Додавати нові товари в категорію «Новинки»', 'factorial2000-catalog-sync' ); ?>
 									</label>
+
+									<div class="f2000cs-import-field f2000cs-import-field--sub">
+										<label for="new_category_subcats">
+											<input type="checkbox" name="new_category_subcats" id="new_category_subcats" value="1" disabled>
+											<?php esc_html_e( 'Категорії товару з вигрузки додавати як підкатегорії «Новинки»', 'factorial2000-catalog-sync' ); ?>
+										</label>
+										<p class="description">
+											<?php esc_html_e( '«Новинки» стане основною категорією товару, а категорія (і підкатегорії) з вигрузки будуть вкладені під неї замість окремого дерева категорій.', 'factorial2000-catalog-sync' ); ?>
+										</p>
+									</div>
 								</div>
 
 								<div class="f2000cs-import-mode">
@@ -589,7 +599,7 @@ function f2000cs_cleanup_import_xml_session( $session ) {
  *
  * @param string $session  Import session key.
  * @param int    $offset   Cumulative offset of the last successfully imported product.
- * @param array  $context  Import settings (sku_prefix, new_category, import_variations, selected_attributes).
+ * @param array  $context  Import settings (sku_prefix, new_category, new_category_subcats, import_variations, selected_attributes).
  * @return void
  */
 function f2000cs_import_save_checkpoint( string $session, int $offset, array $context ): void {
@@ -600,13 +610,14 @@ function f2000cs_import_save_checkpoint( string $session, int $offset, array $co
 	set_transient(
 		'f2000cs_import_resume_' . $session,
 		array(
-			'offset'              => $offset,
-			'total'               => (int) ( $context['total'] ?? 0 ),
-			'source'              => (string) ( $context['source'] ?? '' ),
-			'sku_prefix'          => (string) ( $context['sku_prefix'] ?? '' ),
-			'new_category'        => (bool) ( $context['new_category'] ?? false ),
-			'import_variations'   => (bool) ( $context['import_variations'] ?? false ),
-			'selected_attributes' => (array) ( $context['selected_attributes'] ?? array() ),
+			'offset'               => $offset,
+			'total'                => (int) ( $context['total'] ?? 0 ),
+			'source'               => (string) ( $context['source'] ?? '' ),
+			'sku_prefix'           => (string) ( $context['sku_prefix'] ?? '' ),
+			'new_category'         => (bool) ( $context['new_category'] ?? false ),
+			'new_category_subcats' => (bool) ( $context['new_category_subcats'] ?? false ),
+			'import_variations'    => (bool) ( $context['import_variations'] ?? false ),
+			'selected_attributes'  => (array) ( $context['selected_attributes'] ?? array() ),
 		),
 		HOUR_IN_SECONDS
 	);
@@ -728,11 +739,12 @@ function f2000cs_handle_import_action() {
 		wp_send_json_error( array( 'message' => $resolved->get_error_message() ) );
 	}
 
-	$file_path         = $resolved['path'];
-	$offset            = isset( $_POST['offset'] ) ? intval( $_POST['offset'] ) : 0;
-	$new_category      = isset( $_POST['new_category'] ) && '1' === $_POST['new_category'];
-	$import_variations = isset( $_POST['import_variations'] ) && '1' === $_POST['import_variations'];
-	$sku_prefix        = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( wp_unslash( $_POST['sku_prefix'] ) ) : '';
+	$file_path            = $resolved['path'];
+	$offset               = isset( $_POST['offset'] ) ? intval( $_POST['offset'] ) : 0;
+	$new_category         = isset( $_POST['new_category'] ) && '1' === $_POST['new_category'];
+	$new_category_subcats = $new_category && isset( $_POST['new_category_subcats'] ) && '1' === $_POST['new_category_subcats'];
+	$import_variations    = isset( $_POST['import_variations'] ) && '1' === $_POST['import_variations'];
+	$sku_prefix           = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( wp_unslash( $_POST['sku_prefix'] ) ) : '';
 
 	$selected_attributes = array();
 	if ( isset( $_POST['selected_attributes'] ) ) {
@@ -746,7 +758,7 @@ function f2000cs_handle_import_action() {
 	set_transient( 'f2000cs_import_variations_temp', $import_variations ? '1' : '0', HOUR_IN_SECONDS );
 	set_transient( 'f2000cs_selected_attributes_temp', $selected_attributes, HOUR_IN_SECONDS );
 
-	$xml_parser = new \F2000CS\XML_Parser( $file_path, $new_category, $sku_prefix );
+	$xml_parser = new \F2000CS\XML_Parser( $file_path, $new_category, $sku_prefix, $new_category_subcats );
 	try {
 		$result = $xml_parser->import_products( $offset, 1 );
 
@@ -770,10 +782,11 @@ function f2000cs_handle_import_action() {
 					'source'              => 'url' === ( isset( $_POST['import_source'] ) ? sanitize_text_field( wp_unslash( $_POST['import_source'] ) ) : '' ) // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only, nonce verified above.
 						? ( isset( $_POST['import_xml_url'] ) ? esc_url_raw( wp_unslash( $_POST['import_xml_url'] ) ) : '' ) // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only.
 						: '',
-					'sku_prefix'          => $sku_prefix,
-					'new_category'        => $new_category,
-					'import_variations'   => $import_variations,
-					'selected_attributes' => $selected_attributes,
+					'sku_prefix'           => $sku_prefix,
+					'new_category'         => $new_category,
+					'new_category_subcats' => $new_category_subcats,
+					'import_variations'    => $import_variations,
+					'selected_attributes'  => $selected_attributes,
 				)
 			);
 		}

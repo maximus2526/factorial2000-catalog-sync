@@ -364,6 +364,7 @@
 		var formData = new FormData($('#xml-import-form')[0]);
 		formData.append('action', 'f2000cs_import_action');
 		formData.append('new_category', $('#new_category').is(':checked') ? '1' : '0');
+		formData.append('new_category_subcats', ($('#new_category').is(':checked') && $('#new_category_subcats').is(':checked')) ? '1' : '0');
 		formData.append('import_variations', withSelection ? '1' : '0');
 		formData.append('sku_prefix', skuPrefix);
 		formData.set('offset', '0');
@@ -452,12 +453,25 @@
 		});
 	}
 
+	function toggleNewCategorySubcats(enabled) {
+		var $subcats = $('#new_category_subcats');
+		$subcats.prop('disabled', !enabled);
+		if (!enabled) {
+			$subcats.prop('checked', false);
+		}
+	}
+
 	$(function () {
 		toggleImportSource(getImportSource());
 		toggleImportMode($('input[name="import_mode"]:checked').val() || 'simple');
+		toggleNewCategorySubcats($('#new_category').is(':checked'));
 
 		$('input[name="import_source"]').on('change', function () {
 			toggleImportSource($(this).val());
+		});
+
+		$('#new_category').on('change', function () {
+			toggleNewCategorySubcats($(this).is(':checked'));
 		});
 
 		$('.f2000cs-import-tabs__tab').on('click', function () {
@@ -583,6 +597,9 @@
 				(pending.context.import_variations ? 'variable' : 'simple') + '"]')
 				.prop('checked', true);
 			$('#new_category').prop('checked', !!pending.context.new_category);
+			$('#new_category_subcats')
+				.prop('disabled', !pending.context.new_category)
+				.prop('checked', !!pending.context.new_category && !!pending.context.new_category_subcats);
 
 			// Lock the form so the source can't be changed mid-resume.
 			// The stop buttons stay active so a resumed import can be
@@ -601,6 +618,7 @@
 			formData.set('sku_prefix',           pending.context.sku_prefix || '');
 			formData.set('import_variations',    pending.context.import_variations ? '1' : '0');
 			formData.set('new_category',         pending.context.new_category ? '1' : '0');
+			formData.set('new_category_subcats', (pending.context.new_category && pending.context.new_category_subcats) ? '1' : '0');
 			formData.set('selected_attributes',  JSON.stringify(pending.context.selected_attributes || {}));
 			formData.set('f2000cs_import_nonce', $('[name="f2000cs_import_nonce"]').val() || $resume.data('f2000cs-nonce') || '');
 

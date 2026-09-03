@@ -552,6 +552,18 @@
 	margin: 0 0 14px;
 }
 
+.f2000cs-import-field--sub {
+	margin: 8px 0 0 26px;
+}
+
+.f2000cs-import-field--sub .description {
+	margin: 4px 0 0;
+}
+
+.f2000cs-import-field--sub label:has(input:disabled) {
+	opacity: 0.6;
+}
+
 .f2000cs-import-page > .f2000cs-import-guide {
 	width: 100%;
 	max-width: none;
