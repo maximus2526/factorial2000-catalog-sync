@@ -56,6 +56,7 @@ const EXCLUDE_LIST = [
 	'.phpcs.xml.dist',
 	'README.md',
 	'SKILL.md',
+	'TASKS.md',
 ];
 
 /**

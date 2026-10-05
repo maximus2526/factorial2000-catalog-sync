@@ -105,6 +105,9 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 == Changelog ==
 
 = 0.7.0 =
+* Added: products that the stock sync set to Draft because they disappeared from the feed are published again automatically when the feed lists them (products drafted manually are never touched). Already-drafted products are no longer re-reported on every run.
+* Security: supplier attribute names and server messages are no longer rendered as HTML in the import analysis screen.
+* Fixed: import session keys are lowercase (consistent with how they are read); uninstall also removes the plugin's session transients.
 * Changed: the Pro modules (image conversion, fields updater, XML export filter and XML editor) are now shipped only in the Pro build. The free version on WordPress.org no longer contains any Pro code and shows a short upgrade placeholder where these features live.
 * Added: if a Pro license or trial is active but the free build is installed, the plugin shows a notice with a link to the Freemius account where the Pro version can be downloaded.
 * Improved: a build simulation (free vs Pro) now runs in CI to make sure premium code can never leak into the free build.
