@@ -9,12 +9,25 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/freemius-uk-i18n-sdk.php';
+
 /**
  * Ukrainian string map for Freemius override_i18n keys.
+ *
+ * Hand-picked core strings win over the generated SDK-wide set.
  *
  * @return array<string, string>
  */
 function f2000cs_get_freemius_uk_i18n() {
+	return array_merge( f2000cs_get_freemius_uk_i18n_sdk(), f2000cs_get_freemius_uk_i18n_core() );
+}
+
+/**
+ * Core Ukrainian strings (opt-in, license, account basics).
+ *
+ * @return array<string, string>
+ */
+function f2000cs_get_freemius_uk_i18n_core() {
 	return array(
 		// Connect / opt-in.
 		'opt-in-connect'                             => 'Так, увімкнути',

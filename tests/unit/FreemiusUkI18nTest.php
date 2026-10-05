@@ -106,4 +106,119 @@ final class F2000CS_Unit_FreemiusUkI18nTest extends F2000CS_Unit_TestCase {
 		$this->assertSame( 'Увімкнути оновлення', $map['opt-in'] );
 		$this->assertNotSame( 'Погодитись', $map['opt-in'] );
 	}
+
+	/**
+	 * Hand-picked core strings take precedence over the generated SDK-wide set.
+	 *
+	 * @return void
+	 */
+	public function test_core_strings_override_generated_ones() {
+		$map = f2000cs_get_freemius_uk_i18n();
+
+		$this->assertSame( 'Не зараз', $map['skip'] );
+		$this->assertArrayHasKey( 'connect-header', $map, 'SDK-wide strings must be merged in' );
+		$this->assertGreaterThan( 500, count( $map ) );
+	}
+
+	/**
+	 * Every key of the generated set must still exist in the bundled SDK:
+	 * either as a literal key, or as the lower-cased/hyphenated English text the
+	 * SDK derives a key from when it passes none. Catches typos and keys that
+	 * disappear after an SDK upgrade (an override on a missing key does nothing).
+	 *
+	 * @return void
+	 */
+	public function test_generated_keys_exist_in_the_bundled_sdk() {
+		$sdk_dir = dirname( __DIR__, 2 ) . '/freemius';
+		$this->assertDirectoryExists( $sdk_dir );
+
+		$known = array();
+		$it    = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $sdk_dir, FilesystemIterator::SKIP_DOTS ) );
+
+		foreach ( $it as $file ) {
+			if ( 'php' !== $file->getExtension() ) {
+				continue;
+			}
+
+			$tokens = token_get_all( (string) file_get_contents( $file->getPathname() ) );
+			$count  = count( $tokens );
+
+			for ( $i = 0; $i < $count; $i++ ) {
+				if ( ! is_array( $tokens[ $i ] ) || T_CONSTANT_ENCAPSED_STRING !== $tokens[ $i ][0] ) {
+					continue;
+				}
+
+				// Join "a" . "b" concatenations, the SDK splits long messages that way.
+				$literal = $this->token_string_value( $tokens[ $i ][1] );
+				$j       = $i + 1;
+
+				while ( $j < $count ) {
+					while ( $j < $count && is_array( $tokens[ $j ] ) && in_array( $tokens[ $j ][0], array( T_WHITESPACE, T_COMMENT ), true ) ) {
+						++$j;
+					}
+					if ( $j >= $count || '.' !== $tokens[ $j ] ) {
+						break;
+					}
+					++$j;
+					while ( $j < $count && is_array( $tokens[ $j ] ) && in_array( $tokens[ $j ][0], array( T_WHITESPACE, T_COMMENT ), true ) ) {
+						++$j;
+					}
+					if ( $j >= $count || ! is_array( $tokens[ $j ] ) || T_CONSTANT_ENCAPSED_STRING !== $tokens[ $j ][0] ) {
+						break;
+					}
+					$literal .= $this->token_string_value( $tokens[ $j ][1] );
+					$i        = $j;
+					++$j;
+				}
+
+				$known[ $literal ]                                        = true;
+				$known[ strtolower( str_replace( ' ', '-', $literal ) ) ] = true;
+			}
+		}
+
+		$missing = array();
+		foreach ( array_keys( f2000cs_get_freemius_uk_i18n_sdk() ) as $key ) {
+			if ( ! isset( $known[ $key ] ) ) {
+				$missing[] = $key;
+			}
+		}
+
+		$this->assertSame( array(), $missing, 'Keys not found in the Freemius SDK: ' . implode( ', ', $missing ) );
+	}
+
+	/**
+	 * Value of a PHP string-literal token (quotes and escapes removed).
+	 *
+	 * @param string $raw Token text including quotes.
+	 * @return string
+	 */
+	private function token_string_value( $raw ) {
+		$inner = substr( $raw, 1, -1 );
+
+		if ( "'" === $raw[0] ) {
+			return str_replace( array( "\\'", '\\\\' ), array( "'", '\\' ), $inner );
+		}
+
+		return stripcslashes( $inner );
+	}
+
+	/**
+	 * Translations keep the printf tokens of the English string they replace
+	 * (a missing %s would drop a value, an extra one would raise a warning).
+	 *
+	 * @return void
+	 */
+	public function test_generated_strings_keep_placeholders_balanced() {
+		foreach ( f2000cs_get_freemius_uk_i18n_sdk() as $key => $value ) {
+			$this->assertNotSame( '', trim( $value ), "Empty translation for {$key}" );
+
+			// Positional (%1$s) and plain (%s) tokens are both fine, but a lone
+			// percent sign followed by a letter would break sprintf().
+			$this->assertSame(
+				0,
+				preg_match( '/%(?![sd%]|\d+\$[sd])[a-zA-Z]/', $value ),
+				"Suspicious printf token in translation for {$key}"
+			);
+		}
+	}
 }
