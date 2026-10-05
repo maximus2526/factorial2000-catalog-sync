@@ -528,6 +528,22 @@ function f2000cs_marketplace_enqueue( $hook ) {
 		return;
 	}
 
+	// Nested tables live inside .form-table cells, whose th/td rules (200px headers, big padding) would otherwise leak into them.
+	wp_register_style( 'f2000cs-admin-marketplaces', false, array(), F2000CS_VERSION );
+	wp_enqueue_style( 'f2000cs-admin-marketplaces' );
+	wp_add_inline_style(
+		'f2000cs-admin-marketplaces',
+		'.f2000cs-marketplaces .form-table td table{margin:0}'
+		. '.f2000cs-marketplaces .form-table td table th,.f2000cs-marketplaces .form-table td table td{width:auto;padding:8px 10px;vertical-align:middle;line-height:1.4}'
+		. '.f2000cs-marketplaces .form-table td table input[type=text]{width:100%;max-width:none}'
+		. '.f2000cs-marketplaces .f2000cs-mp-pairs,.f2000cs-marketplaces .f2000cs-mp-cat-table{table-layout:auto}'
+		. '.f2000cs-marketplaces .f2000cs-mp-custom{margin-left:6px;vertical-align:middle}'
+		. '.f2000cs-marketplaces .f2000cs-mp-custom[hidden]{display:none}'
+		. '.f2000cs-marketplaces .form-table td select{max-width:100%}'
+		. '.f2000cs-marketplaces .form-table td details textarea{margin-top:6px}'
+		. '.f2000cs-marketplaces .card{padding:0.7em 2em 1em}'
+	);
+
 	wp_enqueue_script(
 		'f2000cs-admin-marketplaces',
 		F2000CS_URL . 'assets/js/admin-marketplaces.js',
