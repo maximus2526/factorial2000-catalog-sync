@@ -111,6 +111,14 @@ function f2000cs_fs() {
 
 		// Freemius forbids uninstall.php — cleanup runs after uninstall is reported.
 		$f2000cs_fs->add_action( 'after_uninstall', 'f2000cs_uninstall_cleanup' );
+
+		// Register the Ukrainian strings right away: the SDK stores sticky notices
+		// ("premium version activated", "license flagged as white-labeled") with
+		// their text at creation time, which can be before plugins_loaded runs
+		// (e.g. during activation), so a later registration would miss them.
+		if ( function_exists( 'f2000cs_apply_freemius_uk_i18n' ) ) {
+			f2000cs_apply_freemius_uk_i18n();
+		}
 	}
 
 	return $f2000cs_fs;
