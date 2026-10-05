@@ -471,7 +471,10 @@ class Fields_Updater extends XML_Parser {
 	 * @return bool Whether the stock status changed.
 	 */
 	private function update_status( int $product_id, SimpleXMLElement $offer, bool $is_variation ): bool {
-		$stock_status = f2000cs_parse_available( (string) $offer['available'] );
+		$stock_status = f2000cs_resolve_stock_status(
+			isset( $offer['available'] ) ? (string) $offer['available'] : null,
+			f2000cs_parse_offer_quantity( $offer )
+		);
 
 		if ( get_post_meta( $product_id, '_stock_status', true ) === $stock_status ) {
 			return false;
@@ -524,13 +527,7 @@ class Fields_Updater extends XML_Parser {
 	 * @return bool Whether the stock quantity changed.
 	 */
 	private function update_stock_quantity( int $product_id, SimpleXMLElement $offer ): bool {
-		$quantity = null;
-
-		if ( isset( $offer->quantity ) && '' !== trim( (string) $offer->quantity ) ) {
-			$quantity = max( 0, (int) $offer->quantity );
-		} elseif ( isset( $offer->stock_quantity ) && '' !== trim( (string) $offer->stock_quantity ) ) {
-			$quantity = max( 0, (int) $offer->stock_quantity );
-		}
+		$quantity = f2000cs_parse_offer_quantity( $offer );
 
 		if ( null === $quantity ) {
 			return false;

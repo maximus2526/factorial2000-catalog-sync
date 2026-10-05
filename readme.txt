@@ -5,7 +5,7 @@ Tags: woocommerce, import, xml, stock, prom
 Requires at least: 5.8
 Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 0.6.13
+Stable tag: 0.6.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,7 +21,7 @@ This plugin connects your WooCommerce store with supplier XML feeds for automati
 
 * Free forever plan + **14-day Pro trial with no credit card** (full Pro features during the trial)
 * Import simple and variable products from XML — names, descriptions, images (picture), attributes (param), categories, weight, barcode, dimensions
-* Automatic stock status and price sync via WP-Cron with configurable intervals (every 5/10/15/30 minutes, hourly, twice daily, daily)
+* Automatic stock status and price sync via WP-Cron with configurable intervals (every 5/10/15/30 minutes, hourly, 8/6/4 times daily, twice daily, daily)
 * Multiple supplier slots with individual SKU prefixes, price adjustments (margin/markup/fixed, Pro), skip-price and quantity-update options
 * Telegram notifications with sync reports
 * XML export: filter to keep only new products, or use the visual XML editor to build a custom feed by category/product (Pro) — **key differentiator** for marketplace sellers
@@ -104,6 +104,14 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 
 == Changelog ==
 
+= 0.6.14 =
+* Added: Pro option on the Import page — «Import stock quantity from XML». Reads `<quantity>`, `<stock_quantity>` or `<qty_stock>` (decimal values such as `1.000` are supported) and enables stock management for simple products and variations. Off by default.
+* Added: `<qty_stock>` (OneBox) is now recognized by the scheduled stock sync and the fields updater, not only by import.
+* Fixed: offers with an empty `available=""` attribute (OneBox) were treated as in stock — they are now out of stock. If the attribute is missing entirely, the quantity decides (above 0 = in stock), otherwise the offer stays in stock.
+* Fixed: variations that share the parent's first picture no longer download the same image again for every size (faster imports, no duplicate media files).
+* Changed: stock quantity is no longer imported unconditionally (0.6.11 behavior) — it follows the new import option.
+* Improved: documentation updated for qty_stock, available handling, quantity import, «Новинки» subcategories and the new update intervals; the XML editor treats `available="y"` as in stock.
+
 = 0.6.13 =
 * Added: option to add product categories from the XML feed as subcategories under "Новинки" (instead of creating separate category trees) — improves organization for feeds with many categories.
 * Improved: import checkpoint now includes the new `new_category_subcats` option for seamless resume of imports with category nesting enabled.
@@ -112,6 +120,7 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 * Fixed: the XML editor (Pro) failed to list any products after selecting a category — the session token generated on load could contain uppercase letters, which was silently lowercased on every later request, breaking the lookup on case-sensitive (Linux) hosting.
 
 = 0.6.11 =
+* Added: three new update intervals for Pro — 4, 6 and 8 times a day.
 * Fixed: stock quantity from XML (`<quantity>` or `<stock_quantity>`) is now properly extracted and imported during product import (both simple and variable products/variations).
 * Fixed: `_manage_stock` is now automatically enabled when quantity is available from XML during import (previously always set to 'no').
 * Improved: stock quantity handling is now consistent across import, field updates, and scheduled stock sync operations.

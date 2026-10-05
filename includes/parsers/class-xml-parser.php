@@ -17,15 +17,16 @@ defined( 'ABSPATH' ) || exit;
  */
 class XML_Parser {
 	protected string $xml_url;
-	protected array $categories        = array(); // Cache for categories
-	private array $term_cache          = array(); // Cache for terms
-	private array $sku_cache           = array(); // Cache for product SKUs
-	private bool $new_category         = false;
-	private bool $new_category_subcats = false;
-	private ?int $new_arrivals_term_id = null; // Cache for the "Новинки" term ID.
+	protected array $categories            = array(); // Cache for categories
+	private array $term_cache              = array(); // Cache for terms
+	private array $sku_cache               = array(); // Cache for product SKUs
+	private bool $new_category             = false;
+	private bool $new_category_subcats     = false;
+	private bool $import_stock_qty         = false; // Import <quantity>/<qty_stock> and enable stock management (Pro).
+	private ?int $new_arrivals_term_id     = null; // Cache for the "Новинки" term ID.
 	private array $new_category_term_cache = array(); // Cache for terms nested under "Новинки".
-	protected string $sku_prefix = '';
-	protected array $currencies  = array(); // Cache for currency rates (id => rate)
+	protected string $sku_prefix           = '';
+	protected array $currencies            = array(); // Cache for currency rates (id => rate)
 
 	/**
 	 * XML_Parser constructor.
@@ -36,12 +37,14 @@ class XML_Parser {
 	 * @param bool   $new_category_subcats Whether the feed's own categories should be nested
 	 *                                     under "Новинки" as subcategories (only relevant when
 	 *                                     $new_category is true).
+	 * @param bool   $import_stock_qty Whether to import the stock quantity from the XML.
 	 */
-	public function __construct( string $file_path, bool $new_category, string $sku_prefix = '', bool $new_category_subcats = false ) {
+	public function __construct( string $file_path, bool $new_category, string $sku_prefix = '', bool $new_category_subcats = false, bool $import_stock_qty = false ) {
 		$this->xml_url              = $file_path;
 		$this->new_category         = $new_category;
 		$this->sku_prefix           = $sku_prefix;
 		$this->new_category_subcats = $new_category_subcats;
+		$this->import_stock_qty     = $import_stock_qty;
 	}
 
 	/**
@@ -466,9 +469,8 @@ class XML_Parser {
 				}
 			}
 		}
-		$category  = ! empty( $categories ) ? implode( ',', $categories ) : '';
-		$available = f2000cs_parse_available( (string) $offer['available'] );
-		$vendor    = isset( $offer->vendor ) ? (string) $offer->vendor : '';
+		$category = ! empty( $categories ) ? implode( ',', $categories ) : '';
+		$vendor   = isset( $offer->vendor ) ? (string) $offer->vendor : '';
 
 		// Get all product images
 		$images = array();
@@ -505,13 +507,11 @@ class XML_Parser {
 		$barcode    = isset( $offer->barcode ) ? (string) $offer->barcode : '';
 		$dimensions = isset( $offer->dimensions ) ? (string) $offer->dimensions : '';
 
-		// Stock quantity from XML
-		$quantity = null;
-		if ( isset( $offer->quantity ) && '' !== trim( (string) $offer->quantity ) ) {
-			$quantity = max( 0, (int) $offer->quantity );
-		} elseif ( isset( $offer->stock_quantity ) && '' !== trim( (string) $offer->stock_quantity ) ) {
-			$quantity = max( 0, (int) $offer->stock_quantity );
-		}
+		// Stock quantity from XML (<quantity>, <stock_quantity> or <qty_stock>).
+		$quantity = f2000cs_parse_offer_quantity( $offer );
+
+		// A present available="" attribute means out of stock; absent falls back to quantity.
+		$available = f2000cs_resolve_stock_status( isset( $offer['available'] ) ? (string) $offer['available'] : null, $quantity );
 
 		return array(
 			'sku'        => $sku,
@@ -601,8 +601,8 @@ class XML_Parser {
 
 		f2000cs_update_stock_status( $post_id, $available );
 
-		// Set manage_stock and quantity based on XML data
-		if ( null !== $quantity ) {
+		// Set manage_stock and quantity based on XML data (opt-in).
+		if ( $this->import_stock_qty && null !== $quantity ) {
 			update_post_meta( $post_id, '_manage_stock', 'yes' );
 			update_post_meta( $post_id, '_stock', $quantity );
 		} else {
@@ -1069,6 +1069,11 @@ class XML_Parser {
 	private function create_product_variations( int $parent_id, array $variations_data, array $variation_attributes ): int {
 		$created = 0;
 
+		// Variations of one group usually share the same pictures; reuse the parent's
+		// featured image instead of downloading the same file once per variation.
+		$parent_thumb_id = (int) get_post_thumbnail_id( $parent_id );
+		$parent_image    = isset( $variations_data[0]['images'][0] ) ? (string) $variations_data[0]['images'][0] : '';
+
 		foreach ( $variations_data as $variation_data ) {
 			$original_sku = isset( $variation_data['sku'] ) ? (string) $variation_data['sku'] : '';
 			$title        = isset( $variation_data['title'] ) ? wp_strip_all_tags( (string) $variation_data['title'] ) : '';
@@ -1123,8 +1128,8 @@ class XML_Parser {
 
 			f2000cs_update_stock_status( $variation_id, $variation_data['available'] );
 
-			// Set manage_stock and quantity based on XML data
-			if ( null !== $quantity ) {
+			// Set manage_stock and quantity based on XML data (opt-in).
+			if ( $this->import_stock_qty && null !== $quantity ) {
 				update_post_meta( $variation_id, '_manage_stock', 'yes' );
 				update_post_meta( $variation_id, '_stock', $quantity );
 			} else {
@@ -1161,7 +1166,11 @@ class XML_Parser {
 
 			// Handle variation images if they differ
 			if ( ! empty( $variation_data['images'] ) ) {
-				$this->set_variation_image( $variation_id, $variation_data['images'][0] );
+				if ( $parent_thumb_id && $variation_data['images'][0] === $parent_image ) {
+					update_post_meta( $variation_id, '_thumbnail_id', $parent_thumb_id );
+				} else {
+					$this->set_variation_image( $variation_id, $variation_data['images'][0] );
+				}
 			}
 
 			++$created;

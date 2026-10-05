@@ -427,6 +427,31 @@ final class F2000CS_Unit_XmlParserTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * Stock quantity import is opt-in and off by default.
+	 *
+	 * @return void
+	 */
+	public function test_import_stock_qty_flag_defaults_off() {
+		$this->assertFalse( F2000CS_Test_Reflection::get( new XML_Parser( 'x.xml', false ), 'import_stock_qty' ) );
+		$this->assertTrue( F2000CS_Test_Reflection::get( new XML_Parser( 'x.xml', false, '', false, true ), 'import_stock_qty' ) );
+	}
+
+	/**
+	 * OneBox feeds: qty_stock is imported and available="" means out of stock.
+	 *
+	 * @return void
+	 */
+	public function test_extract_offer_data_qty_stock_and_empty_available() {
+		$data = $this->extract_offer( '<offer id="X" available=""><price>10</price><qty_stock>0.000</qty_stock></offer>' );
+		$this->assertSame( 0, $data['quantity'] );
+		$this->assertSame( 'outofstock', $data['available'] );
+
+		$data = $this->extract_offer( '<offer id="Y" available="true"><price>10</price><qty_stock>3.000</qty_stock></offer>' );
+		$this->assertSame( 3, $data['quantity'] );
+		$this->assertSame( 'instock', $data['available'] );
+	}
+
+	/**
 	 * Multi-value params (joined with "; ") split into separate taxonomy terms.
 	 *
 	 * @return void

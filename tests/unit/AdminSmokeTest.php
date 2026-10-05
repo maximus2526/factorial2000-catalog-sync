@@ -80,6 +80,22 @@ final class F2000CS_Unit_AdminSmokeTest extends F2000CS_Unit_TestCase {
 
 	// ---------------------------------------------------------------- import
 
+	/**
+	 * The stock quantity import checkbox is enabled for Pro and locked for Free.
+	 *
+	 * @return void
+	 */
+	public function test_import_page_stock_qty_checkbox_pro_gating(): void {
+		$this->enable_pro();
+		$html = $this->capture( 'f2000cs_import_page' );
+		$this->assertMatchesRegularExpression( '/<input[^>]*name="import_stock_qty"(?![^>]*disabled)[^>]*>/', $html );
+
+		unset( F2000CS_Test_State::$hooks['f2000cs_is_pro'] );
+		add_filter( 'f2000cs_is_pro', '__return_false' );
+		$html = $this->capture( 'f2000cs_import_page' );
+		$this->assertMatchesRegularExpression( '/<input[^>]*name="import_stock_qty"[^>]*disabled/', $html );
+	}
+
 	public function test_import_page_renders(): void {
 		$html = $this->capture( 'f2000cs_import_page' );
 

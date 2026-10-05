@@ -131,6 +131,19 @@ function f2000cs_import_page() {
 									</div>
 								</div>
 
+								<div class="f2000cs-import-field">
+									<label for="import_stock_qty">
+										<input type="checkbox" name="import_stock_qty" id="import_stock_qty" value="1" <?php disabled( ! $is_pro ); ?>>
+										<?php esc_html_e( 'Імпортувати кількість товару (Stock quantity) з XML', 'factorial2000-catalog-sync' ); ?>
+										<?php if ( ! $is_pro ) : ?>
+											<span class="f2000cs-pro-badge"><?php esc_html_e( 'Pro', 'factorial2000-catalog-sync' ); ?></span>
+										<?php endif; ?>
+									</label>
+									<p class="description">
+										<?php esc_html_e( 'Береться з тегів quantity, stock_quantity або qty_stock. Для товару вмикається керування запасами з цією кількістю. Статус «в наявності» визначається незалежно від цієї опції.', 'factorial2000-catalog-sync' ); ?>
+									</p>
+								</div>
+
 								<div class="f2000cs-import-mode">
 									<span class="f2000cs-import-mode__title"><?php esc_html_e( 'Режим імпорту', 'factorial2000-catalog-sync' ); ?></span>
 									<div class="f2000cs-import-mode__options">
@@ -599,7 +612,7 @@ function f2000cs_cleanup_import_xml_session( $session ) {
  *
  * @param string $session  Import session key.
  * @param int    $offset   Cumulative offset of the last successfully imported product.
- * @param array  $context  Import settings (sku_prefix, new_category, new_category_subcats, import_variations, selected_attributes).
+ * @param array  $context  Import settings (sku_prefix, new_category, new_category_subcats, import_variations, import_stock_qty, selected_attributes).
  * @return void
  */
 function f2000cs_import_save_checkpoint( string $session, int $offset, array $context ): void {
@@ -617,6 +630,7 @@ function f2000cs_import_save_checkpoint( string $session, int $offset, array $co
 			'new_category'         => (bool) ( $context['new_category'] ?? false ),
 			'new_category_subcats' => (bool) ( $context['new_category_subcats'] ?? false ),
 			'import_variations'    => (bool) ( $context['import_variations'] ?? false ),
+			'import_stock_qty'     => (bool) ( $context['import_stock_qty'] ?? false ),
 			'selected_attributes'  => (array) ( $context['selected_attributes'] ?? array() ),
 		),
 		HOUR_IN_SECONDS
@@ -744,7 +758,10 @@ function f2000cs_handle_import_action() {
 	$new_category         = isset( $_POST['new_category'] ) && '1' === $_POST['new_category'];
 	$new_category_subcats = $new_category && isset( $_POST['new_category_subcats'] ) && '1' === $_POST['new_category_subcats'];
 	$import_variations    = isset( $_POST['import_variations'] ) && '1' === $_POST['import_variations'];
-	$sku_prefix           = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( wp_unslash( $_POST['sku_prefix'] ) ) : '';
+	// Stock quantity import is a Pro option.
+	$import_stock_qty = isset( $_POST['import_stock_qty'] ) && '1' === $_POST['import_stock_qty']
+		&& ( ! function_exists( 'f2000cs_is_pro' ) || f2000cs_is_pro() );
+	$sku_prefix       = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( wp_unslash( $_POST['sku_prefix'] ) ) : '';
 
 	$selected_attributes = array();
 	if ( isset( $_POST['selected_attributes'] ) ) {
@@ -758,7 +775,7 @@ function f2000cs_handle_import_action() {
 	set_transient( 'f2000cs_import_variations_temp', $import_variations ? '1' : '0', HOUR_IN_SECONDS );
 	set_transient( 'f2000cs_selected_attributes_temp', $selected_attributes, HOUR_IN_SECONDS );
 
-	$xml_parser = new \F2000CS\XML_Parser( $file_path, $new_category, $sku_prefix, $new_category_subcats );
+	$xml_parser = new \F2000CS\XML_Parser( $file_path, $new_category, $sku_prefix, $new_category_subcats, $import_stock_qty );
 	try {
 		$result = $xml_parser->import_products( $offset, 1 );
 
@@ -778,14 +795,15 @@ function f2000cs_handle_import_action() {
 				$resolved['session'],
 				$cumulative,
 				array(
-					'total'               => $result['total'],
-					'source'              => 'url' === ( isset( $_POST['import_source'] ) ? sanitize_text_field( wp_unslash( $_POST['import_source'] ) ) : '' ) // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only, nonce verified above.
+					'total'                => $result['total'],
+					'source'               => 'url' === ( isset( $_POST['import_source'] ) ? sanitize_text_field( wp_unslash( $_POST['import_source'] ) ) : '' ) // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only, nonce verified above.
 						? ( isset( $_POST['import_xml_url'] ) ? esc_url_raw( wp_unslash( $_POST['import_xml_url'] ) ) : '' ) // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only.
 						: '',
 					'sku_prefix'           => $sku_prefix,
 					'new_category'         => $new_category,
 					'new_category_subcats' => $new_category_subcats,
 					'import_variations'    => $import_variations,
+					'import_stock_qty'     => $import_stock_qty,
 					'selected_attributes'  => $selected_attributes,
 				)
 			);

@@ -164,7 +164,7 @@ function f2000cs_docs_page() {
 						<p><strong><?php esc_html_e( 'Атрибути тега offer', 'factorial2000-catalog-sync' ); ?></strong></p>
 						<ul>
 							<li><code>id</code> — <?php esc_html_e( 'артикул; під час імпорту/оновлення стає SKU з префіксом постачальника.', 'factorial2000-catalog-sync' ); ?></li>
-							<li><code>available</code> — <?php esc_html_e( 'наявність. true / 1 / yes / y → instock; false / 0 / no / n → outofstock; якщо атрибут відсутній — instock.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><code>available</code> — <?php esc_html_e( 'наявність. true / 1 / yes / y → instock; false / 0 / no / n → outofstock. Порожній атрибут (available="", так пише OneBox) — outofstock. Якщо атрибута немає взагалі — береться кількість (більше 0 → instock, 0 → outofstock), а без кількості — instock.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><code>group_id</code> — <?php esc_html_e( 'ідентифікатор групи для варіативного товару. У режимі «Прості» offers без group_id (і одиночні з group_id) стають simple; у режимі «Варіативні» без group_id або з однією offer у групі — пропускаються.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<p><strong><?php esc_html_e( 'Читається при імпорті (створення товарів)', 'factorial2000-catalog-sync' ); ?></strong></p>
@@ -187,7 +187,7 @@ function f2000cs_docs_page() {
 							<li><code>id</code>, <code>available</code>, <code>group_id</code></li>
 							<li><code>price</code>, <code>oldprice</code>, <code>currencyId</code> — <?php esc_html_e( 'якщо не увімкнено «не змінювати ціни».', 'factorial2000-catalog-sync' ); ?></li>
 							<li><code>vendorCode</code> — <?php esc_html_e( 'у метаполе f2000cs-updater-vendor, лише якщо воно ще порожнє.', 'factorial2000-catalog-sync' ); ?></li>
-							<li><code>quantity</code> / <code>stock_quantity</code> — <?php esc_html_e( 'кількість на складі (Pro, опція в картці постачальника). Якщо є quantity — він має пріоритет.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><code>quantity</code> / <code>stock_quantity</code> / <code>qty_stock</code> — <?php esc_html_e( 'кількість на складі (Pro, опція в картці постачальника). Пріоритет: quantity, потім stock_quantity, потім qty_stock; значення на кшталт 1.000 читається як 1.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<p><strong><?php esc_html_e( 'Додатково в «Оновленні окремих полів» (Pro)', 'factorial2000-catalog-sync' ); ?></strong></p>
 						<ul>
@@ -198,7 +198,7 @@ function f2000cs_docs_page() {
 						</ul>
 						<div class="f2000cs-docs-note">
 							<strong><?php esc_html_e( 'Важливо:', 'factorial2000-catalog-sync' ); ?></strong>
-							<?php esc_html_e( 'vendorCode при першому імпорті (створенні товару) не записується — лише після stock update або оновлення полів. quantity при імпорті також не виставляється (_manage_stock = no).', 'factorial2000-catalog-sync' ); ?>
+							<?php esc_html_e( 'vendorCode при першому імпорті (створенні товару) не записується — лише після stock update або оновлення полів. Кількість при імпорті виставляється лише з увімкненою Pro-опцією «Імпортувати кількість товару (Stock quantity) з XML»; без неї _manage_stock = no.', 'factorial2000-catalog-sync' ); ?>
 						</div>
 					</div>
 
@@ -280,7 +280,7 @@ function f2000cs_docs_page() {
 						<h3><?php esc_html_e( 'Ціна та кількість', 'factorial2000-catalog-sync' ); ?></h3>
 						<ul>
 							<li><strong><?php esc_html_e( 'Не змінювати ціни…', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'під час stock update оновлюється лише наявність (і кількість, якщо увімкнено), ціни з XML не перезаписуються.', 'factorial2000-catalog-sync' ); ?></li>
-							<li><strong><?php esc_html_e( 'Оновлювати кількість товарів', 'factorial2000-catalog-sync' ); ?></strong> <span class="f2000cs-pro-badge">Pro</span> — <?php esc_html_e( 'якщо в XML є quantity / stock_quantity — записує залишок у WooCommerce. Без опції оновлюється лише «є / немає в наявності».', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Оновлювати кількість товарів', 'factorial2000-catalog-sync' ); ?></strong> <span class="f2000cs-pro-badge">Pro</span> — <?php esc_html_e( 'якщо в XML є quantity / stock_quantity / qty_stock — записує залишок у WooCommerce. Без опції оновлюється лише «є / немає в наявності».', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 					</div>
 
@@ -324,7 +324,7 @@ function f2000cs_docs_page() {
 					<div class="f2000cs-docs-card" id="update-interval">
 						<h3><?php esc_html_e( 'Інтервал автооновлення', 'factorial2000-catalog-sync' ); ?></h3>
 						<ul>
-							<li><?php esc_html_e( 'Pro: що 5 / 10 / 15 / 30 хвилин, щогодини, двічі на день, щодня.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Pro: що 5 / 10 / 15 / 30 хвилин, щогодини, 8 / 6 / 4 рази на день, двічі на день, щодня.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'Free: лише «Щодня»; частіші інтервали недоступні.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<div class="f2000cs-docs-note">
@@ -337,7 +337,7 @@ function f2000cs_docs_page() {
 						<ul>
 							<li><?php esc_html_e( 'Наявність (instock / outofstock) за атрибутом available у offer.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'Ціни (якщо не увімкнено «не змінювати ціни»), з урахуванням коригування Pro.', 'factorial2000-catalog-sync' ); ?></li>
-							<li><?php esc_html_e( 'Кількість на складі — Pro-опція; теги quantity або stock_quantity.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Кількість на складі — Pro-опція; теги quantity, stock_quantity або qty_stock.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'vendorCode — у метаполе менеджера, якщо воно ще порожнє.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<p><?php esc_html_e( 'Описи, фото, атрибути та категорії cron не змінює — для цього є «Оновлення окремих полів» на сторінці імпорту (Pro).', 'factorial2000-catalog-sync' ); ?></p>
@@ -377,7 +377,7 @@ function f2000cs_docs_page() {
 							<li><strong><?php esc_html_e( 'URL', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'пряме посилання на XML/YML; підтримує продовження після обриву.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Файл', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'завантаження .xml з комп’ютера; зручно для тесту або разового імпорту.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
-						<p><?php esc_html_e( 'Обов’язково вкажіть SKU-префікс (той самий, що в картці постачальника). Опційно — додавати нові товари в категорію «Новинки».', 'factorial2000-catalog-sync' ); ?></p>
+						<p><?php esc_html_e( 'Обов’язково вкажіть SKU-префікс (той самий, що в картці постачальника). Опційно — додавати нові товари в категорію «Новинки» (за потреби категорії з вигрузки вкладаються під «Новинки» як підкатегорії). Pro: опція «Імпортувати кількість товару (Stock quantity) з XML» записує залишок і вмикає керування запасами.', 'factorial2000-catalog-sync' ); ?></p>
 						<div class="f2000cs-docs-note">
 							<strong><?php esc_html_e( 'Формат:', 'factorial2000-catalog-sync' ); ?></strong>
 							<?php esc_html_e( 'YML / Prom.ua. Повний перелік полів і приклад — у розділі «Схема XML».', 'factorial2000-catalog-sync' ); ?>
@@ -396,7 +396,7 @@ function f2000cs_docs_page() {
 							<li><?php esc_html_e( 'weight, barcode, dimensions → відповідні метаполя;', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'наявність за available.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
-						<p><?php esc_html_e( 'Товар із уже існуючим SKU (з префіксом) повторно не створюється. vendorCode і quantity при створенні не пишуться — див. «Схема XML».', 'factorial2000-catalog-sync' ); ?></p>
+						<p><?php esc_html_e( 'Товар із уже існуючим SKU (з префіксом) повторно не створюється. vendorCode при створенні не пишеться, а кількість — лише з опцією «Імпортувати кількість товару» (Pro) — див. «Схема XML». Повторний імпорт існуючі товари не оновлює: для актуальних залишків використовуйте «Оновлення XML» за URL. Завантажений файл в автооновлення не потрапляє.', 'factorial2000-catalog-sync' ); ?></p>
 					</div>
 
 					<div class="f2000cs-docs-card" id="import-variable">

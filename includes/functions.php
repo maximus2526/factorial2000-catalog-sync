@@ -127,6 +127,59 @@ function f2000cs_parse_available( $available ) {
 }
 
 /**
+ * Read the stock quantity of a YML offer.
+ *
+ * Supported tags (first non-empty wins): <quantity>, <stock_quantity>,
+ * <qty_stock> (OneBox). Decimal notations such as "1.000" are read as 1.
+ *
+ * @param SimpleXMLElement $offer Offer element.
+ * @return int|null Quantity, or null when the offer carries none.
+ */
+function f2000cs_parse_offer_quantity( $offer ) {
+	foreach ( array( 'quantity', 'stock_quantity', 'qty_stock' ) as $tag ) {
+		if ( ! isset( $offer->{$tag} ) ) {
+			continue;
+		}
+
+		$raw = str_replace( ',', '.', trim( (string) $offer->{$tag} ) );
+
+		if ( '' !== $raw && is_numeric( $raw ) ) {
+			return max( 0, (int) floor( (float) $raw ) );
+		}
+	}
+
+	return null;
+}
+
+/**
+ * Resolve the WooCommerce stock status of an offer.
+ *
+ * An <offer available=""> attribute that is present is authoritative, even when
+ * empty (OneBox writes available="" for unavailable items). Only when the
+ * attribute is absent entirely do we fall back to the quantity (if any), and
+ * finally to "instock" (common YML practice).
+ *
+ * @param string|null $available Raw attribute value, null when the attribute is absent.
+ * @param int|null    $quantity  Parsed quantity, null when unknown.
+ * @return string 'instock' or 'outofstock'.
+ */
+function f2000cs_resolve_stock_status( $available, $quantity = null ) {
+	if ( null === $available ) {
+		if ( null !== $quantity ) {
+			return $quantity > 0 ? 'instock' : 'outofstock';
+		}
+
+		return 'instock';
+	}
+
+	if ( '' === trim( (string) $available ) ) {
+		return 'outofstock';
+	}
+
+	return f2000cs_parse_available( $available );
+}
+
+/**
  * Safely parse a price string from XML into float.
  *
  * Handles:

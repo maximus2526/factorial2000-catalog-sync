@@ -351,9 +351,9 @@ class XML_Stock_Updater {
 
 			while ( $reader->read() ) {
 				if ( XMLReader::ELEMENT === $reader->nodeType && 'offer' === $reader->localName ) {
-					$sku       = (string) $reader->getAttribute( 'id' );
-					$available = (string) $reader->getAttribute( 'available' );
-					$group_id  = (string) $reader->getAttribute( 'group_id' );
+					$sku            = (string) $reader->getAttribute( 'id' );
+					$available_attr = $reader->getAttribute( 'available' );
+					$group_id       = (string) $reader->getAttribute( 'group_id' );
 
 					// Get the offer node as SimpleXML to extract pricing
 					$offer_xml = simplexml_load_string( $reader->readOuterXML(), null, LIBXML_NONET );
@@ -384,16 +384,11 @@ class XML_Stock_Updater {
 
 					$vendor_code = isset( $offer_xml->vendorCode ) ? (string) $offer_xml->vendorCode : '';
 
-					$quantity = null;
-					if ( $this->update_stock_qty ) {
-						if ( isset( $offer_xml->quantity ) && '' !== trim( (string) $offer_xml->quantity ) ) {
-							$quantity = max( 0, (int) $offer_xml->quantity );
-						} elseif ( isset( $offer_xml->stock_quantity ) && '' !== trim( (string) $offer_xml->stock_quantity ) ) {
-							$quantity = max( 0, (int) $offer_xml->stock_quantity );
-						}
-					}
+					$feed_quantity = f2000cs_parse_offer_quantity( $offer_xml );
+					$quantity      = $this->update_stock_qty ? $feed_quantity : null;
 
-					$stock_status = f2000cs_parse_available( $available );
+					// getAttribute() returns null when the attribute is absent.
+					$stock_status = f2000cs_resolve_stock_status( $available_attr, $feed_quantity );
 
 					if ( ! empty( $sku ) ) {
 						$updates[ $this->sku_prefix . $sku ] = array(

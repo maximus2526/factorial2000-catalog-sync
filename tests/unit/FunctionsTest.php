@@ -364,6 +364,42 @@ final class F2000CS_Unit_FunctionsTest extends F2000CS_Unit_TestCase {
 		$this->assertSame( 'instock', f2000cs_parse_available( '   ' ) );
 	}
 
+	/**
+	 * A present-but-empty available="" (OneBox) means out of stock; an absent
+	 * attribute falls back to quantity, then to instock.
+	 *
+	 * @return void
+	 */
+	public function test_resolve_stock_status() {
+		$this->assertSame( 'outofstock', f2000cs_resolve_stock_status( '', 5 ), 'present empty attribute is authoritative' );
+		$this->assertSame( 'outofstock', f2000cs_resolve_stock_status( '   ' ) );
+		$this->assertSame( 'instock', f2000cs_resolve_stock_status( 'true', 0 ) );
+		$this->assertSame( 'outofstock', f2000cs_resolve_stock_status( 'false', 9 ) );
+		$this->assertSame( 'instock', f2000cs_resolve_stock_status( null, 3 ) );
+		$this->assertSame( 'outofstock', f2000cs_resolve_stock_status( null, 0 ) );
+		$this->assertSame( 'instock', f2000cs_resolve_stock_status( null, null ) );
+	}
+
+	/**
+	 * Quantity is read from quantity / stock_quantity / qty_stock, incl. "1.000".
+	 *
+	 * @return void
+	 */
+	public function test_parse_offer_quantity() {
+		$q = static function ( $xml ) {
+			return f2000cs_parse_offer_quantity( simplexml_load_string( $xml ) );
+		};
+
+		$this->assertSame( 12, $q( '<offer><quantity>12</quantity></offer>' ) );
+		$this->assertSame( 7, $q( '<offer><stock_quantity>7</stock_quantity></offer>' ) );
+		$this->assertSame( 1, $q( '<offer><qty_stock>1.000</qty_stock></offer>' ) );
+		$this->assertSame( 40, $q( '<offer><qty_stock>40.000</qty_stock></offer>' ) );
+		$this->assertSame( 0, $q( '<offer><qty_stock>0.000</qty_stock></offer>' ) );
+		$this->assertSame( 0, $q( '<offer><qty_stock>-3</qty_stock></offer>' ) );
+		$this->assertNull( $q( '<offer><qty_stock></qty_stock></offer>' ) );
+		$this->assertNull( $q( '<offer><price>1</price></offer>' ) );
+	}
+
 	// ---- f2000cs_parse_price -----------------------------------------------
 
 	/**

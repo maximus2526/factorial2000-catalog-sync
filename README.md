@@ -83,7 +83,8 @@ yml_catalog → shop → categories + offers → offer
 | Поле | Призначення |
 |---|---|
 | `id` | Артикул → SKU у WooCommerce (+ ваш SKU Prefix) |
-| `available` | Наявність (`true` / `false`) |
+| `available` | Наявність (`true` / `false`; порожній атрибут = немає в наявності) |
+| `quantity` / `stock_quantity` / `qty_stock` | Кількість на складі (Pro) |
 | `group_id` | Група варіацій; без нього — простий товар |
 | `name` / `name_ua` | Назва (пріоритет `name_ua`) |
 | `description` / `description_ua` | Опис |

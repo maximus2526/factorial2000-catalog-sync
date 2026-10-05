@@ -296,7 +296,7 @@ class XML_Editor {
 	private function offer_is_available( SimpleXMLElement $offer ): bool {
 		$available = strtolower( (string) ( $this->attribute( $offer, 'available' ) ?? '' ) );
 
-		return in_array( $available, array( 'true', '1', 'yes' ), true );
+		return in_array( $available, array( 'true', '1', 'yes', 'y' ), true );
 	}
 
 	/**
