@@ -23,6 +23,25 @@ if ( ! defined( 'F2000CS_FS_PUBLIC_KEY' ) ) {
 define( 'F2000CS_FREE_MAX_SUPPLIERS', 1 );
 
 /**
+ * Whether the premium code is present in this build.
+ *
+ * Premium-only files (see the @fs_premium_only header of the main plugin file)
+ * are removed by Freemius from the free build that is published on wordpress.org.
+ * Their presence tells the Pro build apart from the free one.
+ *
+ * @return bool
+ */
+function f2000cs_has_premium_code() {
+	static $has = null;
+
+	if ( null === $has ) {
+		$has = is_file( __DIR__ . '/class-xml-editor.php' );
+	}
+
+	return $has;
+}
+
+/**
  * Whether Freemius credentials look configured (not placeholders).
  *
  * @return bool
@@ -68,10 +87,11 @@ function f2000cs_fs() {
 				'premium_slug'        => 'factorial2000-catalog-sync-for-promua-premium',
 				'type'                => 'plugin',
 				'public_key'          => F2000CS_FS_PUBLIC_KEY,
-				// The wp.org build is the FREE version. Marking it as premium
-				// forces the connect screen to demand a license key instead of
-				// offering opt-in + free trial (manual installs were blocked).
-				'is_premium'          => false,
+				// Premium build = the premium-only files are present. Freemius
+				// strips them from the free (wp.org) build, so this resolves to
+				// false there and true in the Pro build — no reliance on the
+				// processor rewriting this flag.
+				'is_premium'          => f2000cs_has_premium_code(),
 				'premium_suffix'      => 'Pro',
 				'has_premium_version' => true,
 				'has_addons'          => false,
@@ -234,6 +254,12 @@ function f2000cs_is_pro() {
 		$is_pro = true;
 	}
 
+	// Pro needs the Pro build: a license on the free (wp.org) build unlocks
+	// nothing because the premium code is not shipped there.
+	if ( ! f2000cs_has_premium_code() ) {
+		$is_pro = false;
+	}
+
 	/**
 	 * Filter Pro unlock status (trial included).
 	 *
@@ -241,6 +267,44 @@ function f2000cs_is_pro() {
 	 */
 	return (bool) apply_filters( 'f2000cs_is_pro', $is_pro );
 }
+
+/**
+ * Notice for sites with an active license/trial that still run the free build.
+ *
+ * The Pro modules (image conversion, fields updater, XML editor) ship only in
+ * the Pro build, so a license alone does not enable them on the wp.org version.
+ *
+ * @return void
+ */
+function f2000cs_premium_build_missing_notice() {
+	if ( f2000cs_has_premium_code() || ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
+	if ( ! f2000cs_is_paying() && ! f2000cs_is_fs_trial() ) {
+		return;
+	}
+
+	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+	if ( ! $screen || false === strpos( (string) $screen->id, 'f2000cs-' ) ) {
+		return;
+	}
+
+	$fs  = f2000cs_fs();
+	$url = ( $fs && method_exists( $fs, 'get_account_url' ) ) ? $fs->get_account_url() : '';
+	?>
+	<div class="notice notice-warning">
+		<p>
+			<strong>Factorial2000 Catalog Sync:</strong>
+			<?php esc_html_e( 'Ліцензія Pro активна, але встановлена безкоштовна версія плагіна — Pro-функції (конвертація зображень, оновлення полів, редактор вигрузок) є лише в Pro-збірці. Завантажте та встановіть Pro-версію зі сторінки акаунта Freemius.', 'factorial2000-catalog-sync' ); ?>
+			<?php if ( '' !== $url ) : ?>
+				<a href="<?php echo esc_url( $url ); ?>"><?php esc_html_e( 'Відкрити акаунт', 'factorial2000-catalog-sync' ); ?></a>
+			<?php endif; ?>
+		</p>
+	</div>
+	<?php
+}
+add_action( 'admin_notices', 'f2000cs_premium_build_missing_notice' );
 
 /**
  * Max new supplier slots for messaging / Free plan.

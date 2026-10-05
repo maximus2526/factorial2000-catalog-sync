@@ -39,6 +39,7 @@ final class F2000CS_Unit_AdminSmokeTest extends F2000CS_Unit_TestCase {
 		require_once $this->admin_dir . '/page-import.php';
 		require_once $this->admin_dir . '/page-export.php';
 		require_once $this->admin_dir . '/xml-editor.php';
+		require_once $this->admin_dir . '/images-settings.php';
 		require_once $this->admin_dir . '/admin-assets.php';
 
 		$GLOBALS['wp_settings_sections'] = array();
@@ -160,6 +161,7 @@ final class F2000CS_Unit_AdminSmokeTest extends F2000CS_Unit_TestCase {
 
 	public function test_settings_includes_image_options(): void {
 		f2000cs_settings_init();
+		f2000cs_register_image_settings();
 
 		$registered = F2000CS_Test_State::$registered_settings['f2000cs_import_images'] ?? array();
 

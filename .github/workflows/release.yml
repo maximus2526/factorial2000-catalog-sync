@@ -84,6 +84,9 @@ jobs:
       - name: PHPUnit
         run: php vendor/bin/phpunit --configuration phpunit.xml.dist
 
+      - name: Free/Pro build simulation (premium code must not leak into the free build)
+        run: php bin/simulate-free-build.php
+
       - name: Build release
         run: npx gulp release
 

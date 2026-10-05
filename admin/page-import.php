@@ -871,6 +871,10 @@ function f2000cs_handle_update_fields_action() {
 		wp_send_json_error( array( 'message' => __( 'Оновлення окремих полів доступне лише у Pro версії.', 'factorial2000-catalog-sync' ) ) );
 	}
 
+	if ( ! class_exists( '\F2000CS\Fields_Updater' ) ) {
+		wp_send_json_error( array( 'message' => __( 'Оновлення окремих полів входить до Pro-збірки плагіна. Встановіть Pro-версію.', 'factorial2000-catalog-sync' ) ) );
+	}
+
 	$resolved = f2000cs_resolve_import_xml_source();
 	if ( is_wp_error( $resolved ) ) {
 		wp_send_json_error( array( 'message' => $resolved->get_error_message() ) );

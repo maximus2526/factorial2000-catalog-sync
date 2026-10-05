@@ -100,6 +100,88 @@ final class F2000CS_Unit_PluginMetaTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * Paths from the @fs_premium_only header tag.
+	 *
+	 * @return array<string>
+	 */
+	private function premium_only_paths() {
+		preg_match( '/@fs_premium_only\s+([^\r\n]+)/', $this->main_file, $match );
+
+		return array_values( array_filter( array_map( 'trim', explode( ',', $match[1] ?? '' ) ) ) );
+	}
+
+	/**
+	 * Every premium-only path must exist, and the build detector's marker file
+	 * (class-xml-editor.php) must be among them — otherwise the free build
+	 * would still look like the Pro build.
+	 *
+	 * @return void
+	 */
+	public function test_premium_only_paths_exist_and_include_marker() {
+		$paths = $this->premium_only_paths();
+
+		$this->assertNotEmpty( $paths, 'Main file header must declare @fs_premium_only paths' );
+		$this->assertContains( '/includes/class-xml-editor.php', $paths );
+
+		foreach ( $paths as $path ) {
+			$this->assertFileExists( $this->root . $path, "Premium-only path missing: {$path}" );
+		}
+	}
+
+	/**
+	 * Premium files may only be loaded inside the f2000cs_has_premium_code()
+	 * guard of the main file, otherwise the free build (which lacks them) fatals.
+	 *
+	 * @return void
+	 */
+	public function test_premium_files_are_required_only_behind_the_guard() {
+		$main = preg_replace( "/\r\n/", "\n", $this->main_file );
+
+		$guard_start = strpos( $main, 'if ( f2000cs_has_premium_code() ) {' );
+		$this->assertNotFalse( $guard_start, 'Premium guard block missing in main file' );
+		$guard_end = strpos( $main, "\n\t}\n", $guard_start );
+
+		foreach ( $this->premium_only_paths() as $path ) {
+			if ( '.php' !== substr( $path, -4 ) || 0 === strpos( $path, '/assets/' ) ) {
+				continue;
+			}
+
+			$needle = "F2000CS_PATH . '" . ltrim( $path, '/' ) . "'";
+
+			$offset = 0;
+			while ( false !== ( $pos = strpos( $main, $needle, $offset ) ) ) {
+				$this->assertTrue(
+					$pos > $guard_start && $pos < $guard_end,
+					"{$path} is required outside the premium guard"
+				);
+				$offset = $pos + 1;
+			}
+
+			$this->assertGreaterThan( 0, substr_count( $main, $needle ), "{$path} is never loaded" );
+		}
+	}
+
+	/**
+	 * Free-build placeholders must be declared only when the real implementation
+	 * is missing, or the Pro build would fatal on redeclaration.
+	 *
+	 * @return void
+	 */
+	public function test_upsell_placeholders_are_function_exists_guarded() {
+		$upsell = (string) file_get_contents( $this->root . '/admin/premium-upsell.php' );
+
+		preg_match_all( '/^function\s+(\w+)/m', $upsell, $top_level );
+		$this->assertEmpty( $top_level[1], 'Placeholders must not be declared unconditionally' );
+
+		preg_match_all( "/if \( ! function_exists\( '(\w+)' \) \) \{\s+\/\*\*.*?function\s+(\w+)/s", $upsell, $pairs, PREG_SET_ORDER );
+		$this->assertNotEmpty( $pairs );
+
+		foreach ( $pairs as $pair ) {
+			$this->assertSame( $pair[1], $pair[2], 'Guard must check the function it declares' );
+		}
+	}
+
+	/**
 	 * Required plugin header fields must exist.
 	 *
 	 * @return void

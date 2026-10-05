@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Factorial2000 Catalog Sync for Prom.ua
  * Description:       Імпорт та синхронізація товарів WooCommerce з XML (YML/Prom.ua). Оновлення стоку й цін за розкладом, імпорт простих і варіативних товарів з фото/атрибутами/категоріями, оновлення окремих полів (Pro), редактор вигрузок XML (Pro), обробка зображень (Pro), Telegram-сповіщення. Free назавжди + безкоштовний Pro-тріал 14 днів без карти. Підтримка кількох постачальників, SKU-префіксів, конвертації валют. Містить автоматизовані PHPUnit-тести.
- * Version:           0.6.14
+ * Version:           0.7.0
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -11,6 +11,8 @@
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       factorial2000-catalog-sync
+ *
+ * @fs_premium_only /includes/class-image-processor.php, /includes/class-xml-editor.php, /includes/class-xml-export-filter.php, /includes/trait-xml-rebuilder.php, /includes/parsers/class-fields-updater.php, /admin/xml-editor.php, /admin/images-settings.php, /admin/page-export.php, /assets/js/admin-xml-editor.js
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -28,7 +30,7 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 	}
 } else {
 
-	define( 'F2000CS_VERSION', '0.6.14' );
+	define( 'F2000CS_VERSION', '0.7.0' );
 	define( 'F2000CS_DB_VERSION', 1 ); // Increment when DB migrations are needed.
 	define( 'F2000CS_PATH', plugin_dir_path( __FILE__ ) );
 	define( 'F2000CS_URL', plugin_dir_url( __FILE__ ) );
@@ -37,18 +39,30 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 	require_once F2000CS_PATH . 'includes/class-cron-job.php';
 	require_once F2000CS_PATH . 'includes/class-stock-updater.php';
 	require_once F2000CS_PATH . 'includes/parsers/class-xml-parser.php';
-	require_once F2000CS_PATH . 'includes/parsers/class-fields-updater.php';
-	require_once F2000CS_PATH . 'includes/trait-xml-rebuilder.php';
-	require_once F2000CS_PATH . 'includes/class-xml-export-filter.php';
-	require_once F2000CS_PATH . 'includes/class-xml-editor.php';
-	require_once F2000CS_PATH . 'includes/class-image-processor.php';
 	require_once F2000CS_PATH . 'includes/functions.php';
 	require_once F2000CS_PATH . 'includes/uninstall-cleanup.php';
 	require_once F2000CS_PATH . 'includes/class-licensing.php';
 	require_once F2000CS_PATH . 'includes/freemius-uk-i18n.php';
 	require_once F2000CS_PATH . 'includes/class-frontend-display.php';
+
+	/*
+	 * Pro modules. These files are listed in the @fs_premium_only header above, so
+	 * Freemius removes them from the free (wp.org) build; the free build shows
+	 * placeholders from admin/premium-upsell.php instead.
+	 */
+	if ( f2000cs_has_premium_code() ) {
+		require_once F2000CS_PATH . 'includes/parsers/class-fields-updater.php';
+		require_once F2000CS_PATH . 'includes/trait-xml-rebuilder.php';
+		require_once F2000CS_PATH . 'includes/class-xml-export-filter.php';
+		require_once F2000CS_PATH . 'includes/class-xml-editor.php';
+		require_once F2000CS_PATH . 'includes/class-image-processor.php';
+		require_once F2000CS_PATH . 'admin/xml-editor.php';
+		require_once F2000CS_PATH . 'admin/images-settings.php';
+		require_once F2000CS_PATH . 'admin/page-export.php';
+	}
+	require_once F2000CS_PATH . 'admin/premium-upsell.php';
+
 	require_once F2000CS_PATH . 'admin/settings-page.php';
-	require_once F2000CS_PATH . 'admin/xml-editor.php';
 	require_once F2000CS_PATH . 'admin/admin-assets.php';
 	require_once F2000CS_PATH . 'admin/support-widget.php';
 

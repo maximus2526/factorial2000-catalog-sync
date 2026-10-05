@@ -547,6 +547,10 @@ function f2000cs_docs_page() {
 							<li><?php esc_html_e( 'сторінка вигрузки: фільтр + редактор XML.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<p><?php esc_html_e( 'Під час тріалу доступні ті самі можливості, що й у Pro.', 'factorial2000-catalog-sync' ); ?></p>
+						<div class="f2000cs-docs-note">
+							<strong><?php esc_html_e( 'Pro-збірка:', 'factorial2000-catalog-sync' ); ?></strong>
+							<?php esc_html_e( 'Конвертація зображень, оновлення окремих полів, фільтр XML-вигрузки та редактор вигрузок входять лише до Pro-збірки плагіна — безкоштовна версія з WordPress.org цього коду не містить. Після оформлення підписки чи тріалу встановіть Pro-версію зі сторінки акаунта Freemius (плагін покаже відповідне повідомлення).', 'factorial2000-catalog-sync' ); ?>
+						</div>
 					</div>
 				</section>
 

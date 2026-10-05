@@ -174,7 +174,7 @@ function f2000cs_enqueue_admin_assets( $_hook_suffix ) {
 		);
 	}
 
-	if ( 'f2000cs-export' === $page ) {
+	if ( 'f2000cs-export' === $page && f2000cs_has_premium_code() ) {
 		wp_enqueue_script(
 			'f2000cs-admin-xml-editor',
 			F2000CS_URL . 'assets/js/admin-xml-editor.js',

@@ -175,6 +175,37 @@ async function zipRelease() {
 }
 
 /**
+ * Paths listed in the "@fs_premium_only" tag of the main plugin file header.
+ * Freemius removes them from the free (wordpress.org) build.
+ *
+ * @returns {string[]} Paths relative to the plugin root.
+ */
+function readPremiumOnlyPaths() {
+	const contents = fs.readFileSync( MAIN_FILE, 'utf8' );
+	const match = contents.match( /@fs_premium_only\s+([^\r\n]+)/ );
+
+	if ( ! match ) {
+		return [];
+	}
+
+	return match[ 1 ]
+		.split( ',' )
+		.map( ( p ) => p.trim().replace( /^\/+/, '' ) )
+		.filter( Boolean );
+}
+
+/**
+ * Remove the premium-only files from a plugin folder (free build).
+ *
+ * @param {string} dir Plugin folder.
+ */
+function stripPremiumFiles( dir ) {
+	readPremiumOnlyPaths().forEach( ( rel ) => {
+		fs.rmSync( path.join( dir, rel ), { recursive: true, force: true } );
+	} );
+}
+
+/**
  * Build the WordPress.org SVN layout: svn/trunk, svn/tags/<version>,
  * svn/assets plus a README with the commit commands.
  */
@@ -190,6 +221,10 @@ async function makeSvnLayout() {
 
 	fs.cpSync( path.join( RELEASE_DIR, PLUGIN_SLUG ), trunkDir, { recursive: true } );
 	fs.cpSync( path.join( RELEASE_DIR, PLUGIN_SLUG ), tagDir, { recursive: true } );
+
+	// wordpress.org must not host premium code: strip it from the SVN copies.
+	stripPremiumFiles( trunkDir );
+	stripPremiumFiles( tagDir );
 
 	fs.writeFileSync(
 		path.join( svnDir, 'README.txt' ),

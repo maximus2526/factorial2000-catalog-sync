@@ -117,6 +117,8 @@ factorial2000-catalog-sync/
 - Free: 1 постачальник (+grandfathered), 1 оновлення/добу, без price adjust, без quantity, без variable-low-instock rule.
 - Pro-гейти: і фізичні (`f2000cs_register_pro_option_guards` + `pre_update_option` фільтри), і UI (`disabled` + бейджі).
 - Trial = Pro за функціоналом.
+- **Дві збірки (з 0.7.0):** Pro-модулі — `class-image-processor.php`, `class-xml-editor.php`, `class-xml-export-filter.php`, `trait-xml-rebuilder.php`, `parsers/class-fields-updater.php`, `admin/xml-editor.php`, `admin/images-settings.php`, `admin/page-export.php`, `assets/js/admin-xml-editor.js` — перелічені в `@fs_premium_only` у шапці головного файлу; Freemius вирізає їх із безкоштовної збірки (wp.org). Збірка визначається наявністю файлу (`f2000cs_has_premium_code()`), від цього залежать `is_premium` у `fs_dynamic_init` і `f2000cs_is_pro()` (ліцензія без Pro-збірки нічого не відкриває; показується notice). У безкоштовній збірці `admin/premium-upsell.php` дає заглушки (`f2000cs_render_import_images_panel`, `f2000cs_export_page`). Нові Pro-файли додавайте в `@fs_premium_only` і лише під `if ( f2000cs_has_premium_code() )`.
+- Перевірка розділення: `php bin/simulate-free-build.php` (CI теж) — збирає free/pro копії, лінтить і ганяє `tests/integration/free-build-smoke.php`; `PluginMetaTest` стереже список і умовні `require_once`.
 
 ### 3.3 Інструменти роботи з XML (5 різних)
 
