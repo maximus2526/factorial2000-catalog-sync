@@ -181,7 +181,7 @@ function f2000cs_marketplace_render_field( string $key, array $field, $value ): 
 	$id   = 'f2000cs-mp-' . $key;
 	?>
 	<tr>
-		<th scope="row"><label for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( (string) ( $field['label'] ?? $key ) ); ?></label></th>
+		<th scope="row"><?php echo in_array( $type, array( 'pairs', 'category_map' ), true ) ? esc_html( (string) ( $field['label'] ?? $key ) ) : '<label for="' . esc_attr( $id ) . '">' . esc_html( (string) ( $field['label'] ?? $key ) ) . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above. ?></th>
 		<td>
 			<?php
 			if ( 'preset' === $type ) {
