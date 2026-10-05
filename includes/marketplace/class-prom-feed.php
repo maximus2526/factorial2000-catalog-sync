@@ -45,92 +45,186 @@ class Prom_Feed extends Marketplace_Feed {
 	}
 
 	/**
+	 * Section titles of the settings form.
+	 *
+	 * @return array<string,string>
+	 */
+	public function groups(): array {
+		return array(
+			'basic'      => __( 'Магазин', 'factorial2000-catalog-sync' ),
+			'products'   => __( 'Товари', 'factorial2000-catalog-sync' ),
+			'brand'      => __( 'Виробник (бренд)', 'factorial2000-catalog-sync' ),
+			'categories' => __( 'Категорії на Prom', 'factorial2000-catalog-sync' ),
+			'advanced'   => __( 'Додатково', 'factorial2000-catalog-sync' ),
+		);
+	}
+
+	/**
 	 * Settings schema.
+	 *
+	 * Most fields are presets with a "custom" option, so the common choices are one
+	 * click and anything unusual is still possible. Tokens like {site_name} follow
+	 * the site settings instead of freezing today's value.
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */
 	public function fields(): array {
-		$site = function_exists( 'home_url' ) ? home_url() : '';
-		$cur  = function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'UAH';
-		$name = function_exists( 'get_bloginfo' ) ? (string) get_bloginfo( 'name' ) : '';
-
 		return array(
 			'shop_name'                    => array(
-				'type'    => 'text',
+				'group'   => 'basic',
+				'type'    => 'preset',
 				'label'   => __( 'Назва магазину', 'factorial2000-catalog-sync' ),
-				'default' => $name,
+				'default' => '{site_name}',
+				'options' => array( '{site_name}' => __( 'Назва сайту (з налаштувань WordPress)', 'factorial2000-catalog-sync' ) ),
+				'custom'  => array(
+					'type'  => 'text',
+					'label' => __( 'Своя назва…', 'factorial2000-catalog-sync' ),
+				),
 			),
 			'company_name'                 => array(
-				'type'    => 'text',
+				'group'   => 'basic',
+				'type'    => 'preset',
 				'label'   => __( 'Назва компанії', 'factorial2000-catalog-sync' ),
-				'default' => $name,
+				'default' => '{site_name}',
+				'options' => array( '{site_name}' => __( 'Назва сайту (з налаштувань WordPress)', 'factorial2000-catalog-sync' ) ),
+				'custom'  => array(
+					'type'  => 'text',
+					'label' => __( 'Своя назва…', 'factorial2000-catalog-sync' ),
+				),
 			),
 			'site_url'                     => array(
-				'type'    => 'url',
+				'group'   => 'basic',
+				'type'    => 'preset',
 				'label'   => __( 'Адреса сайту', 'factorial2000-catalog-sync' ),
-				'default' => $site,
+				'default' => '{site_url}',
+				'options' => array( '{site_url}' => __( 'Адреса сайту (з налаштувань WordPress)', 'factorial2000-catalog-sync' ) ),
+				'custom'  => array(
+					'type'  => 'text',
+					'label' => __( 'Інша адреса…', 'factorial2000-catalog-sync' ),
+				),
 			),
 			'currency'                     => array(
-				'type'        => 'text',
-				'label'       => __( 'Валюта', 'factorial2000-catalog-sync' ),
-				'description' => __( 'Код валюти цін у вигрузці (UAH).', 'factorial2000-catalog-sync' ),
-				'default'     => $cur ? $cur : 'UAH',
+				'group'   => 'basic',
+				'type'    => 'preset',
+				'label'   => __( 'Валюта цін', 'factorial2000-catalog-sync' ),
+				'default' => '{wc_currency}',
+				'options' => array(
+					'{wc_currency}' => __( 'Валюта магазину WooCommerce', 'factorial2000-catalog-sync' ),
+					'UAH'           => __( 'UAH — гривня', 'factorial2000-catalog-sync' ),
+					'USD'           => __( 'USD — долар', 'factorial2000-catalog-sync' ),
+					'EUR'           => __( 'EUR — євро', 'factorial2000-catalog-sync' ),
+				),
+				'custom'  => array(
+					'type'  => 'text',
+					'label' => __( 'Інша валюта…', 'factorial2000-catalog-sync' ),
+				),
 			),
 			'max_pictures'                 => array(
-				'type'        => 'number',
-				'label'       => __( 'Макс. фото на товар', 'factorial2000-catalog-sync' ),
-				'description' => __( 'Prom приймає до 10 фото.', 'factorial2000-catalog-sync' ),
-				'default'     => 10,
-				'min'         => 1,
-				'max'         => 20,
+				'group'       => 'products',
+				'type'        => 'preset',
+				'label'       => __( 'Фото на товар', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Prom приймає до 10 фото на товар.', 'factorial2000-catalog-sync' ),
+				'default'     => '10',
+				'options'     => array(
+					'10' => __( 'До 10 (максимум Prom)', 'factorial2000-catalog-sync' ),
+					'5'  => __( 'До 5', 'factorial2000-catalog-sync' ),
+					'3'  => __( 'До 3', 'factorial2000-catalog-sync' ),
+					'1'  => __( 'Лише головне фото', 'factorial2000-catalog-sync' ),
+				),
+				'custom'      => array(
+					'type'  => 'number',
+					'label' => __( 'Інша кількість…', 'factorial2000-catalog-sync' ),
+					'min'   => 1,
+					'max'   => 20,
+				),
 			),
 			'include_unpublished'          => array(
+				'group'       => 'products',
 				'type'        => 'checkbox',
-				'label'       => __( 'Включати неопубліковані товари', 'factorial2000-catalog-sync' ),
-				'description' => __( 'За замовчуванням у вигрузку потрапляють лише опубліковані.', 'factorial2000-catalog-sync' ),
+				'label'       => __( 'Неопубліковані товари', 'factorial2000-catalog-sync' ),
+				'checkbox'    => __( 'Додавати у вигрузку й чернетки', 'factorial2000-catalog-sync' ),
+				'description' => __( 'За замовчуванням у вигрузку потрапляють лише опубліковані товари.', 'factorial2000-catalog-sync' ),
 				'default'     => '0',
 			),
-			'default_vendor'               => array(
-				'type'        => 'text',
-				'label'       => __( 'Виробник за замовчуванням', 'factorial2000-catalog-sync' ),
-				'description' => __( 'Підставляється, коли у товара немає бренду.', 'factorial2000-catalog-sync' ),
+			'description_fallback_snippet' => array(
+				'group'       => 'products',
+				'type'        => 'preset',
+				'label'       => __( 'Якщо в товара немає опису', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Prom вимагає опис. Фраза додається після назви товару.', 'factorial2000-catalog-sync' ),
 				'default'     => '',
+				'options'     => array(
+					''                => __( 'Лише назва товару', 'factorial2000-catalog-sync' ),
+					'Деталі товару вказані в параметрах нижче.' => __( '«Деталі товару вказані в параметрах нижче.»', 'factorial2000-catalog-sync' ),
+					'Опис незабаром.' => __( '«Опис незабаром.»', 'factorial2000-catalog-sync' ),
+				),
+				'custom'      => array(
+					'type'  => 'text',
+					'label' => __( 'Свій текст…', 'factorial2000-catalog-sync' ),
+				),
+			),
+			'default_vendor'               => array(
+				'group'       => 'brand',
+				'type'        => 'preset',
+				'label'       => __( 'Виробник, якщо бренд не вказано', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Підставляється товарам без бренду. Назва має збігатися з довідником Prom.', 'factorial2000-catalog-sync' ),
+				'default'     => '',
+				'options'     => array(
+					''                   => __( 'Не вказувати', 'factorial2000-catalog-sync' ),
+					'Власне виробництво' => __( 'Власне виробництво', 'factorial2000-catalog-sync' ),
+					'Без бренду'         => __( 'Без бренду', 'factorial2000-catalog-sync' ),
+				),
+				'custom'      => array(
+					'type'  => 'text',
+					'label' => __( 'Інший виробник…', 'factorial2000-catalog-sync' ),
+				),
 			),
 			'vendors_fallback_to_default'  => array(
+				'group'       => 'brand',
 				'type'        => 'checkbox',
-				'label'       => __( 'Завжди використовувати виробника за замовчуванням', 'factorial2000-catalog-sync' ),
-				'description' => __( 'Підставити його навіть коли бренд товара відомий (обережно).', 'factorial2000-catalog-sync' ),
+				'label'       => __( 'Завжди цей виробник', 'factorial2000-catalog-sync' ),
+				'checkbox'    => __( 'Підставляти його навіть тоді, коли бренд товара відомий', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Зазвичай не потрібно: тоді всі бренди замінюються одним значенням.', 'factorial2000-catalog-sync' ),
 				'default'     => '0',
 			),
 			'vendor_aliases'               => array(
-				'type'        => 'textarea',
-				'label'       => __( 'Відповідність брендів', 'factorial2000-catalog-sync' ),
-				'description' => __( 'По одному правилу в рядку: бренд на сайті=бренд у Prom (назва має збігатися з довідником Prom).', 'factorial2000-catalog-sync' ),
-				'default'     => '',
-			),
-			'description_fallback_snippet' => array(
-				'type'        => 'text',
-				'label'       => __( 'Текст для порожнього опису', 'factorial2000-catalog-sync' ),
-				'description' => __( 'Додається до назви, якщо в товара немає опису.', 'factorial2000-catalog-sync' ),
-				'default'     => '',
+				'group'        => 'brand',
+				'type'         => 'pairs',
+				'label'        => __( 'Назви брендів у Prom', 'factorial2000-catalog-sync' ),
+				'description'  => __( 'Якщо бренд на сайті пишеться інакше, ніж у довіднику Prom, вкажіть відповідність. Бренди сайту підказуються при введенні.', 'factorial2000-catalog-sync' ),
+				'left_label'   => __( 'Бренд на сайті', 'factorial2000-catalog-sync' ),
+				'right_label'  => __( 'Бренд у Prom', 'factorial2000-catalog-sync' ),
+				'left_suggest' => 'brands',
+				'default'      => '',
 			),
 			'default_portal_category_id'   => array(
+				'group'       => 'categories',
 				'type'        => 'text',
-				'label'       => __( 'Номер категорії на порталі Prom (за замовчуванням)', 'factorial2000-catalog-sync' ),
-				'description' => __( 'Записується в portal_category_id усіх товарів, якщо не спрацювало жодне правило нижче.', 'factorial2000-catalog-sync' ),
+				'label'       => __( 'Категорія Prom за замовчуванням', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Номер категорії порталу Prom (portal_category_id) для всіх товарів, у яких немає свого правила нижче. Можна залишити порожнім.', 'factorial2000-catalog-sync' ),
 				'default'     => '',
 			),
 			'portal_category_rules'        => array(
-				'type'        => 'textarea',
-				'label'       => __( 'Категорії порталу за назвою категорії', 'factorial2000-catalog-sync' ),
-				'description' => __( 'По одному правилу в рядку: частина шляху категорії WooCommerce=номер категорії Prom, наприклад «Взуття > Кросівки=1234567».', 'factorial2000-catalog-sync' ),
+				'group'       => 'categories',
+				'type'        => 'category_map',
+				'label'       => __( 'Категорії магазину → категорії Prom', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Вкажіть номер категорії Prom навпроти категорії магазину. Правило для батьківської категорії діє й на вкладені, якщо в них немає власного.', 'factorial2000-catalog-sync' ),
 				'default'     => '',
 			),
 			'mpn_meta_key'                 => array(
-				'type'        => 'text',
-				'label'       => __( 'Мета-поле з кодом постачальника (MPN)', 'factorial2000-catalog-sync' ),
-				'description' => __( 'Значення потрапляє в <mpn>. Плагін синхронізації записує код у f2000cs-updater-vendor.', 'factorial2000-catalog-sync' ),
+				'group'       => 'advanced',
+				'type'        => 'preset',
+				'label'       => __( 'Код постачальника (MPN)', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Звідки брати значення для <mpn> у Prom.', 'factorial2000-catalog-sync' ),
 				'default'     => 'f2000cs-updater-vendor',
+				'options'     => array(
+					'f2000cs-updater-vendor'  => __( 'Код постачальника з синхронізації Factorial2000', 'factorial2000-catalog-sync' ),
+					'prom-xml-updater-vendor' => __( 'Код із плагіна prom-xml-updater', 'factorial2000-catalog-sync' ),
+					''                        => __( 'Не передавати', 'factorial2000-catalog-sync' ),
+				),
+				'custom'      => array(
+					'type'  => 'text',
+					'label' => __( 'Інше мета-поле…', 'factorial2000-catalog-sync' ),
+				),
 			),
 		);
 	}
@@ -147,6 +241,10 @@ class Prom_Feed extends Marketplace_Feed {
 	 */
 	public function head( array $settings ): string {
 		$s = $this->with_defaults( $settings );
+
+		foreach ( array( 'shop_name', 'company_name', 'site_url', 'currency' ) as $key ) {
+			$s[ $key ] = Marketplace_Form::resolve( $s[ $key ] );
+		}
 
 		return '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
 			. '<!DOCTYPE yml_catalog SYSTEM "shops.dtd">' . "\n"
@@ -448,7 +546,7 @@ class Prom_Feed extends Marketplace_Feed {
 		}
 
 		foreach ( self::parse_pairs( (string) ( $settings['portal_category_rules'] ?? '' ) ) as $sub => $cid ) {
-			$sub = Marketplace_Text::lower( Marketplace_Text::clean( (string) $sub ) );
+			$sub = Marketplace_Form::normalize_path( (string) $sub );
 			$cid = Marketplace_Text::clean( $cid );
 
 			if ( '' !== $sub && '' !== $cid && false !== strpos( $blob, $sub ) ) {
@@ -560,7 +658,7 @@ class Prom_Feed extends Marketplace_Feed {
 		$xml .= $ind2 . '<name>' . Marketplace_Text::xml_text( $name ) . "</name>\n";
 		$xml .= $ind2 . '<name_ua>' . Marketplace_Text::xml_text( $name ) . "</name_ua>\n";
 		$xml .= $ind2 . '<price>' . Marketplace_Text::money( (float) $price ) . "</price>\n";
-		$xml .= $ind2 . '<currencyId>' . Marketplace_Text::xml_text( $settings['currency'] ?? 'UAH' ) . "</currencyId>\n";
+		$xml .= $ind2 . '<currencyId>' . Marketplace_Text::xml_text( Marketplace_Form::resolve( $settings['currency'] ?? 'UAH' ) ) . "</currencyId>\n";
 		$xml .= $ind2 . '<categoryId>' . (int) $category_id . "</categoryId>\n";
 
 		$portal = self::portal_category_for_paths( $category_paths, $settings );

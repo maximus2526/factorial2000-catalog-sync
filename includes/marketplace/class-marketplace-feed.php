@@ -145,6 +145,7 @@ abstract class Marketplace_Feed {
 					break;
 
 				case 'textarea':
+				case 'category_map':
 					$out[ $key ] = null === $value ? (string) $default : $this->sanitize_multiline( (string) $value );
 					break;
 
@@ -157,12 +158,63 @@ abstract class Marketplace_Feed {
 					$out[ $key ] = null === $value ? (string) $default : esc_url_raw( trim( (string) $value ) );
 					break;
 
+				case 'preset':
+					$out[ $key ] = $this->sanitize_preset( $key, $field, $raw );
+					break;
+
+				case 'pairs':
+					$rows        = $raw['__rows'][ $key ] ?? null;
+					$out[ $key ] = is_array( $rows ) ? $this->sanitize_multiline( Marketplace_Form::rows_to_text( $rows ) ) : ( null === $value ? (string) $default : $this->sanitize_multiline( (string) $value ) );
+					break;
+
 				default:
 					$out[ $key ] = null === $value ? (string) $default : sanitize_text_field( (string) $value );
 			}
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Section titles of the settings form (group key => label), in display order.
+	 *
+	 * @return array<string,string>
+	 */
+	public function groups(): array {
+		return array(
+			'basic' => __( 'Основне', 'factorial2000-catalog-sync' ),
+		);
+	}
+
+	/**
+	 * Final value of a preset field: the chosen preset, or the custom text.
+	 *
+	 * @param string              $key   Field key.
+	 * @param array<string,mixed> $field Field schema.
+	 * @param array<string,mixed> $raw   Raw input (custom texts live under __custom).
+	 * @return string
+	 */
+	protected function sanitize_preset( string $key, array $field, array $raw ): string {
+		$default = (string) ( $field['default'] ?? '' );
+		$options = (array) ( $field['options'] ?? array() );
+		$select  = isset( $raw[ $key ] ) ? (string) $raw[ $key ] : $default;
+		$custom  = $field['custom'] ?? array();
+
+		if ( Marketplace_Form::CUSTOM !== $select ) {
+			return array_key_exists( $select, $options ) ? $select : $default;
+		}
+
+		$text = (string) ( $raw['__custom'][ $key ] ?? '' );
+
+		if ( 'number' === ( $custom['type'] ?? 'text' ) ) {
+			$num = is_numeric( $text ) ? (int) $text : (int) $default;
+
+			return (string) max( (int) ( $custom['min'] ?? 0 ), min( (int) ( $custom['max'] ?? PHP_INT_MAX ), $num ) );
+		}
+
+		$text = sanitize_text_field( $text );
+
+		return '' === $text ? $default : $text;
 	}
 
 	/**

@@ -348,7 +348,14 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 	 * @return string
 	 */
 	private function mpn( $product, $parent_product ): string {
-		$keys = array_values( array_unique( array_filter( array( (string) ( $this->settings['mpn_meta_key'] ?? '' ), 'f2000cs-updater-vendor', 'prom-xml-updater-vendor' ) ) ) );
+		// An empty setting means "do not send an MPN".
+		$chosen = (string) ( $this->settings['mpn_meta_key'] ?? 'f2000cs-updater-vendor' );
+
+		if ( '' === $chosen ) {
+			return '';
+		}
+
+		$keys = array( $chosen );
 
 		foreach ( array_filter( array( $product, $parent_product ) ) as $source ) {
 			foreach ( $keys as $key ) {

@@ -106,6 +106,7 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 
 = 0.7.0 =
 * Added (Pro): «Marketplaces» page — export your WooCommerce products to Prom.ua as a YML feed (simple and variable products, Prom variations rules, categories, brands, supplier code, portal category rules). The feed is built in chunks (works for large catalogs), published atomically at a private URL, refreshed by WP-Cron on a schedule or with `wp f2000cs marketplace build prom`. The module is built so Rozetka and Hotline feeds can be added next.
+* Improved (Pro): Marketplaces settings are now mostly one-click presets with a «Custom…» option (shop name, currency, photos per product, brand, supplier code); brand names are mapped with a suggest-as-you-type table and store categories are mapped to Prom categories in a searchable table instead of text fields.
 * Added: products that the stock sync set to Draft because they disappeared from the feed are published again automatically when the feed lists them (products drafted manually are never touched). Already-drafted products are no longer re-reported on every run.
 * Security: supplier attribute names and server messages are no longer rendered as HTML in the import analysis screen.
 * Fixed: import session keys are lowercase (consistent with how they are read); uninstall also removes the plugin's session transients.

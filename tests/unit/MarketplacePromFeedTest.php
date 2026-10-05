@@ -12,6 +12,7 @@
 
 use F2000CS\Marketplace_Category_Tree;
 use F2000CS\Marketplace_Feed;
+use F2000CS\Marketplace_Form;
 use F2000CS\Marketplace_Job;
 use F2000CS\Marketplace_Registry;
 use F2000CS\Marketplace_Storage;
@@ -484,8 +485,9 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		$saved = Marketplace_Registry::save_settings(
 			'prom',
 			array(
-				'shop_name'           => 'Shop',
-				'max_pictures'        => '99',
+				'shop_name'           => Marketplace_Form::CUSTOM,
+				'max_pictures'        => Marketplace_Form::CUSTOM,
+				'__custom'            => array( 'shop_name' => 'Shop', 'max_pictures' => '99' ),
 				'include_unpublished' => '1',
 				'vendor_aliases'      => "a=b\n\n  c=d  ",
 				'schedule'            => 'every_second',
@@ -532,7 +534,18 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		$feed = Marketplace_Registry::get( 'prom' );
 		@unlink( Marketplace_Storage::path( $feed ) );
 
-		Marketplace_Registry::save_settings( 'prom', array( 'shop_name' => 'Test shop', 'site_url' => 'https://shop.test', 'currency' => 'UAH' ) );
+		Marketplace_Registry::save_settings(
+			'prom',
+			array(
+				'shop_name' => Marketplace_Form::CUSTOM,
+				'site_url'  => Marketplace_Form::CUSTOM,
+				'currency'  => 'UAH',
+				'__custom'  => array(
+					'shop_name' => 'Test shop',
+					'site_url'  => 'https://shop.test',
+				),
+			)
+		);
 
 		$source = new F2000CS_Fake_Unit_Source(
 			array(

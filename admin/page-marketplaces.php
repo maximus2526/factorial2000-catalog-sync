@@ -9,6 +9,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
+use F2000CS\Marketplace_Form;
 use F2000CS\Marketplace_Job;
 use F2000CS\Marketplace_Registry;
 use F2000CS\Marketplace_Storage;
@@ -30,40 +31,186 @@ function f2000cs_marketplace_schedule_labels(): array {
 }
 
 /**
- * Render one settings field of a feed schema.
+ * Description paragraph under a field.
  *
- * @param string              $key     Field key.
- * @param array<string,mixed> $field   Field schema.
- * @param mixed               $value   Current value.
+ * @param array<string,mixed> $field Field schema.
+ * @return void
+ */
+function f2000cs_marketplace_field_description( array $field ): void {
+	if ( ! empty( $field['description'] ) ) {
+		echo '<p class="description">' . esc_html( (string) $field['description'] ) . '</p>';
+	}
+}
+
+/**
+ * Select with presets plus an optional "custom" choice that reveals a free input.
+ *
+ * @param string              $key   Field key.
+ * @param array<string,mixed> $field Field schema.
+ * @param mixed               $value Current stored value.
+ * @return void
+ */
+function f2000cs_marketplace_render_preset( string $key, array $field, $value ): void {
+	$options = (array) ( $field['options'] ?? array() );
+	$custom  = $field['custom'] ?? null;
+	$current = Marketplace_Form::selected_preset( (string) $value, $options );
+
+	// Without a custom option an unknown stored value falls back to the first preset.
+	if ( ! $custom && Marketplace_Form::CUSTOM === $current ) {
+		$current = (string) array_key_first( $options );
+	}
+
+	$id          = 'f2000cs-mp-' . $key;
+	$custom_type = 'number' === ( $custom['type'] ?? 'text' ) ? 'number' : 'text';
+	?>
+	<select id="<?php echo esc_attr( $id ); ?>" name="mp[<?php echo esc_attr( $key ); ?>]" class="f2000cs-mp-preset" data-custom-input="<?php echo esc_attr( $id ); ?>-custom">
+		<?php foreach ( $options as $option => $label ) : ?>
+			<option value="<?php echo esc_attr( (string) $option ); ?>" <?php selected( $current, (string) $option ); ?>><?php echo esc_html( (string) $label ); ?></option>
+		<?php endforeach; ?>
+		<?php if ( $custom ) : ?>
+			<option value="<?php echo esc_attr( Marketplace_Form::CUSTOM ); ?>" <?php selected( $current, Marketplace_Form::CUSTOM ); ?>><?php echo esc_html( (string) ( $custom['label'] ?? __( 'Своє значення…', 'factorial2000-catalog-sync' ) ) ); ?></option>
+		<?php endif; ?>
+	</select>
+	<?php if ( $custom ) : ?>
+		<input type="<?php echo esc_attr( $custom_type ); ?>" id="<?php echo esc_attr( $id ); ?>-custom" name="mp_custom[<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( Marketplace_Form::CUSTOM === $current ? (string) $value : '' ); ?>" class="regular-text f2000cs-mp-custom" <?php echo 'number' === $custom_type ? 'min="' . esc_attr( (string) ( $custom['min'] ?? 0 ) ) . '" max="' . esc_attr( (string) ( $custom['max'] ?? '' ) ) . '"' : ''; ?> <?php echo Marketplace_Form::CUSTOM === $current ? '' : 'hidden'; ?>>
+	<?php endif; ?>
+	<?php
+}
+
+/**
+ * Repeater of "left → right" rows (stored as left=right lines).
+ *
+ * @param string              $key   Field key.
+ * @param array<string,mixed> $field Field schema.
+ * @param mixed               $value Current stored value.
+ * @return void
+ */
+function f2000cs_marketplace_render_pairs( string $key, array $field, $value ): void {
+	$rows   = Marketplace_Form::text_to_rows( (string) $value );
+	$rows[] = array( '', '' );
+	$list   = 'brands' === ( $field['left_suggest'] ?? '' ) ? 'f2000cs-mp-brands' : '';
+
+	if ( $list ) {
+		echo '<datalist id="' . esc_attr( $list ) . '">';
+		foreach ( Marketplace_Form::load_brands() as $brand ) {
+			echo '<option value="' . esc_attr( $brand ) . '">';
+		}
+		echo '</datalist>';
+	}
+	?>
+	<table class="widefat striped f2000cs-mp-pairs" data-key="<?php echo esc_attr( $key ); ?>" style="max-width:720px">
+		<thead>
+			<tr>
+				<th><?php echo esc_html( (string) ( $field['left_label'] ?? '' ) ); ?></th>
+				<th><?php echo esc_html( (string) ( $field['right_label'] ?? '' ) ); ?></th>
+				<th style="width:40px"></th>
+			</tr>
+		</thead>
+		<tbody>
+			<?php foreach ( $rows as $i => $row ) : ?>
+				<tr>
+					<td><input type="text" class="regular-text" name="mp_rows[<?php echo esc_attr( $key ); ?>][<?php echo (int) $i; ?>][l]" value="<?php echo esc_attr( $row[0] ); ?>" <?php echo $list ? 'list="' . esc_attr( $list ) . '"' : ''; ?>></td>
+					<td><input type="text" class="regular-text" name="mp_rows[<?php echo esc_attr( $key ); ?>][<?php echo (int) $i; ?>][r]" value="<?php echo esc_attr( $row[1] ); ?>"></td>
+					<td><button type="button" class="button-link f2000cs-mp-row-remove" aria-label="<?php esc_attr_e( 'Видалити рядок', 'factorial2000-catalog-sync' ); ?>">✕</button></td>
+				</tr>
+			<?php endforeach; ?>
+		</tbody>
+	</table>
+	<p><button type="button" class="button f2000cs-mp-row-add" data-target="<?php echo esc_attr( $key ); ?>"><?php esc_html_e( '+ Додати відповідність', 'factorial2000-catalog-sync' ); ?></button></p>
+	<?php
+}
+
+/**
+ * Table "store category → Prom portal category id" plus a box for custom rules.
+ *
+ * @param string              $key   Field key.
+ * @param array<string,mixed> $field Field schema.
+ * @param mixed               $value Current stored rules.
+ * @return void
+ */
+function f2000cs_marketplace_render_category_map( string $key, array $field, $value ): void {
+	$categories = Marketplace_Form::load_categories();
+	$split      = Marketplace_Form::split_rules( (string) $value, $categories );
+
+	if ( ! $categories ) {
+		echo '<em>' . esc_html__( 'У магазині ще немає категорій товарів.', 'factorial2000-catalog-sync' ) . '</em>';
+	} else {
+		?>
+		<p><input type="search" class="regular-text f2000cs-mp-cat-filter" placeholder="<?php esc_attr_e( 'Пошук категорії…', 'factorial2000-catalog-sync' ); ?>"></p>
+		<div style="max-height:360px;overflow:auto;max-width:720px;border:1px solid #c3c4c7">
+			<table class="widefat striped f2000cs-mp-cat-table">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'Категорія магазину', 'factorial2000-catalog-sync' ); ?></th>
+						<th style="width:70px"><?php esc_html_e( 'Товарів', 'factorial2000-catalog-sync' ); ?></th>
+						<th style="width:170px"><?php esc_html_e( 'Номер категорії Prom', 'factorial2000-catalog-sync' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $categories as $cat ) : ?>
+						<tr data-name="<?php echo esc_attr( function_exists( 'mb_strtolower' ) ? mb_strtolower( $cat['path'], 'UTF-8' ) : strtolower( $cat['path'] ) ); ?>">
+							<td style="padding-left:<?php echo (int) ( 10 + 16 * $cat['depth'] ); ?>px"><?php echo esc_html( basename( str_replace( ' > ', '/', $cat['path'] ) ) ); ?></td>
+							<td><?php echo (int) $cat['count']; ?></td>
+							<td><input type="text" inputmode="numeric" pattern="[0-9]*" class="small-text" name="mp_map[<?php echo esc_attr( $key ); ?>][<?php echo (int) $cat['id']; ?>]" value="<?php echo esc_attr( $split['by_id'][ $cat['id'] ] ?? '' ); ?>" placeholder="—"></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+		<?php
+	}
+	?>
+	<details style="margin-top:8px">
+		<summary><?php esc_html_e( 'Свої правила (для досвідчених)', 'factorial2000-catalog-sync' ); ?></summary>
+		<textarea name="mp_extra[<?php echo esc_attr( $key ); ?>]" rows="3" class="large-text code" placeholder="кросівки=1234567"><?php echo esc_textarea( $split['extra'] ); ?></textarea>
+		<p class="description"><?php esc_html_e( 'По одному правилу в рядку: частина шляху категорії=номер Prom, наприклад «одяг>куртки=1234567». Спрацьовує перше правило, що збіглося.', 'factorial2000-catalog-sync' ); ?></p>
+	</details>
+	<?php
+}
+
+/**
+ * Render one settings field row.
+ *
+ * @param string              $key   Field key.
+ * @param array<string,mixed> $field Field schema.
+ * @param mixed               $value Current value.
  * @return void
  */
 function f2000cs_marketplace_render_field( string $key, array $field, $value ): void {
 	$type = $field['type'] ?? 'text';
-	$name = 'mp[' . $key . ']';
 	$id   = 'f2000cs-mp-' . $key;
 	?>
 	<tr>
 		<th scope="row"><label for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( (string) ( $field['label'] ?? $key ) ); ?></label></th>
 		<td>
-			<?php if ( 'checkbox' === $type ) : ?>
-				<input type="hidden" name="<?php echo esc_attr( $name ); ?>" value="0">
-				<label><input type="checkbox" id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $name ); ?>" value="1" <?php checked( '1', (string) $value ); ?>> <?php esc_html_e( 'Увімкнено', 'factorial2000-catalog-sync' ); ?></label>
-			<?php elseif ( 'textarea' === $type ) : ?>
-				<textarea id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $name ); ?>" rows="4" class="large-text code"><?php echo esc_textarea( (string) $value ); ?></textarea>
-			<?php elseif ( 'number' === $type ) : ?>
-				<input type="number" id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" class="small-text" min="<?php echo esc_attr( (string) ( $field['min'] ?? 0 ) ); ?>" max="<?php echo esc_attr( (string) ( $field['max'] ?? '' ) ); ?>">
-			<?php elseif ( 'select' === $type ) : ?>
-				<select id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $name ); ?>">
-					<?php foreach ( (array) ( $field['options'] ?? array() ) as $option => $label ) : ?>
-						<option value="<?php echo esc_attr( (string) $option ); ?>" <?php selected( (string) $value, (string) $option ); ?>><?php echo esc_html( (string) $label ); ?></option>
-					<?php endforeach; ?>
-				</select>
-			<?php else : ?>
-				<input type="<?php echo 'url' === $type ? 'url' : 'text'; ?>" id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" class="regular-text">
-			<?php endif; ?>
-			<?php if ( ! empty( $field['description'] ) ) : ?>
-				<p class="description"><?php echo esc_html( (string) $field['description'] ); ?></p>
-			<?php endif; ?>
+			<?php
+			if ( 'preset' === $type ) {
+				f2000cs_marketplace_render_preset( $key, $field, $value );
+			} elseif ( 'pairs' === $type ) {
+				f2000cs_marketplace_render_pairs( $key, $field, $value );
+			} elseif ( 'category_map' === $type ) {
+				f2000cs_marketplace_render_category_map( $key, $field, $value );
+			} elseif ( 'checkbox' === $type ) {
+				?>
+				<input type="hidden" name="mp[<?php echo esc_attr( $key ); ?>]" value="0">
+				<label><input type="checkbox" id="<?php echo esc_attr( $id ); ?>" name="mp[<?php echo esc_attr( $key ); ?>]" value="1" <?php checked( '1', (string) $value ); ?>> <?php echo esc_html( (string) ( $field['checkbox'] ?? __( 'Увімкнено', 'factorial2000-catalog-sync' ) ) ); ?></label>
+				<?php
+			} elseif ( 'textarea' === $type ) {
+				?>
+				<textarea id="<?php echo esc_attr( $id ); ?>" name="mp[<?php echo esc_attr( $key ); ?>]" rows="4" class="large-text code"><?php echo esc_textarea( (string) $value ); ?></textarea>
+				<?php
+			} elseif ( 'number' === $type ) {
+				?>
+				<input type="number" id="<?php echo esc_attr( $id ); ?>" name="mp[<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( (string) $value ); ?>" class="small-text" min="<?php echo esc_attr( (string) ( $field['min'] ?? 0 ) ); ?>" max="<?php echo esc_attr( (string) ( $field['max'] ?? '' ) ); ?>">
+				<?php
+			} else {
+				?>
+				<input type="<?php echo 'url' === $type ? 'url' : 'text'; ?>" id="<?php echo esc_attr( $id ); ?>" name="mp[<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( (string) $value ); ?>" class="regular-text">
+				<?php
+			}
+
+			f2000cs_marketplace_field_description( $field );
+			?>
 		</td>
 	</tr>
 	<?php
@@ -133,6 +280,7 @@ function f2000cs_marketplaces_page() {
 		$result   = Marketplace_Job::last_result( $id );
 		$running  = Marketplace_Job::state( $id );
 		$labels   = f2000cs_marketplace_schedule_labels();
+		$fields   = $feed->fields();
 		?>
 
 		<div class="card" style="max-width:none">
@@ -215,10 +363,10 @@ function f2000cs_marketplaces_page() {
 			<input type="hidden" name="feed" value="<?php echo esc_attr( $id ); ?>">
 			<?php wp_nonce_field( 'f2000cs_marketplace_save', 'f2000cs_marketplace_nonce' ); ?>
 
-			<h2><?php esc_html_e( 'Налаштування', 'factorial2000-catalog-sync' ); ?></h2>
+			<h2><?php esc_html_e( 'Оновлення вигрузки', 'factorial2000-catalog-sync' ); ?></h2>
 			<table class="form-table" role="presentation">
 				<tr>
-					<th scope="row"><label for="f2000cs-mp-schedule"><?php esc_html_e( 'Автоматичне оновлення', 'factorial2000-catalog-sync' ); ?></label></th>
+					<th scope="row"><label for="f2000cs-mp-schedule"><?php esc_html_e( 'Автоматично', 'factorial2000-catalog-sync' ); ?></label></th>
 					<td>
 						<select id="f2000cs-mp-schedule" name="mp[schedule]">
 							<?php foreach ( $labels as $value => $label ) : ?>
@@ -228,15 +376,66 @@ function f2000cs_marketplaces_page() {
 						<p class="description"><?php esc_html_e( 'Файл перегенеровується у фоні через WP-Cron; поки триває генерація, маркетплейс бачить попередній файл.', 'factorial2000-catalog-sync' ); ?></p>
 					</td>
 				</tr>
-				<?php foreach ( $feed->fields() as $key => $field ) : ?>
-					<?php f2000cs_marketplace_render_field( (string) $key, $field, $settings[ $key ] ?? '' ); ?>
-				<?php endforeach; ?>
 			</table>
+
+			<?php foreach ( $feed->groups() as $group => $title ) : ?>
+				<?php
+				$in_group = array_filter(
+					$fields,
+					static function ( $field ) use ( $group ) {
+						return ( $field['group'] ?? 'basic' ) === $group;
+					}
+				);
+
+				if ( ! $in_group ) {
+					continue;
+				}
+				?>
+				<h2><?php echo esc_html( $title ); ?></h2>
+				<table class="form-table" role="presentation">
+					<?php foreach ( $in_group as $key => $field ) : ?>
+						<?php f2000cs_marketplace_render_field( (string) $key, $field, $settings[ $key ] ?? '' ); ?>
+					<?php endforeach; ?>
+				</table>
+			<?php endforeach; ?>
 
 			<?php submit_button( __( 'Зберегти налаштування', 'factorial2000-catalog-sync' ) ); ?>
 		</form>
 	</div>
 	<?php
+}
+
+/**
+ * Collect the posted form into the raw array the feed sanitizes.
+ *
+ * Preset fields post a select and an optional custom text; repeaters post rows;
+ * the category table posts one id per category plus a box of custom rules.
+ *
+ * @param \F2000CS\Marketplace_Feed $feed Feed.
+ * @return array<string,mixed>
+ */
+function f2000cs_marketplace_collect_post( $feed ): array {
+	// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified by the caller; every value is sanitized by the feed schema (Marketplace_Registry::save_settings()).
+	$raw             = isset( $_POST['mp'] ) && is_array( $_POST['mp'] ) ? wp_unslash( $_POST['mp'] ) : array();
+	$raw['__custom'] = isset( $_POST['mp_custom'] ) && is_array( $_POST['mp_custom'] ) ? wp_unslash( $_POST['mp_custom'] ) : array();
+	$raw['__rows']   = isset( $_POST['mp_rows'] ) && is_array( $_POST['mp_rows'] ) ? wp_unslash( $_POST['mp_rows'] ) : array();
+	$map             = isset( $_POST['mp_map'] ) && is_array( $_POST['mp_map'] ) ? wp_unslash( $_POST['mp_map'] ) : array();
+	$extra           = isset( $_POST['mp_extra'] ) && is_array( $_POST['mp_extra'] ) ? wp_unslash( $_POST['mp_extra'] ) : array();
+	// phpcs:enable
+
+	foreach ( $feed->fields() as $key => $field ) {
+		if ( 'category_map' !== ( $field['type'] ?? '' ) ) {
+			continue;
+		}
+
+		$raw[ $key ] = Marketplace_Form::build_rules(
+			isset( $map[ $key ] ) && is_array( $map[ $key ] ) ? array_map( 'strval', $map[ $key ] ) : array(),
+			Marketplace_Form::load_categories(),
+			isset( $extra[ $key ] ) ? (string) $extra[ $key ] : ''
+		);
+	}
+
+	return $raw;
 }
 
 /**
@@ -257,16 +456,14 @@ function f2000cs_marketplace_handle_save() {
 		wp_die( esc_html__( 'Вигрузка на маркетплейси доступна лише у Pro версії.', 'factorial2000-catalog-sync' ) );
 	}
 
-	$id = isset( $_POST['feed'] ) ? sanitize_key( wp_unslash( $_POST['feed'] ) ) : '';
+	$id   = isset( $_POST['feed'] ) ? sanitize_key( wp_unslash( $_POST['feed'] ) ) : '';
+	$feed = Marketplace_Registry::get( $id );
 
-	if ( ! Marketplace_Registry::get( $id ) ) {
+	if ( ! $feed ) {
 		wp_die( esc_html__( 'Невідомий маркетплейс.', 'factorial2000-catalog-sync' ) );
 	}
 
-	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Every field is sanitized by the feed schema in Marketplace_Registry::save_settings().
-	$raw = isset( $_POST['mp'] ) && is_array( $_POST['mp'] ) ? wp_unslash( $_POST['mp'] ) : array();
-
-	Marketplace_Registry::save_settings( $id, $raw );
+	Marketplace_Registry::save_settings( $id, f2000cs_marketplace_collect_post( $feed ) );
 	Marketplace_Job::reschedule( $id );
 
 	add_settings_error( 'f2000cs_marketplace', 'saved', __( 'Налаштування збережено.', 'factorial2000-catalog-sync' ), 'updated' );
