@@ -15,6 +15,11 @@ defined( 'ABSPATH' ) || exit;
  */
 class XML_Stock_Updater {
 	/**
+	 * Post meta set on products the plugin drafted because they vanished from the feed.
+	 */
+	const AUTO_DRAFT_META = '_f2000cs_auto_drafted';
+
+	/**
 	 * URL for fetching XML data.
 	 *
 	 * @var string
@@ -500,6 +505,7 @@ class XML_Stock_Updater {
 		$updated_qty          = 0;
 		$not_found            = 0;
 		$skipped_unchanged    = 0; // Count of products where nothing changed.
+		$republished          = 0; // Products the plugin drafted earlier that are back in the feed.
 
 		$batches     = array_chunk( $updates, $this->batch_size, true );
 		$batch_count = count( $batches );
@@ -539,6 +545,13 @@ class XML_Stock_Updater {
 					}
 
 					$changes_made = false;
+
+					// A product this plugin drafted because it vanished from the feed comes back
+					// as soon as the feed lists it again (before any stock/price write below).
+					if ( $this->maybe_republish_product( $product ) ) {
+						++$republished;
+						$changes_made = true;
+					}
 
 					// Quantity must be updated BEFORE stock status and price:
 					// WC_Product::save() writes every prop from the in-memory
@@ -609,7 +622,9 @@ class XML_Stock_Updater {
 				"• Оновлено цін: %d\n" .
 				"• Оновлено кількість: %d\n" .
 				"• Пропущено (без змін): %d\n" .
-				'• Не знайдено товарів: %d',
+				"• Не знайдено товарів: %d
+" .
+				'• Повернуто в публікацію: %d',
 				$total,
 				$processed,
 				$updated_in_stock,
@@ -617,7 +632,8 @@ class XML_Stock_Updater {
 				$updated_price,
 				$updated_qty,
 				$skipped_unchanged,
-				$not_found
+				$not_found,
+				$republished
 			)
 		);
 
@@ -995,6 +1011,55 @@ class XML_Stock_Updater {
 	}
 
 	/**
+	 * Publish a product again when it returns to the feed after the plugin drafted it.
+	 *
+	 * Only products carrying the AUTO_DRAFT_META flag are touched, so products an
+	 * administrator drafted on purpose stay drafts.
+	 *
+	 * @param \WC_Product $product Product found in the feed.
+	 * @return bool Whether the product was published again.
+	 */
+	private function maybe_republish_product( $product ) {
+		if ( 'draft' !== $product->get_status() ) {
+			return false;
+		}
+
+		$product_id = (int) $product->get_id();
+
+		if ( ! get_post_meta( $product_id, self::AUTO_DRAFT_META, true ) ) {
+			return false;
+		}
+
+		/**
+		 * Whether products drafted by the plugin come back when the feed lists them again.
+		 *
+		 * @param bool        $republish  Default true.
+		 * @param \WC_Product $product    Product.
+		 */
+		if ( ! apply_filters( 'f2000cs_republish_returned_products', true, $product ) ) {
+			return false;
+		}
+
+		$result = wp_update_post(
+			array(
+				'ID'          => $product_id,
+				'post_status' => 'publish',
+			),
+			true
+		);
+
+		if ( is_wp_error( $result ) ) {
+			f2000cs_log( sprintf( 'Failed to republish product #%d: %s', $product_id, $result->get_error_message() ), 'error' );
+			return false;
+		}
+
+		delete_post_meta( $product_id, self::AUTO_DRAFT_META );
+		wc_delete_product_transients( $product_id );
+
+		return true;
+	}
+
+	/**
 	 * Convert missing products to draft status.
 	 *
 	 * @param array $missing_products Array of missing product details.
@@ -1012,6 +1077,12 @@ class XML_Stock_Updater {
 					if ( $type === 'variable' || $type === 'variation' ) {
 						continue;
 					}
+
+					// Already a draft (drafted earlier, or by the admin): leave it alone and
+					// do not re-count it on every run.
+					if ( 'draft' === $product_obj->get_status() ) {
+						continue;
+					}
 				}
 
 				$result = wp_update_post(
@@ -1024,6 +1095,10 @@ class XML_Stock_Updater {
 
 				if ( ! is_wp_error( $result ) ) {
 					++$converted_count;
+
+					// Remember that the plugin (not the admin) drafted it, so it can be
+					// published again when the product returns to the feed.
+					update_post_meta( $product->ID, self::AUTO_DRAFT_META, time() );
 
 					wc_delete_product_transients( $product->ID );
 				} else {

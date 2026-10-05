@@ -250,6 +250,82 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * Build a minimal WC_Product stand-in for republish tests.
+	 *
+	 * @param int    $id     Product ID.
+	 * @param string $status Post status.
+	 * @return object
+	 */
+	private function fake_product( $id, $status ) {
+		return new class( $id, $status ) {
+			private $id;
+			private $status;
+
+			public function __construct( $id, $status ) {
+				$this->id     = $id;
+				$this->status = $status;
+			}
+
+			public function get_id() {
+				return $this->id;
+			}
+
+			public function get_status() {
+				return $this->status;
+			}
+		};
+	}
+
+	/**
+	 * A product the plugin drafted comes back when the feed lists it again.
+	 *
+	 * @return void
+	 */
+	public function test_republishes_product_drafted_by_the_plugin() {
+		update_post_meta( 42, XML_Stock_Updater::AUTO_DRAFT_META, 1700000000 );
+
+		$updater = new XML_Stock_Updater( 'x.xml', 'P_' );
+		$result  = F2000CS_Test_Reflection::invoke( $updater, 'maybe_republish_product', array( $this->fake_product( 42, 'draft' ) ) );
+
+		$this->assertTrue( $result );
+		$this->assertSame( array( array( 'ID' => 42, 'post_status' => 'publish' ) ), F2000CS_Test_State::$updated_posts );
+		$this->assertEmpty( get_post_meta( 42, XML_Stock_Updater::AUTO_DRAFT_META, true ), 'The marker must be cleared after republishing' );
+	}
+
+	/**
+	 * Products an administrator drafted (no marker) are never published automatically.
+	 *
+	 * @return void
+	 */
+	public function test_does_not_republish_manually_drafted_or_published_products() {
+		$updater = new XML_Stock_Updater( 'x.xml', 'P_' );
+
+		$manual = F2000CS_Test_Reflection::invoke( $updater, 'maybe_republish_product', array( $this->fake_product( 7, 'draft' ) ) );
+		update_post_meta( 8, XML_Stock_Updater::AUTO_DRAFT_META, 1700000000 );
+		$live = F2000CS_Test_Reflection::invoke( $updater, 'maybe_republish_product', array( $this->fake_product( 8, 'publish' ) ) );
+
+		$this->assertFalse( $manual );
+		$this->assertFalse( $live );
+		$this->assertSame( array(), F2000CS_Test_State::$updated_posts );
+	}
+
+	/**
+	 * The behavior can be switched off with a filter.
+	 *
+	 * @return void
+	 */
+	public function test_republish_can_be_disabled_by_filter() {
+		update_post_meta( 9, XML_Stock_Updater::AUTO_DRAFT_META, 1700000000 );
+		add_filter( 'f2000cs_republish_returned_products', '__return_false' );
+
+		$updater = new XML_Stock_Updater( 'x.xml', 'P_' );
+		$result  = F2000CS_Test_Reflection::invoke( $updater, 'maybe_republish_product', array( $this->fake_product( 9, 'draft' ) ) );
+
+		$this->assertFalse( $result );
+		$this->assertSame( array(), F2000CS_Test_State::$updated_posts );
+	}
+
+	/**
 	 * Missing-product detection reports SKUs present in the DB but absent
 	 * from the XML feed (prefix-filtered).
 	 *

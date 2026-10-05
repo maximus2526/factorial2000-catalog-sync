@@ -129,15 +129,11 @@
 		var offersCount = parseInt(group.variations_count, 10) || 0;
 
 		if (attrInfo.length > 0) {
-			$target.html(
-				'<strong>' +
-					t('variationsWillCreate') +
-					'</strong> ' +
-					offersCount +
-					' (' +
-					attrInfo.join(', ') +
-					')'
-			);
+			// Attribute names come from the supplier feed: insert them as text, never as HTML.
+			$target
+				.empty()
+				.append($('<strong>').text(t('variationsWillCreate')))
+				.append(document.createTextNode(' ' + offersCount + ' (' + attrInfo.join(', ') + ')'));
 		} else {
 			$target
 				.addClass('f2000cs-group-calculated--warning')
@@ -539,9 +535,9 @@
 						);
 						setVisible( $( '#start-import-with-selection' ), true );
 					} else {
-						$('#analysis-status').html(
-							'<p class="f2000cs-status-message--error">' + response.data.message + '</p>'
-						);
+						$('#analysis-status')
+							.empty()
+							.append($('<p>').addClass('f2000cs-status-message--error').text(response.data.message));
 					}
 
 					$button.prop('disabled', false);

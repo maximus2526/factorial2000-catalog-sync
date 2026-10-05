@@ -161,6 +161,13 @@ final class F2000CS_Test_State {
 	public static $post_meta = array();
 
 	/**
+	 * Arguments of every wp_update_post() call.
+	 *
+	 * @var array<int, array>
+	 */
+	public static $updated_posts = array();
+
+	/**
 	 * Reset all state between tests.
 	 *
 	 * Hook registrations are kept: they are installed once at bootstrap
@@ -196,6 +203,7 @@ final class F2000CS_Test_State {
 		self::$queried_object_id   = 0;
 		self::$products            = array();
 		self::$post_meta           = array();
+		self::$updated_posts       = array();
 
 		// Mirror a fresh WP request: no stale globals from previous tests.
 		unset( $GLOBALS['product'] );
@@ -1147,6 +1155,21 @@ if ( ! function_exists( 'wc_get_product' ) ) {
 		$id = (int) $product_id;
 
 		return F2000CS_Test_State::$products[ $id ] ?? null;
+	}
+}
+
+if ( ! function_exists( 'wp_update_post' ) ) {
+	/**
+	 * Records the call; returns the post ID like core does on success.
+	 *
+	 * @param array $postarr  Post data.
+	 * @param bool  $wp_error Whether to return WP_Error.
+	 * @return int
+	 */
+	function wp_update_post( $postarr, $wp_error = false ) {
+		F2000CS_Test_State::$updated_posts[] = $postarr;
+
+		return (int) ( $postarr['ID'] ?? 0 );
 	}
 }
 

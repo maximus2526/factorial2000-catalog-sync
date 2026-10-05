@@ -72,6 +72,19 @@ function f2000cs_uninstall_cleanup() {
 	delete_transient( 'f2000cs_activated' );
 	delete_transient( 'f2000cs_bg_batch_remaining' );
 
+	// Per-session transients (import XML cache, resume checkpoints, export download tokens).
+	global $wpdb;
+	if ( isset( $wpdb ) && is_object( $wpdb ) && method_exists( $wpdb, 'esc_like' ) ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-off uninstall cleanup of this plugin's own transients.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+				$wpdb->esc_like( '_transient_f2000cs_' ) . '%',
+				$wpdb->esc_like( '_transient_timeout_f2000cs_' ) . '%'
+			)
+		);
+	}
+
 	// Private upload dirs created by the plugin.
 	$upload_dir = wp_upload_dir();
 	if ( ! empty( $upload_dir['basedir'] ) ) {

@@ -557,7 +557,9 @@ function f2000cs_resolve_import_xml_source() {
 			return new WP_Error( 'temp_failed', __( 'Не вдалося зберегти тимчасовий XML файл.', 'factorial2000-catalog-sync' ) );
 		}
 
-		$session = $session ? $session : wp_generate_password( 16, false, false );
+		// Lowercase: sanitize_key() lowercases the key on every later request, so a mixed-case
+		// key would not match the transient (case-sensitive with a persistent object cache).
+		$session = $session ? $session : strtolower( wp_generate_password( 16, false, false ) );
 		set_transient( 'f2000cs_import_xml_' . $session, $temp_file, HOUR_IN_SECONDS );
 
 		f2000cs_remember_last_import_from_request();
