@@ -536,6 +536,7 @@ function f2000cs_marketplace_enqueue( $hook ) {
 		'.f2000cs-marketplaces .form-table td table{margin:0}'
 		. '.f2000cs-marketplaces .form-table td table th,.f2000cs-marketplaces .form-table td table td{width:auto;padding:8px 10px;vertical-align:middle;line-height:1.4}'
 		. '.f2000cs-marketplaces .form-table td table input[type=text]{width:100%;max-width:none}'
+		. '.f2000cs-marketplaces .form-table td .f2000cs-mp-cat-table input[type=text]{width:120px}'
 		. '.f2000cs-marketplaces .f2000cs-mp-pairs,.f2000cs-marketplaces .f2000cs-mp-cat-table{table-layout:auto}'
 		. '.f2000cs-marketplaces .f2000cs-mp-custom{margin-left:6px;vertical-align:middle}'
 		. '.f2000cs-marketplaces .f2000cs-mp-custom[hidden]{display:none}'
