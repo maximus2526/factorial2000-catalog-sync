@@ -78,6 +78,9 @@ function f2000cs_docs_page() {
 						</ul>
 					</li>
 					<li>
+						<a href="#marketplaces" class="f2000cs-docs-nav__item is-parent"><?php esc_html_e( 'Маркетплейси', 'factorial2000-catalog-sync' ); ?></a>
+					</li>
+					<li>
 						<a href="#telegram" class="f2000cs-docs-nav__item is-parent"><?php esc_html_e( 'Telegram', 'factorial2000-catalog-sync' ); ?></a>
 					</li>
 					<li>
@@ -350,6 +353,7 @@ function f2000cs_docs_page() {
 							<li><?php esc_html_e( 'прості товари (simple) → статус «Чернетка»;', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'варіації → «Немає в наявності» (батьківський variable не переводиться в чернетку);', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'без SKU-префікса ця перевірка не виконується.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Товар, який плагін сам перевів у «Чернетку», автоматично публікується знову, щойно з’являється у вигрузці (товари, які ви перевели в чернетку вручну, не чіпаються).', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<p><?php esc_html_e( 'Важливо: XML має містити повний каталог. Неповний фід може масово сховати прості товари.', 'factorial2000-catalog-sync' ); ?></p>
 						<div class="f2000cs-docs-note f2000cs-docs-note--warn">
@@ -489,6 +493,25 @@ function f2000cs_docs_page() {
 					<div class="f2000cs-docs-card" id="export-files">
 						<h3><?php esc_html_e( 'Останні згенеровані XML', 'factorial2000-catalog-sync' ); ?></h3>
 						<p><?php esc_html_e( 'На сторінці вигрузки показується список нещодавно створених файлів (фільтр і редактор) із посиланнями для завантаження. Окремих «профілів вигрузки» чи шорткодів для URL немає — беріть пряме посилання з цього списку або з повідомлення після генерації.', 'factorial2000-catalog-sync' ); ?></p>
+					</div>
+				</section>
+
+				<section id="marketplaces" class="f2000cs-docs-section">
+					<h2 class="f2000cs-docs-section__title"><?php esc_html_e( 'Маркетплейси', 'factorial2000-catalog-sync' ); ?> <span class="f2000cs-pro-badge">Pro</span></h2>
+
+					<div class="f2000cs-docs-card" id="marketplaces-prom">
+						<h3><?php esc_html_e( 'Вигрузка товарів WooCommerce на Prom.ua', 'factorial2000-catalog-sync' ); ?></h3>
+						<p><?php esc_html_e( 'Сторінка «Маркетплейси» формує YML-файл із ваших товарів WooCommerce і дає на нього посилання, яке вказується в кабінеті Prom як джерело імпорту. Це зворотний напрям до імпорту з XML постачальника.', 'factorial2000-catalog-sync' ); ?></p>
+						<ul>
+							<li><?php esc_html_e( 'Експортуються лише опубліковані товари з ціною, фото та категорією (інші лічильником «пропущено»). Неопубліковані можна додати окремою опцією.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Варіативні товари перетворюються на різновиди Prom: до трьох характеристик (розмір / колір у пріоритеті), унікальний набір для кожного різновиду; основний товар у вигрузці — це реальний різновид. Групи, у яких Prom не прийняв би однакові набори, пропускаються, а їхні SKU показуються на сторінці.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Бренд береться з таксономії брендів товару, з відповідністю «бренд на сайті=бренд у Prom» і виробником за замовчуванням; код постачальника — з мета-поля f2000cs-updater-vendor (<mpn>).', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'portal_category_id задається за правилами «частина шляху категорії=номер категорії Prom» або за замовчуванням.', 'factorial2000-catalog-sync' ); ?></li>
+						</ul>
+						<p><?php esc_html_e( 'Файл формується частинами (великі каталоги не впираються в ліміт часу PHP) і замінює опублікований лише після успішної перевірки — Prom ніколи не бачить недописаний або порожній файл. Автооновлення — через WP-Cron за розкладом; для сервера: wp f2000cs marketplace build prom.', 'factorial2000-catalog-sync' ); ?></p>
+						<div class="f2000cs-docs-note">
+							<strong><?php esc_html_e( 'Далі:', 'factorial2000-catalog-sync' ); ?></strong> <?php esc_html_e( 'Rozetka та Hotline додаватимуться як окремі вкладки тієї ж сторінки.', 'factorial2000-catalog-sync' ); ?>
+						</div>
 					</div>
 				</section>
 

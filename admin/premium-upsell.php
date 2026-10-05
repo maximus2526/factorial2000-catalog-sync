@@ -54,3 +54,23 @@ if ( ! function_exists( 'f2000cs_export_page' ) ) {
 		echo '</p></div></div>';
 	}
 }
+
+if ( ! function_exists( 'f2000cs_marketplaces_page' ) ) {
+	/**
+	 * Marketplaces page (Pro placeholder): export to Prom.ua and other marketplaces.
+	 *
+	 * @return void
+	 */
+	function f2000cs_marketplaces_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		echo '<div class="wrap">';
+		f2000cs_render_admin_page_title( __( 'Маркетплейси', 'factorial2000-catalog-sync' ) );
+		echo '<div class="notice notice-warning"><p>';
+		echo esc_html__( 'Вигрузка товарів WooCommerce на Prom.ua (далі — Rozetka, Hotline) входить до Pro-версії.', 'factorial2000-catalog-sync' );
+		echo ' <a href="' . esc_url( f2000cs_get_upgrade_url() ) . '">' . esc_html__( 'Оновити до Pro', 'factorial2000-catalog-sync' ) . '</a>';
+		echo '</p></div></div>';
+	}
+}

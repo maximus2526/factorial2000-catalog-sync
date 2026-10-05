@@ -58,6 +58,12 @@ require_once __DIR__ . '/../includes/trait-xml-rebuilder.php';
 require_once __DIR__ . '/../includes/class-xml-export-filter.php';
 require_once __DIR__ . '/../includes/class-xml-editor.php';
 require_once __DIR__ . '/../includes/class-image-processor.php';
+foreach ( array( 'marketplace-text', 'marketplace-category-tree', 'marketplace-feed', 'prom-variations', 'prom-feed', 'marketplace-registry', 'marketplace-storage' ) as $f2000cs_mp_file ) {
+	require_once __DIR__ . '/../includes/marketplace/class-' . $f2000cs_mp_file . '.php';
+}
+require_once __DIR__ . '/../includes/marketplace/interface-marketplace-unit-source.php';
+require_once __DIR__ . '/../includes/marketplace/class-marketplace-wc-source.php';
+require_once __DIR__ . '/../includes/marketplace/class-marketplace-job.php';
 require_once __DIR__ . '/../includes/class-frontend-display.php';
 
 if ( ! defined( 'F2000CS_VERSION' ) ) {

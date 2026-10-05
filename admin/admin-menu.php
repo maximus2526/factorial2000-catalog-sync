@@ -54,6 +54,20 @@ function f2000cs_add_admin_menu() {
 		'f2000cs_export_page'
 	);
 
+	$marketplaces_title = __( 'Маркетплейси', 'factorial2000-catalog-sync' );
+	if ( function_exists( 'f2000cs_is_pro' ) && ! f2000cs_is_pro() ) {
+		$marketplaces_title .= ' <span class="f2000cs-pro-badge">Pro</span>';
+	}
+
+	add_submenu_page(
+		'f2000cs-update',
+		__( 'Маркетплейси', 'factorial2000-catalog-sync' ),
+		$marketplaces_title,
+		'manage_options',
+		'f2000cs-marketplaces',
+		'f2000cs_marketplaces_page'
+	);
+
 	add_submenu_page(
 		'f2000cs-update',
 		__( 'Документація', 'factorial2000-catalog-sync' ),

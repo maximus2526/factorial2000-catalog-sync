@@ -40,6 +40,7 @@ final class F2000CS_Unit_AdminSmokeTest extends F2000CS_Unit_TestCase {
 		require_once $this->admin_dir . '/page-export.php';
 		require_once $this->admin_dir . '/xml-editor.php';
 		require_once $this->admin_dir . '/images-settings.php';
+		require_once $this->admin_dir . '/page-marketplaces.php';
 		require_once $this->admin_dir . '/admin-assets.php';
 
 		$GLOBALS['wp_settings_sections'] = array();

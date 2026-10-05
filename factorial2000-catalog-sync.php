@@ -12,7 +12,7 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       factorial2000-catalog-sync
  *
- * @fs_premium_only /includes/class-image-processor.php, /includes/class-xml-editor.php, /includes/class-xml-export-filter.php, /includes/trait-xml-rebuilder.php, /includes/parsers/class-fields-updater.php, /admin/xml-editor.php, /admin/images-settings.php, /admin/page-export.php, /assets/js/admin-xml-editor.js
+ * @fs_premium_only /includes/class-image-processor.php, /includes/class-xml-editor.php, /includes/class-xml-export-filter.php, /includes/trait-xml-rebuilder.php, /includes/parsers/class-fields-updater.php, /admin/xml-editor.php, /admin/images-settings.php, /admin/page-export.php, /assets/js/admin-xml-editor.js, /includes/marketplace/, /admin/page-marketplaces.php, /assets/js/admin-marketplaces.js
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -59,6 +59,20 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 		require_once F2000CS_PATH . 'admin/xml-editor.php';
 		require_once F2000CS_PATH . 'admin/images-settings.php';
 		require_once F2000CS_PATH . 'admin/page-export.php';
+
+		// Marketplace feeds (Prom.ua; Rozetka / Hotline can be added through Marketplace_Registry).
+		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-text.php';
+		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-category-tree.php';
+		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-feed.php';
+		require_once F2000CS_PATH . 'includes/marketplace/class-prom-variations.php';
+		require_once F2000CS_PATH . 'includes/marketplace/class-prom-feed.php';
+		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-registry.php';
+		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-storage.php';
+		require_once F2000CS_PATH . 'includes/marketplace/interface-marketplace-unit-source.php';
+		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-wc-source.php';
+		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-job.php';
+		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-cli.php';
+		require_once F2000CS_PATH . 'admin/page-marketplaces.php';
 	}
 	require_once F2000CS_PATH . 'admin/premium-upsell.php';
 

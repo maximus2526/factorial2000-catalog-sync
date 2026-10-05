@@ -1,0 +1,1017 @@
+<?php
+/**
+ * Prom.ua YML feed.
+ *
+ * Port of wc_to_prom_yml.py: WooCommerce product rows → Prom YML offers,
+ * including Prom's variation ("різновиди") rules (see Prom_Variations).
+ *
+ * @package Factorial2000_Catalog_Sync
+ */
+
+namespace F2000CS;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Prom.ua feed.
+ */
+class Prom_Feed extends Marketplace_Feed {
+
+	/**
+	 * Machine id.
+	 *
+	 * @return string
+	 */
+	public function id(): string {
+		return 'prom';
+	}
+
+	/**
+	 * Label.
+	 *
+	 * @return string
+	 */
+	public function label(): string {
+		return 'Prom.ua';
+	}
+
+	/**
+	 * Description.
+	 *
+	 * @return string
+	 */
+	public function description(): string {
+		return __( 'YML-вигрузка товарів WooCommerce для Prom.ua: основні товари, різновиди (розмір / колір), фото, характеристики, бренд, артикул. Посилання на готовий файл вказується в кабінеті Prom як джерело імпорту.', 'factorial2000-catalog-sync' );
+	}
+
+	/**
+	 * Settings schema.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function fields(): array {
+		$site = function_exists( 'home_url' ) ? home_url() : '';
+		$cur  = function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'UAH';
+		$name = function_exists( 'get_bloginfo' ) ? (string) get_bloginfo( 'name' ) : '';
+
+		return array(
+			'shop_name'                    => array(
+				'type'    => 'text',
+				'label'   => __( 'Назва магазину', 'factorial2000-catalog-sync' ),
+				'default' => $name,
+			),
+			'company_name'                 => array(
+				'type'    => 'text',
+				'label'   => __( 'Назва компанії', 'factorial2000-catalog-sync' ),
+				'default' => $name,
+			),
+			'site_url'                     => array(
+				'type'    => 'url',
+				'label'   => __( 'Адреса сайту', 'factorial2000-catalog-sync' ),
+				'default' => $site,
+			),
+			'currency'                     => array(
+				'type'        => 'text',
+				'label'       => __( 'Валюта', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Код валюти цін у вигрузці (UAH).', 'factorial2000-catalog-sync' ),
+				'default'     => $cur ? $cur : 'UAH',
+			),
+			'max_pictures'                 => array(
+				'type'        => 'number',
+				'label'       => __( 'Макс. фото на товар', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Prom приймає до 10 фото.', 'factorial2000-catalog-sync' ),
+				'default'     => 10,
+				'min'         => 1,
+				'max'         => 20,
+			),
+			'include_unpublished'          => array(
+				'type'        => 'checkbox',
+				'label'       => __( 'Включати неопубліковані товари', 'factorial2000-catalog-sync' ),
+				'description' => __( 'За замовчуванням у вигрузку потрапляють лише опубліковані.', 'factorial2000-catalog-sync' ),
+				'default'     => '0',
+			),
+			'default_vendor'               => array(
+				'type'        => 'text',
+				'label'       => __( 'Виробник за замовчуванням', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Підставляється, коли у товара немає бренду.', 'factorial2000-catalog-sync' ),
+				'default'     => '',
+			),
+			'vendors_fallback_to_default'  => array(
+				'type'        => 'checkbox',
+				'label'       => __( 'Завжди використовувати виробника за замовчуванням', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Підставити його навіть коли бренд товара відомий (обережно).', 'factorial2000-catalog-sync' ),
+				'default'     => '0',
+			),
+			'vendor_aliases'               => array(
+				'type'        => 'textarea',
+				'label'       => __( 'Відповідність брендів', 'factorial2000-catalog-sync' ),
+				'description' => __( 'По одному правилу в рядку: бренд на сайті=бренд у Prom (назва має збігатися з довідником Prom).', 'factorial2000-catalog-sync' ),
+				'default'     => '',
+			),
+			'description_fallback_snippet' => array(
+				'type'        => 'text',
+				'label'       => __( 'Текст для порожнього опису', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Додається до назви, якщо в товара немає опису.', 'factorial2000-catalog-sync' ),
+				'default'     => '',
+			),
+			'default_portal_category_id'   => array(
+				'type'        => 'text',
+				'label'       => __( 'Номер категорії на порталі Prom (за замовчуванням)', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Записується в portal_category_id усіх товарів, якщо не спрацювало жодне правило нижче.', 'factorial2000-catalog-sync' ),
+				'default'     => '',
+			),
+			'portal_category_rules'        => array(
+				'type'        => 'textarea',
+				'label'       => __( 'Категорії порталу за назвою категорії', 'factorial2000-catalog-sync' ),
+				'description' => __( 'По одному правилу в рядку: частина шляху категорії WooCommerce=номер категорії Prom, наприклад «Взуття > Кросівки=1234567».', 'factorial2000-catalog-sync' ),
+				'default'     => '',
+			),
+			'mpn_meta_key'                 => array(
+				'type'        => 'text',
+				'label'       => __( 'Мета-поле з кодом постачальника (MPN)', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Значення потрапляє в <mpn>. Плагін синхронізації записує код у f2000cs-updater-vendor.', 'factorial2000-catalog-sync' ),
+				'default'     => 'f2000cs-updater-vendor',
+			),
+		);
+	}
+
+	// ------------------------------------------------------------------
+	// Document
+	// ------------------------------------------------------------------
+
+	/**
+	 * XML head (declaration → currencies).
+	 *
+	 * @param array<string,mixed> $settings Settings.
+	 * @return string
+	 */
+	public function head( array $settings ): string {
+		$s = $this->with_defaults( $settings );
+
+		return '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
+			. '<!DOCTYPE yml_catalog SYSTEM "shops.dtd">' . "\n"
+			. "<yml_catalog>\n"
+			. "  <shop>\n"
+			. '    <name>' . Marketplace_Text::xml_text( $s['shop_name'] ) . "</name>\n"
+			. '    <company>' . Marketplace_Text::xml_text( $s['company_name'] ) . "</company>\n"
+			. '    <url>' . Marketplace_Text::xml_text( $s['site_url'] ) . "</url>\n"
+			. "    <currencies>\n"
+			. '      <currency id="' . Marketplace_Text::xml_attr( $s['currency'] ) . '" rate="1" />' . "\n"
+			. "    </currencies>\n";
+	}
+
+	/**
+	 * XML tail.
+	 *
+	 * @return string
+	 */
+	public function tail(): string {
+		return "    </offers>\n  </shop>\n</yml_catalog>\n";
+	}
+
+	// ------------------------------------------------------------------
+	// Row helpers (ported)
+	// ------------------------------------------------------------------
+
+	/**
+	 * Price and regular price of a row.
+	 *
+	 * @param array<string,string> $row Row.
+	 * @return array{0:?float,1:?float}
+	 */
+	public static function pick_price( array $row ): array {
+		$sale    = Marketplace_Text::parse_float( $row['Sale price'] ?? '' );
+		$regular = Marketplace_Text::parse_float( $row['Regular price'] ?? '' );
+
+		if ( null !== $sale && $sale > 0 ) {
+			return array( $sale, $regular );
+		}
+
+		if ( null !== $regular && $regular > 0 ) {
+			return array( $regular, $regular );
+		}
+
+		return array( null, $regular );
+	}
+
+	/**
+	 * Whether a row is purchasable (stock, quantity or backorders).
+	 *
+	 * @param array<string,string> $row Row.
+	 * @return bool
+	 */
+	public static function row_available( array $row ): bool {
+		$in_stock = Marketplace_Text::parse_bool( $row['In stock?'] ?? '' );
+		$count    = Marketplace_Text::parse_float( $row['Stock'] ?? '' );
+		$count    = null === $count ? 0.0 : $count;
+
+		if ( $in_stock || $count > 0 ) {
+			return true;
+		}
+
+		$bo = Marketplace_Text::lower( Marketplace_Text::clean( $row['Backorders allowed?'] ?? '' ) );
+
+		return in_array( $bo, array( '1', 'true', 'yes', 'notify' ), true );
+	}
+
+	/**
+	 * Cheapest price among children.
+	 *
+	 * @param array<int, array<string,string>> $children Rows.
+	 * @return array{0:?float,1:?float}
+	 */
+	public static function min_price_from_children( array $children ): array {
+		$best_price   = null;
+		$best_regular = null;
+
+		foreach ( $children as $row ) {
+			list( $price, $regular ) = self::pick_price( $row );
+
+			if ( null === $price ) {
+				continue;
+			}
+
+			if ( null === $best_price || $price < $best_price ) {
+				$best_price   = $price;
+				$best_regular = $regular;
+			}
+		}
+
+		return array( $best_price, $best_regular );
+	}
+
+	/**
+	 * Any child purchasable?
+	 *
+	 * @param array<int, array<string,string>> $children Rows.
+	 * @return bool
+	 */
+	public static function any_child_available( array $children ): bool {
+		foreach ( $children as $row ) {
+			if ( self::row_available( $row ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Drop raw line breaks from HTML: Prom would show them as literal \n.
+	 *
+	 * @param string $raw HTML.
+	 * @return string
+	 */
+	public static function normalize_description_html( $raw ): string {
+		$raw = (string) $raw;
+
+		if ( '' === $raw ) {
+			return $raw;
+		}
+
+		$text = str_replace( array( "\r\n", "\r", "\n" ), ' ', $raw );
+		$text = str_replace( array( '\\n', '\\r' ), ' ', $text );
+		$text = (string) preg_replace( '/>\s+</u', '><', $text );
+		$text = (string) preg_replace( '/\s+/u', ' ', $text );
+
+		return Marketplace_Text::clean( $text );
+	}
+
+	/**
+	 * Whether an HTML fragment contains visible text.
+	 *
+	 * @param string $fragment HTML.
+	 * @return bool
+	 */
+	public static function html_text_meaningful( $fragment ): bool {
+		if ( '' === Marketplace_Text::clean( $fragment ) ) {
+			return false;
+		}
+
+		$text = (string) preg_replace( '/\s+/u', ' ', Marketplace_Text::strip_tags_to_space( $fragment ) );
+
+		return '' !== Marketplace_Text::clean( $text );
+	}
+
+	/**
+	 * Description: own, own short, parent's, parent's short, else a fallback line.
+	 *
+	 * @param array<string,string>      $row          Row.
+	 * @param array<string,string>|null $parent_data       Parent row.
+	 * @param string                    $product_name Product name.
+	 * @param array<string,mixed>       $settings     Settings.
+	 * @return string
+	 */
+	public static function pick_description_html( array $row, $parent_data, $product_name, array $settings ): string {
+		$chain = array(
+			array( 'Description', $row ),
+			array( 'Short description', $row ),
+		);
+
+		if ( $parent_data ) {
+			$chain[] = array( 'Description', $parent_data );
+			$chain[] = array( 'Short description', $parent_data );
+		}
+
+		foreach ( $chain as $item ) {
+			$raw = Marketplace_Text::clean( $item[1][ $item[0] ] ?? '' );
+
+			if ( self::html_text_meaningful( $raw ) ) {
+				return self::normalize_description_html( $raw );
+			}
+		}
+
+		$extra = (string) ( $settings['description_fallback_snippet'] ?? '' );
+		$inner = '' !== $extra
+			? Marketplace_Text::html_escape( $product_name ) . '. ' . Marketplace_Text::html_escape( $extra )
+			: Marketplace_Text::html_escape( $product_name );
+
+		return '<p>' . $inner . '</p>';
+	}
+
+	/**
+	 * Brand of a row (own, parent's, then "Виробник"/"Бренд" attributes).
+	 *
+	 * @param array<string,string>      $row    Row.
+	 * @param array<string,string>|null $parent_data Parent row.
+	 * @return string
+	 */
+	public static function extract_vendor( array $row, $parent_data = null ): string {
+		$vendor = Marketplace_Text::clean( $row['Brands'] ?? '' );
+
+		if ( '' !== $vendor ) {
+			return $vendor;
+		}
+
+		if ( $parent_data ) {
+			$parent_vendor = Marketplace_Text::clean( $parent_data['Brands'] ?? '' );
+
+			if ( '' !== $parent_vendor ) {
+				return $parent_vendor;
+			}
+		}
+
+		foreach ( array_filter( array( $row, $parent_data ) ) as $source ) {
+			for ( $idx = 1; $idx <= 13; $idx++ ) {
+				$name  = Marketplace_Text::clean( $source[ "Attribute {$idx} name" ] ?? '' );
+				$value = Marketplace_Text::clean( $source[ "Attribute {$idx} value(s)" ] ?? '' );
+
+				if ( in_array( Marketplace_Text::lower( $name ), array( 'виробник', 'бренд' ), true ) && '' !== $value ) {
+					return $value;
+				}
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Brand as it must appear in Prom (aliases, default).
+	 *
+	 * @param string              $extracted Brand from the product.
+	 * @param array<string,mixed> $settings  Settings.
+	 * @return string
+	 */
+	public static function apply_vendor_for_prom( $extracted, array $settings ): string {
+		$v       = Marketplace_Text::clean( $extracted );
+		$aliases = self::parse_pairs( (string) ( $settings['vendor_aliases'] ?? '' ) );
+		$default = Marketplace_Text::clean( $settings['default_vendor'] ?? '' );
+
+		if ( '' !== $v ) {
+			if ( isset( $aliases[ $v ] ) ) {
+				return Marketplace_Text::clean( $aliases[ $v ] );
+			}
+
+			$lv = Marketplace_Text::lower( $v );
+
+			foreach ( $aliases as $src => $tgt ) {
+				if ( Marketplace_Text::lower( Marketplace_Text::clean( (string) $src ) ) === $lv ) {
+					return Marketplace_Text::clean( $tgt );
+				}
+			}
+
+			if ( '1' === (string) ( $settings['vendors_fallback_to_default'] ?? '0' ) && '' !== $default ) {
+				return $default;
+			}
+
+			return $v;
+		}
+
+		return $default;
+	}
+
+	/**
+	 * Supplier code (MPN) of a row or its parent.
+	 *
+	 * @param array<string,string>      $row    Row.
+	 * @param array<string,string>|null $parent_data Parent row.
+	 * @return string
+	 */
+	public static function extract_mpn( array $row, $parent_data = null ): string {
+		foreach ( array( 'Meta: mpn', 'Meta: prom-xml-updater-vendor', 'meta:prom-xml-updater-vendor', 'prom-xml-updater-vendor' ) as $key ) {
+			$val = Marketplace_Text::clean( $row[ $key ] ?? '' );
+
+			if ( '' !== $val ) {
+				return $val;
+			}
+		}
+
+		if ( null !== $parent_data ) {
+			return self::extract_mpn( $parent_data, null );
+		}
+
+		return '';
+	}
+
+	/**
+	 * Portal category id from rules (substring of the category path), else the default.
+	 *
+	 * @param array<int, array<int, string>> $paths    Category paths.
+	 * @param array<string,mixed>            $settings Settings.
+	 * @return string
+	 */
+	public static function portal_category_for_paths( array $paths, array $settings ): string {
+		$blob = '';
+
+		foreach ( $paths as $path ) {
+			$segments = array();
+
+			foreach ( $path as $seg ) {
+				$seg = Marketplace_Text::clean( $seg );
+
+				if ( '' !== $seg ) {
+					$segments[] = Marketplace_Text::lower( $seg );
+				}
+			}
+
+			$blob .= ' ' . implode( '>', $segments );
+		}
+
+		foreach ( self::parse_pairs( (string) ( $settings['portal_category_rules'] ?? '' ) ) as $sub => $cid ) {
+			$sub = Marketplace_Text::lower( Marketplace_Text::clean( (string) $sub ) );
+			$cid = Marketplace_Text::clean( $cid );
+
+			if ( '' !== $sub && '' !== $cid && false !== strpos( $blob, $sub ) ) {
+				return $cid;
+			}
+		}
+
+		return Marketplace_Text::clean( $settings['default_portal_category_id'] ?? '' );
+	}
+
+	// ------------------------------------------------------------------
+	// Offers
+	// ------------------------------------------------------------------
+
+	/**
+	 * Build one <offer>. Returns array( xml|null, skipped ).
+	 *
+	 * @param Marketplace_Category_Tree $tree           Category tree.
+	 * @param array<string,mixed>       $settings       Settings.
+	 * @param array<string,string>      $row            Row.
+	 * @param array<string,string>|null $parent_row     Parent row (title/description/price/pictures fallbacks).
+	 * @param string                    $group_id       Group id or ''.
+	 * @param array|null                $params         Params override.
+	 * @param array|null                $price_override array( price, old price ).
+	 * @param array<string,string>|null $images_fallback_row Row whose pictures/categories are used as a last resort.
+	 * @param bool|null                 $available_override  Forced availability.
+	 * @param string|null               $sku_override   Forced vendorCode.
+	 * @return array{0:?string,1:int}
+	 */
+	public function compose_offer( Marketplace_Category_Tree $tree, array $settings, array $row, $parent_row, string $group_id, $params = null, $price_override = null, $images_fallback_row = null, $available_override = null, $sku_override = null ): array {
+		$name = Marketplace_Text::clean( $row['Name'] ?? '' );
+
+		if ( '' === $name && $parent_row ) {
+			$name = Marketplace_Text::clean( $parent_row['Name'] ?? '' );
+		}
+
+		if ( '' === $name ) {
+			return array( null, 1 );
+		}
+
+		$description_html = self::pick_description_html( $row, $parent_row, $name, $settings );
+
+		if ( null !== $price_override ) {
+			list( $price, $old_price ) = $price_override;
+		} else {
+			list( $price, $old_price ) = self::pick_price( $row );
+
+			if ( null === $price && $parent_row ) {
+				list( $price, $old_price ) = self::pick_price( $parent_row );
+			}
+		}
+
+		if ( null === $price ) {
+			return array( null, 1 );
+		}
+
+		$max    = (int) ( $settings['max_pictures'] ?? 10 );
+		$images = Marketplace_Text::parse_image_list( $row['Images'] ?? '', $max );
+
+		if ( ! $images && $parent_row ) {
+			$images = Marketplace_Text::parse_image_list( $parent_row['Images'] ?? '', $max );
+		}
+
+		if ( ! $images && $images_fallback_row ) {
+			$images = Marketplace_Text::parse_image_list( $images_fallback_row['Images'] ?? '', $max );
+		}
+
+		if ( ! $images ) {
+			return array( null, 1 );
+		}
+
+		$category_paths = Marketplace_Text::parse_category_paths( $row['Categories'] ?? '' );
+
+		if ( ! $category_paths && $parent_row ) {
+			$category_paths = Marketplace_Text::parse_category_paths( $parent_row['Categories'] ?? '' );
+		}
+
+		if ( ! $category_paths && $images_fallback_row ) {
+			$category_paths = Marketplace_Text::parse_category_paths( $images_fallback_row['Categories'] ?? '' );
+		}
+
+		$category_id = $tree->add_paths( $category_paths );
+
+		if ( null === $category_id ) {
+			return array( null, 1 );
+		}
+
+		$offer_id = Marketplace_Text::clean( $row['ID'] ?? '' );
+
+		if ( '' === $offer_id ) {
+			$offer_id = Marketplace_Text::clean( $row['SKU'] ?? '' );
+		}
+
+		if ( '' === $offer_id ) {
+			return array( null, 1 );
+		}
+
+		$available = null !== $available_override ? (bool) $available_override : self::row_available( $row );
+
+		$ind  = '      ';
+		$ind2 = '        ';
+		$attr = ' id="' . Marketplace_Text::xml_attr( $offer_id ) . '" available="' . ( $available ? 'true' : 'false' ) . '"';
+
+		if ( '' !== $group_id ) {
+			$attr .= ' group_id="' . Marketplace_Text::xml_attr( $group_id ) . '"';
+		}
+
+		$xml  = $ind . '<offer' . $attr . ">\n";
+		$xml .= $ind2 . '<name>' . Marketplace_Text::xml_text( $name ) . "</name>\n";
+		$xml .= $ind2 . '<name_ua>' . Marketplace_Text::xml_text( $name ) . "</name_ua>\n";
+		$xml .= $ind2 . '<price>' . Marketplace_Text::money( (float) $price ) . "</price>\n";
+		$xml .= $ind2 . '<currencyId>' . Marketplace_Text::xml_text( $settings['currency'] ?? 'UAH' ) . "</currencyId>\n";
+		$xml .= $ind2 . '<categoryId>' . (int) $category_id . "</categoryId>\n";
+
+		$portal = self::portal_category_for_paths( $category_paths, $settings );
+
+		if ( '' !== $portal ) {
+			$xml .= $ind2 . '<portal_category_id>' . Marketplace_Text::xml_text( $portal ) . "</portal_category_id>\n";
+		}
+
+		$xml .= $ind2 . '<description>' . Marketplace_Text::xml_text( $description_html ) . "</description>\n";
+		$xml .= $ind2 . '<description_ua>' . Marketplace_Text::xml_text( $description_html ) . "</description_ua>\n";
+
+		$sku = Marketplace_Text::clean( null !== $sku_override ? $sku_override : '' );
+
+		if ( '' === $sku ) {
+			$sku = Marketplace_Text::clean( $row['SKU'] ?? '' );
+		}
+
+		if ( '' === $sku && $parent_row ) {
+			$sku = Marketplace_Text::clean( $parent_row['SKU'] ?? '' );
+		}
+
+		if ( '' !== $sku ) {
+			$xml .= $ind2 . '<vendorCode>' . Marketplace_Text::xml_text( $sku ) . "</vendorCode>\n";
+		}
+
+		$vendor = self::apply_vendor_for_prom( self::extract_vendor( $row, $parent_row ), $settings );
+
+		if ( '' !== $vendor ) {
+			$xml .= $ind2 . '<vendor>' . Marketplace_Text::xml_text( $vendor ) . "</vendor>\n";
+		}
+
+		$mpn = self::extract_mpn( $row, $parent_row );
+
+		if ( '' !== $mpn ) {
+			$xml .= $ind2 . '<mpn>' . Marketplace_Text::xml_text( $mpn ) . "</mpn>\n";
+		}
+
+		$gtin = Marketplace_Text::clean( $row['GTIN, UPC, EAN, or ISBN'] ?? '' );
+
+		if ( '' !== $gtin ) {
+			$xml .= $ind2 . '<barcode>' . Marketplace_Text::xml_text( $gtin ) . "</barcode>\n";
+		}
+
+		// Prom accepts a discount only for items that are in stock or on backorder.
+		if ( $available && null !== $old_price && $old_price > $price ) {
+			$xml .= $ind2 . '<oldprice>' . Marketplace_Text::money( (float) $old_price ) . "</oldprice>\n";
+		}
+
+		foreach ( $images as $url ) {
+			$xml .= $ind2 . '<picture>' . Marketplace_Text::xml_text( $url ) . "</picture>\n";
+		}
+
+		if ( null === $params ) {
+			$params = Prom_Variations::collect_params( $row, false );
+		}
+
+		$seen = array();
+
+		foreach ( $params as $pair ) {
+			$key = Marketplace_Text::lower( trim( $pair[0] ) ) . "\x1f" . Marketplace_Text::lower( trim( $pair[1] ) );
+
+			if ( isset( $seen[ $key ] ) ) {
+				continue;
+			}
+
+			$seen[ $key ] = true;
+			$xml         .= $ind2 . '<param name="' . Marketplace_Text::xml_attr( $pair[0] ) . '">' . Marketplace_Text::xml_text( $pair[1] ) . "</param>\n";
+		}
+
+		$xml .= $ind . "</offer>\n";
+
+		return array( $xml, 0 );
+	}
+
+	/**
+	 * Whether a row may be exported given the "unpublished" setting.
+	 *
+	 * @param array<string,string> $row      Row.
+	 * @param array<string,mixed>  $settings Settings.
+	 * @return bool
+	 */
+	public static function publish_ok( array $row, array $settings ): bool {
+		return '1' === (string) ( $settings['include_unpublished'] ?? '0' ) || Marketplace_Text::parse_bool( $row['Published'] ?? '' );
+	}
+
+	// ------------------------------------------------------------------
+	// Units
+	// ------------------------------------------------------------------
+
+	/**
+	 * Convert one unit to offer XML.
+	 *
+	 * @param array<string,mixed>       $unit     Unit.
+	 * @param Marketplace_Category_Tree $tree     Category tree.
+	 * @param array<string,mixed>       $settings Settings.
+	 * @return array{xml:string,exported:int,skipped:int,excluded:array<int,string>,used_ids:array<int,string>}
+	 */
+	public function process_unit( array $unit, Marketplace_Category_Tree $tree, array $settings ): array {
+		$settings = $this->with_defaults( $settings );
+
+		switch ( $unit['kind'] ?? '' ) {
+			case 'group':
+				return $this->process_group( $unit['parent'] ?? null, (array) ( $unit['children'] ?? array() ), $tree, $settings );
+
+			case 'lone':
+				return $this->process_lone( (array) $unit['row'], $unit['parent'] ?? null, $tree, $settings );
+
+			case 'simple':
+				return $this->process_simple( (array) $unit['row'], $tree, $settings );
+		}
+
+		return $this->result();
+	}
+
+	/**
+	 * Empty result.
+	 *
+	 * @return array{xml:string,exported:int,skipped:int,excluded:array<int,string>,used_ids:array<int,string>}
+	 */
+	private function result(): array {
+		return array(
+			'xml'      => '',
+			'exported' => 0,
+			'skipped'  => 0,
+			'excluded' => array(),
+			'used_ids' => array(),
+		);
+	}
+
+	/**
+	 * Simple product.
+	 *
+	 * @param array<string,string>      $row      Row.
+	 * @param Marketplace_Category_Tree $tree     Tree.
+	 * @param array<string,mixed>       $settings Settings.
+	 * @return array
+	 */
+	private function process_simple( array $row, Marketplace_Category_Tree $tree, array $settings ): array {
+		$res = $this->result();
+
+		if ( ! self::publish_ok( $row, $settings ) ) {
+			$res['skipped'] = 1;
+
+			return $res;
+		}
+
+		list( $xml, $sk ) = $this->compose_offer( $tree, $settings, $row, null, '' );
+
+		if ( null !== $xml ) {
+			$res['xml']      = $xml;
+			$res['exported'] = 1;
+		} else {
+			$res['skipped'] = $sk;
+		}
+
+		return $res;
+	}
+
+	/**
+	 * Variation whose group could not be built.
+	 *
+	 * @param array<string,string>      $row        Variation row.
+	 * @param array<string,string>|null $parent_row Parent row.
+	 * @param Marketplace_Category_Tree $tree       Tree.
+	 * @param array<string,mixed>       $settings   Settings.
+	 * @return array
+	 */
+	private function process_lone( array $row, $parent_row, Marketplace_Category_Tree $tree, array $settings ): array {
+		$res = $this->result();
+
+		if ( ! self::publish_ok( $row, $settings ) ) {
+			$res['skipped'] = 1;
+
+			return $res;
+		}
+
+		$vid = Marketplace_Text::clean( $row['ID'] ?? '' );
+		$gid = $parent_row ? Marketplace_Text::clean( $parent_row['ID'] ?? '' ) : '';
+
+		if ( $parent_row ) {
+			$hints = Prom_Variations::infer_size_hints( $parent_row, array( $row ) );
+			$sh    = $hints[ $vid ] ?? null;
+			$axes  = Prom_Variations::group_variation_axis_list( $parent_row );
+			$pv    = Prom_Variations::params_pick_for_variation( $parent_row, $row, $sh, $axes, 0 );
+		} else {
+			$pv = Prom_Variations::collect_params( $row, false );
+		}
+
+		list( $xml, $sk ) = $this->compose_offer( $tree, $settings, $row, $parent_row, $gid, $pv );
+
+		if ( null !== $xml ) {
+			$res['xml']      = $xml;
+			$res['exported'] = 1;
+
+			if ( '' !== $vid ) {
+				$res['used_ids'][] = $vid;
+			}
+		} else {
+			$res['skipped'] = $sk;
+		}
+
+		return $res;
+	}
+
+	/**
+	 * Variable product: main offer + variations.
+	 *
+	 * @param array<string,string>|null        $parent_row Parent row.
+	 * @param array<int, array<string,string>> $raw_children Variation rows.
+	 * @param Marketplace_Category_Tree        $tree       Tree.
+	 * @param array<string,mixed>              $settings   Settings.
+	 * @return array
+	 */
+	private function process_group( $parent_row, array $raw_children, Marketplace_Category_Tree $tree, array $settings ): array {
+		$res  = $this->result();
+		$used = array();
+
+		$children = array();
+
+		foreach ( $raw_children as $c ) {
+			if ( self::publish_ok( $c, $settings ) ) {
+				$children[] = $c;
+			}
+		}
+
+		$children = Prom_Variations::sort_rows_by_id( $children );
+
+		if ( ! $children ) {
+			return $res;
+		}
+
+		$gid = $parent_row ? Marketplace_Text::clean( $parent_row['ID'] ?? '' ) : '';
+
+		$hints     = array();
+		$axis_list = array();
+
+		if ( $parent_row ) {
+			$hints     = Prom_Variations::infer_size_hints( $parent_row, $children );
+			$axis_list = Prom_Variations::group_variation_axis_list( $parent_row );
+		}
+
+		$slot_entries = array();
+		$full_by_vid  = array();
+		$slot_i       = 0;
+
+		foreach ( $children as $child ) {
+			$vid = Marketplace_Text::clean( $child['ID'] ?? '' );
+
+			if ( '' === $vid ) {
+				++$res['skipped'];
+				continue;
+			}
+
+			if ( isset( $used[ $vid ] ) ) {
+				continue;
+			}
+
+			if ( $parent_row ) {
+				$full = array();
+
+				if ( $axis_list ) {
+					$full = Prom_Variations::params_aligned_for_group( $parent_row, $child, $hints[ $vid ] ?? null, $axis_list, $slot_i, false );
+				}
+
+				if ( $full ) {
+					$full_by_vid[ $vid ] = $full;
+					$pv                  = $full;
+				} else {
+					$pv = Prom_Variations::params_for_variation( $parent_row, $child, $hints[ $vid ] ?? null );
+				}
+			} else {
+				$pv = Prom_Variations::collect_params( $child, false );
+			}
+
+			$slot_entries[] = array( $vid, $child, $pv );
+			++$slot_i;
+		}
+
+		$try_parent = $parent_row && self::publish_ok( $parent_row, $settings ) && '' !== $gid;
+
+		$main_params = $parent_row ? Prom_Variations::build_parent_prom_params( $parent_row ) : array();
+
+		// The main Prom offer is a real variation (its size, stock, price and SKU),
+		// which is then not exported again on its own.
+		$main_idx = null;
+
+		if ( $try_parent && $slot_entries ) {
+			$main_idx = Prom_Variations::pick_main_variation_index( $slot_entries, $main_params );
+
+			if ( null === $main_idx ) {
+				$candidates = array();
+
+				foreach ( $slot_entries as $i => $entry ) {
+					if ( isset( $full_by_vid[ $entry[0] ] ) ) {
+						$candidates[] = $i;
+					}
+				}
+
+				$available_candidates = array();
+
+				foreach ( $candidates as $i ) {
+					if ( self::row_available( $slot_entries[ $i ][1] ) ) {
+						$available_candidates[] = $i;
+					}
+				}
+
+				$pool = $available_candidates ? $available_candidates : $candidates;
+
+				if ( $pool ) {
+					$main_idx = $pool[0];
+				}
+			}
+
+			if ( null !== $main_idx ) {
+				$main_vid = $slot_entries[ $main_idx ][0];
+
+				if ( isset( $full_by_vid[ $main_vid ] ) ) {
+					$main_params = Prom_Variations::override_params( $main_params, $full_by_vid[ $main_vid ] );
+				}
+			}
+		}
+
+		if ( $parent_row ) {
+			$baseline_main = array();
+
+			foreach ( $main_params as $pair ) {
+				$nk = Prom_Variations::normalized_attr_key( $pair[0] );
+
+				if ( '' !== $nk ) {
+					$baseline_main[ $nk ] = Marketplace_Text::clean( $pair[1] );
+				}
+			}
+
+			foreach ( $slot_entries as $i => $entry ) {
+				if ( isset( $full_by_vid[ $entry[0] ] ) ) {
+					$slot_entries[ $i ] = array(
+						$entry[0],
+						$entry[1],
+						Prom_Variations::drop_baseline_only_if_non_empty( $full_by_vid[ $entry[0] ], $baseline_main ),
+					);
+				}
+			}
+		}
+
+		$main_entry = null;
+
+		if ( null !== $main_idx ) {
+			$main_entry = $slot_entries[ $main_idx ];
+			array_splice( $slot_entries, $main_idx, 1 );
+		}
+
+		Prom_Variations::dedupe_variation_param_sets_for_group( $parent_row, $slot_entries );
+
+		// Prom rejects a group whose members share the same characteristics: skip it entirely.
+		$group_params = $try_parent ? array( $main_params ) : array();
+
+		foreach ( $slot_entries as $entry ) {
+			$group_params[] = $entry[2];
+		}
+
+		if ( $try_parent && Prom_Variations::has_duplicate_param_sets( $main_params, $group_params ) ) {
+			$res['excluded'][] = Marketplace_Text::clean( $parent_row['SKU'] ?? '' ) ? Marketplace_Text::clean( $parent_row['SKU'] ?? '' ) : $gid;
+			$res['skipped']   += 1 + count( $slot_entries ) + ( $main_entry ? 1 : 0 );
+
+			foreach ( $slot_entries as $entry ) {
+				$res['used_ids'][] = $entry[0];
+			}
+
+			if ( $main_entry ) {
+				$res['used_ids'][] = $main_entry[0];
+			}
+
+			return $res;
+		}
+
+		if ( $try_parent ) {
+			$main_child = $main_entry ? $main_entry[1] : null;
+
+			if ( $main_child ) {
+				list( $min_p, $min_old ) = self::pick_price( $main_child );
+
+				$available_main = self::row_available( $main_child );
+				$sku_main       = '' !== Marketplace_Text::clean( $main_child['SKU'] ?? '' ) ? Marketplace_Text::clean( $main_child['SKU'] ?? '' ) : null;
+			} else {
+				list( $min_p, $min_old ) = self::min_price_from_children( $children );
+
+				$available_main = self::any_child_available( $children );
+				$sku_main       = null;
+			}
+
+			if ( null === $min_p ) {
+				list( $min_p, $min_old ) = self::pick_price( $parent_row );
+			}
+
+			if ( null === $min_p ) {
+				list( $min_p, $min_old ) = self::pick_price( $children[0] );
+			}
+
+			if ( null === $min_p ) {
+				++$res['skipped'];
+			} else {
+				list( $xml, $sk ) = $this->compose_offer(
+					$tree,
+					$settings,
+					$parent_row,
+					null,
+					$gid,
+					$main_params,
+					array( $min_p, $min_old ),
+					$main_child ? $main_child : $children[0],
+					$available_main,
+					$sku_main
+				);
+
+				if ( null !== $xml ) {
+					$res['xml'] .= $xml;
+					++$res['exported'];
+
+					if ( $main_entry ) {
+						$used[ $main_entry[0] ] = true;
+					}
+				} else {
+					$res['skipped'] += $sk;
+				}
+			}
+		}
+
+		if ( $main_entry && ! isset( $used[ $main_entry[0] ] ) ) {
+			array_unshift( $slot_entries, $main_entry );
+		}
+
+		foreach ( $slot_entries as $entry ) {
+			list( $vid, $child, $pv ) = $entry;
+
+			if ( isset( $used[ $vid ] ) ) {
+				continue;
+			}
+
+			list( $xml, $sk ) = $this->compose_offer( $tree, $settings, $child, $parent_row, $gid, $pv );
+
+			if ( null !== $xml ) {
+				$res['xml'] .= $xml;
+				++$res['exported'];
+				$used[ $vid ] = true;
+			} else {
+				$res['skipped'] += $sk;
+			}
+		}
+
+		$res['used_ids'] = array_values( array_unique( array_merge( $res['used_ids'], array_map( 'strval', array_keys( $used ) ) ) ) );
+
+		return $res;
+	}
+}

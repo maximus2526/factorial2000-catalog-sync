@@ -12,6 +12,15 @@ File:line references are from the audit and may have shifted.
 
 ## Open
 
+### Marketplaces module (next steps)
+- [ ] **Rozetka** and **Hotline** feeds: new `Marketplace_Feed` subclasses (own `head/tail/process_unit`, field schema) registered through `f2000cs_marketplace_feeds`; reuse `Marketplace_WC_Source` rows, `Marketplace_Job` and the admin page tabs (placeholders already shown).
+- [ ] UI to map WooCommerce categories → marketplace portal categories (today: text rules `path part=id`).
+- [ ] Report of skipped products with the reason (no price / no photo / no category / duplicate variation params) and a dry run.
+- [ ] Filters: by category, by stock, price markup per marketplace.
+- [ ] `Marketplace_WC_Source` pages with `offset`; for very large catalogs switch to an ID cursor.
+- [ ] Orphan variations (parent missing) and grouped products are not exported; the Python tool had a "lone variation" pass.
+- [ ] Gzip the published file / support `If-Modified-Since` for big feeds.
+
 ### H — Stock sync safety
 - [ ] **Mass-draft guard.** `XML_Stock_Updater::find_missing_products_in_xml()` drafts/zeroes everything absent from the XML with no threshold. Skip the "missing" step (and alert) when the feed looks broken: parse errors (`libxml_get_errors`, stop using `LIBXML_NOERROR` blindly), offer count far below the DB SKU count (e.g. < 50 %), HTTP body suspiciously small.
 - [ ] **Variable parents reported as missing every run.** Parent SKU is `prefix + group_id` but only offer ids are compared. Add `group_id` values (prefixed) to the XML SKU set; stop re-reporting products that are already drafted.

@@ -55,6 +55,79 @@ if ( ! function_exists( 'plugin_basename' ) ) {
 		return basename( dirname( $file ) ) . '/' . basename( $file );
 	}
 }
+// Rendering helpers used only by the Pro marketplaces page.
+if ( ! function_exists( 'add_query_arg' ) ) {
+	/**
+	 * @param array  $args Query args.
+	 * @param string $url  Base URL.
+	 * @return string
+	 */
+	function add_query_arg( $args, $url = '' ) {
+		return $url . ( false === strpos( (string) $url, '?' ) ? '?' : '&' ) . http_build_query( (array) $args );
+	}
+}
+if ( ! function_exists( 'wp_date' ) ) {
+	/**
+	 * @param string $format Format.
+	 * @param int    $ts     Timestamp.
+	 * @return string
+	 */
+	function wp_date( $format, $ts = null ) {
+		return gmdate( $format, (int) $ts );
+	}
+}
+if ( ! function_exists( 'wp_nonce_field' ) ) {
+	/**
+	 * @return void
+	 */
+	function wp_nonce_field() {
+		echo '<input type="hidden" name="nonce" value="x">';
+	}
+}
+if ( ! function_exists( 'submit_button' ) ) {
+	/**
+	 * @param string $text Label.
+	 * @return void
+	 */
+	function submit_button( $text = '' ) {
+		echo '<button type="submit">' . esc_html( $text ) . '</button>';
+	}
+}
+if ( ! function_exists( 'settings_errors' ) ) {
+	/**
+	 * @return void
+	 */
+	function settings_errors() {}
+}
+if ( ! function_exists( 'esc_textarea' ) ) {
+	/**
+	 * @param string $text Text.
+	 * @return string
+	 */
+	function esc_textarea( $text ) {
+		return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+	}
+}
+if ( ! function_exists( 'selected' ) ) {
+	/**
+	 * @param mixed $a Value.
+	 * @param mixed $b Compare.
+	 * @return void
+	 */
+	function selected( $a, $b = true ) {
+		echo (string) $a === (string) $b ? ' selected="selected"' : '';
+	}
+}
+if ( ! function_exists( 'checked' ) ) {
+	/**
+	 * @param mixed $a Value.
+	 * @param mixed $b Compare.
+	 * @return void
+	 */
+	function checked( $a, $b = true ) {
+		echo (string) $a === (string) $b ? ' checked="checked"' : '';
+	}
+}
 if ( ! function_exists( 'register_activation_hook' ) ) {
 	/**
 	 * @return void
@@ -124,12 +197,12 @@ echo "[{$mode}] plugin loaded\n";
 smoke_check( 'main file loads without fatal', defined( 'F2000CS_VERSION' ) );
 smoke_check( 'f2000cs_has_premium_code() matches build', f2000cs_has_premium_code() === $pro );
 
-$classes = array( 'F2000CS\\Image_Processor', 'F2000CS\\Fields_Updater', 'F2000CS\\XML_Editor', 'F2000CS\\XML_Export_Filter' );
+$classes = array( 'F2000CS\\Image_Processor', 'F2000CS\\Fields_Updater', 'F2000CS\\XML_Editor', 'F2000CS\\XML_Export_Filter', 'F2000CS\\Prom_Feed', 'F2000CS\\Marketplace_Job', 'F2000CS\\Marketplace_Registry' );
 foreach ( $classes as $class ) {
 	smoke_check( $class . ( $pro ? ' present' : ' absent' ), class_exists( $class, false ) === $pro );
 }
 
-$functions = array( 'f2000cs_xml_editor_ajax', 'f2000cs_register_image_settings', 'f2000cs_get_recent_export_files' );
+$functions = array( 'f2000cs_xml_editor_ajax', 'f2000cs_register_image_settings', 'f2000cs_get_recent_export_files', 'f2000cs_marketplace_ajax_step' );
 foreach ( $functions as $fn ) {
 	smoke_check( $fn . '() ' . ( $pro ? 'present' : 'absent' ), function_exists( $fn ) === $pro );
 }
@@ -158,6 +231,13 @@ if ( $pro ) {
 	smoke_check( 'export page shows the XML editor', false !== strpos( $html, 'Редактор вигрузок XML' ) );
 } else {
 	smoke_check( 'export page is an upsell placeholder', false !== strpos( $html, 'Pro-версії' ) && false === strpos( $html, 'f2000cs-xml-editor-load' ) );
+}
+
+$html = smoke_capture( 'f2000cs_marketplaces_page' );
+if ( $pro ) {
+	smoke_check( 'marketplaces page shows the Prom feed controls', false !== strpos( $html, 'f2000cs-mp-build' ) );
+} else {
+	smoke_check( 'marketplaces page is an upsell placeholder', false !== strpos( $html, 'Pro' ) && false === strpos( $html, 'f2000cs-mp-build' ) );
 }
 
 $html = smoke_capture( 'f2000cs_update_page' );
