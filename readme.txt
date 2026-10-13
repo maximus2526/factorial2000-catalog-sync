@@ -134,6 +134,7 @@ Improved:
 * Ukrainian translation of the Freemius screens (about 440 more strings).
 * The Import page no longer remembers the last XML URL: the URL field starts empty (the SKU prefix is still remembered).
 * (Pro) The Prom feed page shows why products were left out (no price, picture, category …) with example SKUs.
+* (Pro) The Prom feed follows Prom's import rules: the article (vendorCode) is cut to 25 allowed characters, the product code is sent as <gtin> (Prom reads <barcode> as an article), a name without letters is skipped, and the page warns about an unsupported currency and a file over 180 MB. It also explains that Prom takes prices and stock every 4 hours.
 * (Pro) Product descriptions sent to Prom lose shortcodes and block editor comments; line breaks of classic descriptions are kept as paragraphs. Picture URLs with Cyrillic file names are encoded.
 * (Pro) «Unpublished products» now also exports draft variations and no longer exports private products.
 

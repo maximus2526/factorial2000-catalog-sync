@@ -2118,12 +2118,29 @@ if ( ! function_exists( 'wp_generate_password' ) ) {
 
 if ( ! function_exists( 'wp_upload_dir' ) ) {
 	function wp_upload_dir() {
+		// One folder per test run: a file stuck in a previous run (Windows keeps deleted files
+		// open while another process holds them) cannot break the next one.
 		return array(
-			'basedir' => sys_get_temp_dir() . '/wp-uploads',
+			'basedir' => sys_get_temp_dir() . '/wp-uploads-' . getmypid(),
 			'baseurl' => 'http://example.org/wp-content/uploads',
 		);
 	}
 }
+
+// Remove this run's upload folder when the run ends (best effort).
+register_shutdown_function(
+	static function () {
+		$base = sys_get_temp_dir() . '/wp-uploads-' . getmypid();
+		if ( ! is_dir( $base ) ) {
+			return;
+		}
+		$items = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $base, FilesystemIterator::SKIP_DOTS ), RecursiveIteratorIterator::CHILD_FIRST );
+		foreach ( $items as $item ) {
+			$item->isDir() ? @rmdir( $item->getPathname() ) : @unlink( $item->getPathname() );
+		}
+		@rmdir( $base );
+	}
+);
 
 if ( ! function_exists( 'wp_mkdir_p' ) ) {
 	function wp_mkdir_p( $dir ) {

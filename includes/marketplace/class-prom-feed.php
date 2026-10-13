@@ -18,6 +18,11 @@ defined( 'ABSPATH' ) || exit;
 class Prom_Feed extends Marketplace_Feed {
 
 	/**
+	 * Currencies Prom accepts in a feed (its import error list).
+	 */
+	const CURRENCIES = array( 'UAH', 'USD', 'EUR', 'CHF', 'RUB', 'GBP', 'JPY', 'PLZ', 'BYN', 'KZT', 'MDL' );
+
+	/**
 	 * Why rows of the unit being processed were left out.
 	 *
 	 * @var array<string,array{count:int,examples:array<int,string>}>
@@ -607,7 +612,8 @@ class Prom_Feed extends Marketplace_Feed {
 			$name = Marketplace_Text::clean( $parent_row['Name'] ?? '' );
 		}
 
-		if ( '' === $name ) {
+		// Prom rejects a name without letters (only digits, dashes or spaces).
+		if ( ! preg_match( '/\p{L}/u', $name ) ) {
 			$this->skip( 'no_name', $row, $parent_row );
 
 			return array( null, 1 );
@@ -714,8 +720,10 @@ class Prom_Feed extends Marketplace_Feed {
 			$sku = Marketplace_Text::clean( $parent_row['SKU'] ?? '' );
 		}
 
-		if ( '' !== $sku ) {
-			$xml .= $ind2 . '<vendorCode>' . Marketplace_Text::xml_text( $sku ) . "</vendorCode>\n";
+		$article = self::prom_article( $sku );
+
+		if ( '' !== $article ) {
+			$xml .= $ind2 . '<vendorCode>' . Marketplace_Text::xml_text( $article ) . "</vendorCode>\n";
 		}
 
 		$vendor = self::apply_vendor_for_prom( self::extract_vendor( $row, $parent_row ), $settings );
@@ -733,7 +741,8 @@ class Prom_Feed extends Marketplace_Feed {
 		$gtin = Marketplace_Text::clean( $row['GTIN, UPC, EAN, or ISBN'] ?? '' );
 
 		if ( '' !== $gtin ) {
-			$xml .= $ind2 . '<barcode>' . Marketplace_Text::xml_text( $gtin ) . "</barcode>\n";
+			// Prom reads <barcode> as an alias of the article (vendorCode); the product code is <gtin>.
+			$xml .= $ind2 . '<gtin>' . Marketplace_Text::xml_text( $gtin ) . "</gtin>\n";
 		}
 
 		// Prom accepts a discount only for items that are in stock or on backorder.
@@ -765,6 +774,20 @@ class Prom_Feed extends Marketplace_Feed {
 		$xml .= $ind . "</offer>\n";
 
 		return array( $xml, 0 );
+	}
+
+	/**
+	 * Article (vendorCode) as Prom accepts it: up to 25 characters, only digits, Cyrillic and
+	 * Latin letters and - _ . / and spaces. A longer or odd SKU would fail the whole offer.
+	 *
+	 * @param string $sku SKU.
+	 * @return string
+	 */
+	public static function prom_article( string $sku ): string {
+		$article = (string) preg_replace( '/[^\p{Cyrillic}A-Za-z0-9\-_.\/ ]+/u', '', $sku );
+		$article = trim( (string) preg_replace( '/\s+/u', ' ', $article ) );
+
+		return trim( mb_substr( $article, 0, 25 ) );
 	}
 
 	/**

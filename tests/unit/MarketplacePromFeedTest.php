@@ -330,7 +330,8 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		$this->assertStringContainsString( '<vendorCode>SKU-10</vendorCode>', $xml );
 		$this->assertStringContainsString( '<vendor>Acme</vendor>', $xml );
 		$this->assertStringContainsString( '<mpn>SUP-1</mpn>', $xml );
-		$this->assertStringContainsString( '<barcode>123</barcode>', $xml );
+		$this->assertStringContainsString( '<gtin>123</gtin>', $xml );
+		$this->assertStringNotContainsString( '<barcode>', $xml, 'Prom treats <barcode> as an article alias' );
 		$this->assertStringContainsString( '<picture>https://shop.test/b.jpg</picture>', $xml );
 		$this->assertStringContainsString( '<param name="Матеріал">Бавовна</param>', $xml );
 		$this->assertStringContainsString( '&lt;p&gt;Тепла куртка&lt;/p&gt;', $xml, 'Raw line breaks are folded out of the HTML description' );
@@ -1008,6 +1009,25 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * The article follows Prom's limits (25 characters, allowed symbols); a name needs a letter.
+	 *
+	 * @return void
+	 */
+	public function test_prom_article_and_name_rules() {
+		$this->assertSame( 'ABC-12_3.4/5 x', Prom_Feed::prom_article( 'ABC-12_3.4/5 x' ) );
+		$this->assertSame( 'Арт-1', Prom_Feed::prom_article( 'Арт-1' ), 'Cyrillic is allowed' );
+		$this->assertSame( 'AB12', Prom_Feed::prom_article( 'A#B$1%2' ), 'Other symbols are dropped' );
+		$this->assertSame( 25, strlen( Prom_Feed::prom_article( str_repeat( 'A', 40 ) ) ) );
+
+		$long = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'SKU' => 'PREFIX_' . str_repeat( 'Z', 30 ) ) ) ) );
+		$this->assertMatchesRegularExpression( '#<vendorCode>[^<]{1,25}</vendorCode>#', $long['xml'] );
+
+		$digits = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Name' => '12345 - 678' ) ) ) );
+		$this->assertSame( 0, $digits['exported'], 'A name without letters is rejected by Prom' );
+		$this->assertSame( 1, $digits['reasons']['no_name']['count'] );
+	}
+
+	/**
 	 * The working file is not guessable from the feed id.
 	 *
 	 * @return void
@@ -1025,9 +1045,10 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 	 */
 	public function test_withdraw_without_feeds_folder_creates_nothing() {
 		$dir = wp_upload_dir()['basedir'] . '/f2000cs-feeds';
-		foreach ( (array) glob( $dir . '/{,.}*', GLOB_BRACE ) as $file ) {
-			if ( is_file( $file ) ) {
-				unlink( $file );
+		// scandir(), not glob(): glob() skips some hidden files on Windows.
+		foreach ( is_dir( $dir ) ? (array) scandir( $dir ) : array() as $name ) {
+			if ( is_file( $dir . '/' . $name ) ) {
+				unlink( $dir . '/' . $name );
 			}
 		}
 		if ( is_dir( $dir ) ) {

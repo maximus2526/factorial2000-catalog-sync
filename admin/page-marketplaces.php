@@ -14,6 +14,7 @@ use F2000CS\Marketplace_Form;
 use F2000CS\Marketplace_Job;
 use F2000CS\Marketplace_Registry;
 use F2000CS\Marketplace_Storage;
+use F2000CS\Prom_Feed;
 
 /**
  * Human readable schedule names.
@@ -282,7 +283,26 @@ function f2000cs_marketplaces_page() {
 		$running  = Marketplace_Job::state( $id );
 		$labels   = f2000cs_marketplace_schedule_labels();
 		$fields   = $feed->fields();
+
+		// Prom refuses prices in a currency it does not know.
+		$feed_currency = Marketplace_Form::resolve( $settings['currency'] ?? '{wc_currency}' );
 		?>
+		<?php if ( $feed instanceof Prom_Feed && ! in_array( strtoupper( $feed_currency ), Prom_Feed::CURRENCIES, true ) ) : ?>
+			<div class="notice notice-warning inline">
+				<p>
+					<?php
+					echo esc_html(
+						sprintf(
+							/* translators: 1: currency code, 2: supported currencies */
+							__( 'Prom не приймає ціни у валюті «%1$s». Виберіть у налаштуваннях «Валюта цін» одну з підтримуваних: %2$s.', 'factorial2000-catalog-sync' ),
+							$feed_currency,
+							implode( ', ', Prom_Feed::CURRENCIES )
+						)
+					);
+					?>
+				</p>
+			</div>
+		<?php endif; ?>
 
 		<div class="card" style="max-width:none">
 			<h2><?php echo esc_html( $feed->label() ); ?></h2>
@@ -298,14 +318,24 @@ function f2000cs_marketplaces_page() {
 								<?php
 								echo esc_html(
 									sprintf(
-										/* translators: 1: date and time, 2: file size in MB */
-										__( 'Оновлено: %1$s · %2$s МБ. Вкажіть це посилання у кабінеті маркетплейсу як джерело імпорту.', 'factorial2000-catalog-sync' ),
+										/* translators: 1: date and time, 2: file size */
+										__( 'Оновлено: %1$s · %2$s. Вкажіть це посилання у кабінеті маркетплейсу як джерело імпорту.', 'factorial2000-catalog-sync' ),
 										wp_date( 'd.m.Y H:i', $info['mtime'] ),
-										number_format_i18n( $info['size'] / 1048576, 1 )
+										$info['size'] < 1048576
+											? number_format_i18n( max( 1, $info['size'] / 1024 ), 0 ) . ' ' . __( 'КБ', 'factorial2000-catalog-sync' )
+											: number_format_i18n( $info['size'] / 1048576, 1 ) . ' ' . __( 'МБ', 'factorial2000-catalog-sync' )
 									)
 								);
 								?>
 							</p>
+							<p class="description">
+								<?php esc_html_e( 'У налаштуваннях імпорту Prom виберіть, що робити з товарами, яких немає у файлі («Немає в наявності», «Приховані» або «Залишити без змін»): неопубліковані товари сайту у файл не потрапляють.', 'factorial2000-catalog-sync' ); ?>
+							</p>
+							<?php if ( $info['size'] > 180 * 1048576 ) : ?>
+								<p class="description" style="color:#b32d2e">
+									<?php esc_html_e( 'Prom рекомендує файл імпорту до 180 МБ. Зменшіть кількість фото на товар або розбийте каталог.', 'factorial2000-catalog-sync' ); ?>
+								</p>
+							<?php endif; ?>
 						<?php else : ?>
 							<em><?php esc_html_e( 'Вигрузку ще не згенеровано.', 'factorial2000-catalog-sync' ); ?></em>
 						<?php endif; ?>
@@ -380,7 +410,7 @@ function f2000cs_marketplaces_page() {
 								<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $settings['schedule'], $value ); ?>><?php echo esc_html( $label ); ?></option>
 							<?php endforeach; ?>
 						</select>
-						<p class="description"><?php esc_html_e( 'Файл перегенеровується у фоні через WP-Cron; поки триває генерація, маркетплейс бачить попередній файл.', 'factorial2000-catalog-sync' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Файл перегенеровується у фоні через WP-Cron; поки триває генерація, маркетплейс бачить попередній файл. Prom забирає ціни й наявність за посиланням раз на 4 години (з 6:00 до 22:00), решту полів і нові товари — раз на добу вночі, тому оновлювати файл частіше немає сенсу.', 'factorial2000-catalog-sync' ); ?></p>
 					</td>
 				</tr>
 				<tr>
@@ -391,7 +421,7 @@ function f2000cs_marketplaces_page() {
 							<input type="checkbox" id="f2000cs-mp-after-sync" name="mp[after_sync]" value="1" <?php checked( ! empty( $settings['after_sync'] ) ); ?>>
 							<?php esc_html_e( 'Оновлювати вигрузку після кожного оновлення наявності й цін', 'factorial2000-catalog-sync' ); ?>
 						</label>
-						<p class="description"><?php esc_html_e( 'Після завершення синхронізації з постачальниками (за розкладом або кнопкою) вигрузка у фоні збирається заново з товарів сайту за правилами нижче, і за тим самим посиланням Prom отримує актуальні ціни та наявність.', 'factorial2000-catalog-sync' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Після завершення синхронізації з постачальниками (за розкладом або кнопкою) вигрузка у фоні збирається заново з товарів сайту за правилами нижче, і за тим самим посиланням Prom отримує актуальні ціни та наявність (при найближчому оновленні за посиланням).', 'factorial2000-catalog-sync' ); ?></p>
 					</td>
 				</tr>
 			</table>
