@@ -141,7 +141,7 @@ Fixed:
 * After switching from Free to Pro the scheduled stock sync stopped until the next manual run. The schedule is now restored on activation and follows the real interval when a trial starts or ends.
 * A marketplace feed is no longer left frozen when Pro is not active: the published file is withdrawn once it is more than 3 days old. Deactivation stops marketplace schedules; uninstall removes marketplace settings, feed files and temporary import data.
 * `wp f2000cs marketplace build` now requires an active Pro license or trial.
-* Price adjustment (markup / margin / fixed amount) is now available in the Free version, so a saved rule keeps working when Pro is not installed. Without the Pro version, stock statuses of products with managed quantity are left alone when quantity updates were saved before.
+* Price adjustment (markup / margin / fixed amount) is now available in the Free version, so a saved rule keeps working when Pro is not installed. With a license or trial but without the Pro version installed, stock statuses of products with managed quantity are left alone when quantity updates were saved before; install the Pro version to resume them.
 * Switching between Free and Pro no longer starts a full stock sync right away, and saving the settings on the Free version no longer overwrites the saved update interval.
 * The «Pro version missing» notice is shown on every admin screen and also when Pro settings are saved without a license.
 * (Pro) A Prom feed that suddenly has less than half the products of the last published one is held back (a broken supplier feed can no longer empty the catalog on Prom); a button publishes it when the shrink is expected.

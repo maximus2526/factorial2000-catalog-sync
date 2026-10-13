@@ -315,6 +315,10 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 		$this->assertFalse( f2000cs_supplier_qty_frozen( 1 ) );
 
 		update_option( 'f2000cs_update_stock_qty_1', '1' );
+		$this->assertFalse( f2000cs_supplier_qty_frozen( 1 ), 'No license or trial: behaves as the free plan always did' );
+
+		// A license or trial is in force but the Pro build is missing (the free build was installed).
+		add_filter( 'f2000cs_has_active_license', '__return_true' );
 		$this->assertTrue( f2000cs_supplier_qty_frozen( 1 ) );
 		$this->assertFalse( f2000cs_supplier_qty_frozen( 2 ), 'Only the slot that saved it' );
 
@@ -328,6 +332,8 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 		$updating = f2000cs_make_stock_updater( 1, 'x.xml' );
 		$this->assertTrue( F2000CS_Test_Reflection::get( $updating, 'update_stock_qty' ) );
 		$this->assertFalse( F2000CS_Test_Reflection::get( $updating, 'keep_managed_status' ), 'Updating quantity wins' );
+
+		unset( F2000CS_Test_State::$hooks['f2000cs_has_active_license'] );
 	}
 
 	/**

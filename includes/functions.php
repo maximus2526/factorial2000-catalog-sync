@@ -394,11 +394,13 @@ function f2000cs_supplier_skip_price( $index ) {
 }
 
 /**
- * Whether the slot saved «update stock quantity» but quantities will not be updated
- * (free build, expired license/trial).
+ * Whether the slot saved «update stock quantity» but, with a license or trial in force,
+ * the quantities are not updated because the Pro build is not installed.
  *
- * Writing only the stock status of a product with managed stock would then
- * contradict its frozen quantity, so the status is left alone too.
+ * Writing only the stock status of a product with managed stock would then contradict
+ * its frozen quantity, so the status is left alone until the Pro build is installed.
+ * Without a license or trial (expired, never had one) the plugin behaves as the free
+ * version always did: the status is updated and the quantity stays as it was.
  *
  * @param int       $index      Supplier slot 1+.
  * @param bool|null $update_qty Whether quantities are updated (default: resolved for the slot).
@@ -407,7 +409,7 @@ function f2000cs_supplier_skip_price( $index ) {
 function f2000cs_supplier_qty_frozen( $index, $update_qty = null ) {
 	$update_qty = null === $update_qty ? f2000cs_supplier_updates_stock_qty( $index ) : (bool) $update_qty;
 
-	if ( $update_qty || ! f2000cs_supplier_has_saved_stock_qty( $index ) ) {
+	if ( $update_qty || ! f2000cs_supplier_has_saved_stock_qty( $index ) || ! f2000cs_has_active_license() ) {
 		return false;
 	}
 
@@ -465,6 +467,20 @@ function f2000cs_warn_pro_settings_ignored() {
 	if ( function_exists( 'f2000cs_send_telegram_notification' ) ) {
 		f2000cs_send_telegram_notification( '⚠️ ' . $msg );
 	}
+}
+
+/**
+ * Whether a paid license or a trial is in force (whatever build is installed).
+ *
+ * @return bool
+ */
+function f2000cs_has_active_license() {
+	/**
+	 * Filter whether a paid license or trial is in force.
+	 *
+	 * @param bool $active Freemius says a license or trial is active.
+	 */
+	return (bool) apply_filters( 'f2000cs_has_active_license', f2000cs_is_paying() || f2000cs_is_fs_trial() );
 }
 
 /**
