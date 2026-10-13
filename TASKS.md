@@ -12,14 +12,20 @@ File:line references are from the audit and may have shifted.
 
 ## Open
 
+### Next up — Prom feed (planned for 2026-10-15)
+Found while comparing the feed with the Prom seller help (`support.prom.ua`, «Імпорт через YML — формат файлу», «Імпорт позицій із файла»).
+- [ ] **Weight and dimensions (`<dimensions>`).** Prom accepts `<dimensions><weight unit="kg">…</weight><width unit="cm">…</width><height unit="cm">…</height><length unit="cm">…</length></dimensions>`; the feed does not send it although WooCommerce has the fields. Read them in `Marketplace_WC_Source::row()` (`$product->get_weight() / get_width() / get_height() / get_length()`, convert from the store units `woocommerce_weight_unit` / `woocommerce_dimension_unit` to kg and cm), send them from `Prom_Feed::compose_offer()` only when set, and take the parent's values for a variation without its own. Tests: unit conversion, variation fallback, no tag when empty.
+- [ ] **Compressed feed (ZIP/GZIP).** Prom accepts ZIP and GZIP for large files (recommended YML size up to 180 MB); the plugin only publishes plain XML. Publish a `.xml.gz` next to the `.xml` (or as an option «Стиснути вигрузку») in `Marketplace_Job::finalize()` / `Marketplace_Storage`, show both links on the page, keep the 180 MB warning for the uncompressed size. Also covers the older item «Gzip the published file».
+- [ ] **Relative links in the description.** Descriptions with `src="/wp-content/…"` or `href="/…"` are not fetched by Prom. In `Prom_Feed::normalize_description_html()` turn root-relative `src` / `href` (and `srcset`) into absolute URLs with the feed's `site_url` setting (leave `http(s)://`, `//`, `data:`, `mailto:`, `tel:`, `#` alone). Tests: img src, a href, protocol-relative, already absolute, site in a sub-folder.
+
 ### Marketplaces module (next steps)
 - [ ] **Rozetka** and **Hotline** feeds: new `Marketplace_Feed` subclasses (own `head/tail/process_unit`, field schema) registered through `f2000cs_marketplace_feeds`; reuse `Marketplace_WC_Source` rows, `Marketplace_Job` and the admin page tabs (placeholders already shown).
-- [ ] UI to map WooCommerce categories → marketplace portal categories (today: text rules `path part=id`).
-- [ ] Report of skipped products with the reason (no price / no photo / no category / duplicate variation params) and a dry run.
+- [x] UI to map WooCommerce categories → marketplace portal categories (table on the Marketplaces page; rules match a path prefix).
+- [x] Report of skipped products with the reason (no price / no photo / no category / duplicate variation params). A dry run is still open.
 - [ ] Filters: by category, by stock, price markup per marketplace.
-- [ ] `Marketplace_WC_Source` pages with `offset`; for very large catalogs switch to an ID cursor.
+- [x] `Marketplace_WC_Source` pages by an ID cursor.
 - [ ] Orphan variations (parent missing) and grouped products are not exported; the Python tool had a "lone variation" pass.
-- [ ] Gzip the published file / support `If-Modified-Since` for big feeds.
+- [ ] Support `If-Modified-Since` for big feeds (gzip: see «Next up»).
 
 ### H — Stock sync safety
 - [ ] **Mass-draft guard.** `XML_Stock_Updater::find_missing_products_in_xml()` drafts/zeroes everything absent from the XML with no threshold. Skip the "missing" step (and alert) when the feed looks broken: parse errors (`libxml_get_errors`, stop using `LIBXML_NOERROR` blindly), offer count far below the DB SKU count (e.g. < 50 %), HTTP body suspiciously small.
