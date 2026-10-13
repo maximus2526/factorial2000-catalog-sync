@@ -42,7 +42,7 @@ factorial2000-catalog-sync/
 │   ├── class-stock-updater.php      — XML_Stock_Updater: оновлення стоку/цін з фіду (cron)
 │   ├── class-xml-export-filter.php  — XML_Export_Filter: вилучення існуючих товарів із XML
 │   ├── class-xml-editor.php         — XML_Editor: фільтрація за категоріями/оферами + умови
-│   ├── pro-features.php             — Pro (premium-only): price adjust, quantity, інтервали, low-instock, download-проксі
+│   ├── pro-features.php             — Pro (premium-only): quantity, інтервали, low-instock, download-проксі
 │   ├── class-image-processor.php    — Image_Processor (Pro): resize/convert/optimize зображень
 │   ├── class-frontend-display.php   — Frontend_Display: vendor code у футері для адмінів
 │   └── parsers/
@@ -117,7 +117,7 @@ factorial2000-catalog-sync/
 ### 3.2 Free vs Pro
 
 - `f2000cs_is_pro()` → `true` коли: оплачена ліцензія Freemius **АБО** Freemius trial (14 днів, без карти) **АБО** `F2000CS_FORCE_PRO` / фільтр `f2000cs_is_pro`.
-- Free: 1 постачальник (+grandfathered), автооновлення раз на добу + 3 ручні запуски/добу (`F2000CS_FREE_DAILY_UPDATES`), без price adjust, без quantity, без variable-low-instock rule.
+- Free: 1 постачальник (+grandfathered), автооновлення раз на добу + 3 ручні запуски/добу (`F2000CS_FREE_DAILY_UPDATES`), price adjust доступний, без quantity, без variable-low-instock rule.
 - Pro-гейти: і фізичні (`f2000cs_register_pro_option_guards` + `pre_update_option` фільтри), і UI (`disabled` + бейджі).
 - Trial = Pro за функціоналом.
 - **Маркетплейси (Pro, 0.7.0):** `includes/marketplace/` — `Marketplace_Feed` (абстракція фіду: `fields/head/tail/process_unit`), `Prom_Feed` + `Prom_Variations` (порт `wc_to_prom_yml.py`, правила різновидів Prom), `Marketplace_Registry` (реєстр + налаштування, фільтр `f2000cs_marketplace_feeds` для Rozetka/Hotline), `Marketplace_WC_Source` (WooCommerce → рядки у форматі WC CSV → «units»), `Marketplace_Job` (чанкова збірка зі станом в опції, атомарна заміна файлу, блокування, WP-Cron, WP-CLI; опція фіду `after_sync` — після `f2000cs_stock_update_complete` ставить одноразову подію `f2000cs_marketplace_after_sync` на перезбірку), `Marketplace_Storage` (uploads/f2000cs-feeds, токен у назві). Сторінка `admin/page-marketplaces.php`. Звірка з оригіналом: `php -d memory_limit=3G tests/integration/prom-golden-compare.php <csv> <yml> <config.json>` (на 13 тис. рядків — 10871 офер і 96 категорій збігаються побайтово).

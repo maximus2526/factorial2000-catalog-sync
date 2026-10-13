@@ -305,24 +305,62 @@ function f2000cs_get_settings_url() {
 }
 
 /**
- * Get the price adjustment settings (type, direction, value) for a supplier slot.
- *
- * No adjustment by default; the Pro build supplies the saved rules through the
- * `f2000cs_price_adjust_settings` filter.
+ * Saved price adjustment rule (type, direction, value) of a supplier slot.
  *
  * @param int $index Supplier slot index.
  * @return array{type: string, direction: string, value: float}
  */
 function f2000cs_get_price_adjust_settings( $index ) {
-	$defaults = array(
-		'type'      => 'markup',
-		'direction' => 'add',
-		'value'     => 0.0,
+	$index = absint( $index );
+
+	return array(
+		'type'      => (string) get_option( 'f2000cs_price_adjust_type_' . $index, 'markup' ),
+		'direction' => (string) get_option( 'f2000cs_price_adjust_direction_' . $index, 'add' ),
+		'value'     => (float) get_option( 'f2000cs_price_adjust_value_' . $index, '0' ),
 	);
+}
 
-	$settings = apply_filters( 'f2000cs_price_adjust_settings', $defaults, absint( $index ) );
+/**
+ * Apply a price adjustment (margin, markup or fixed amount) to a supplier price.
+ *
+ * Margin is the profit as a percentage of the final selling price:
+ *     sell_price = cost / (1 - margin / 100)
+ * Markup is a percentage applied on top of the supplier cost:
+ *     sell_price = cost * (1 + markup / 100)
+ * Fixed adds/subtracts a flat currency amount.
+ *
+ * @param float $price  Original price from XML.
+ * @param array $adjust Rule: type (margin|markup|fixed), direction (add|subtract), value.
+ * @return float Adjusted price, rounded to 2 decimals.
+ */
+function f2000cs_adjust_price( $price, $adjust ) {
+	$price = (float) $price;
+	$value = isset( $adjust['value'] ) ? (float) $adjust['value'] : 0.0;
 
-	return is_array( $settings ) ? wp_parse_args( $settings, $defaults ) : $defaults;
+	if ( $price <= 0 || $value <= 0 ) {
+		return $price;
+	}
+
+	$sign = ( isset( $adjust['direction'] ) && 'subtract' === $adjust['direction'] ) ? -1 : 1;
+
+	switch ( $adjust['type'] ?? 'markup' ) {
+		case 'margin':
+			// Margin can only ever increase the price and must stay below 100%.
+			$margin = min( 99.99, $value );
+			$price  = $price / ( 1 - ( $margin / 100 ) );
+			break;
+
+		case 'fixed':
+			$price = $price + ( $sign * $value );
+			break;
+
+		case 'markup':
+		default:
+			$price = $price * ( 1 + ( $sign * $value / 100 ) );
+			break;
+	}
+
+	return round( max( 0, $price ), 2 );
 }
 
 /**
@@ -336,16 +374,6 @@ function f2000cs_option_is_on( $option ) {
 }
 
 /**
- * Whether a price rule (markup, margin or fixed amount) is saved for a slot.
- *
- * @param int $index Supplier slot 1+.
- * @return bool
- */
-function f2000cs_supplier_has_saved_price_rule( $index ) {
-	return (float) get_option( 'f2000cs_price_adjust_value_' . absint( $index ), 0 ) > 0;
-}
-
-/**
  * Whether «update stock quantity» is saved for a slot (it takes effect only with Pro).
  *
  * @param int $index Supplier slot 1+.
@@ -356,30 +384,13 @@ function f2000cs_supplier_has_saved_stock_qty( $index ) {
 }
 
 /**
- * Whether the supplier's prices must be left alone on this sync.
+ * Whether the supplier's prices must be left alone on this sync («do not update prices»).
  *
- * True for the «do not update prices» flag, and also when a price rule is saved
- * but cannot be applied (free build, expired license/trial): without the rule the
- * raw supplier price would overwrite the store's selling price.
- *
- * @param int        $index        Supplier slot 1+.
- * @param array|null $price_adjust Rule that will be applied (default: resolved for the slot).
+ * @param int $index Supplier slot 1+.
  * @return bool
  */
-function f2000cs_supplier_skip_price( $index, $price_adjust = null ) {
-	if ( f2000cs_option_is_on( 'f2000cs_skip_price_' . absint( $index ) ) ) {
-		return true;
-	}
-
-	$price_adjust = null === $price_adjust ? f2000cs_get_price_adjust_settings( $index ) : $price_adjust;
-
-	if ( ! f2000cs_supplier_has_saved_price_rule( $index ) || (float) $price_adjust['value'] > 0 ) {
-		return false;
-	}
-
-	f2000cs_warn_pro_settings_ignored();
-
-	return true;
+function f2000cs_supplier_skip_price( $index ) {
+	return f2000cs_option_is_on( 'f2000cs_skip_price_' . absint( $index ) );
 }
 
 /**
@@ -424,21 +435,20 @@ function f2000cs_make_stock_updater( $index, $xml_url, $sku_prefix = null ) {
 		return new \F2000CS\XML_Stock_Updater( $xml_url, $sku_prefix );
 	}
 
-	$price_adjust = f2000cs_get_price_adjust_settings( $index );
-	$update_qty   = f2000cs_supplier_updates_stock_qty( $index );
+	$update_qty = f2000cs_supplier_updates_stock_qty( $index );
 
 	return new \F2000CS\XML_Stock_Updater(
 		$xml_url,
 		$sku_prefix,
-		f2000cs_supplier_skip_price( $index, $price_adjust ),
-		$price_adjust,
+		f2000cs_supplier_skip_price( $index ),
+		f2000cs_get_price_adjust_settings( $index ),
 		$update_qty,
 		f2000cs_supplier_qty_frozen( $index, $update_qty )
 	);
 }
 
 /**
- * Tell the admin once a day that saved Pro rules are not applied (log + Telegram).
+ * Tell the admin once a day that saved quantity updates are not applied (log + Telegram).
  *
  * @return void
  */
@@ -449,7 +459,7 @@ function f2000cs_warn_pro_settings_ignored() {
 
 	set_transient( 'f2000cs_pro_settings_ignored_warned', 1, DAY_IN_SECONDS );
 
-	$msg = 'Збережено Pro-налаштування (націнка або кількість), але Pro-збірка чи ліцензія неактивні. Ціни та залишки товарів із керованою кількістю не оновлюються, щоб не скинути їх до даних постачальника. Встановіть Pro-версію з акаунта Freemius.';
+	$msg = 'Збережено оновлення кількості (Pro), але Pro-збірка чи ліцензія неактивні. Залишки товарів із керованою кількістю не оновлюються, щоб не розійтися з кількістю. Встановіть Pro-версію з акаунта Freemius.';
 	f2000cs_log( $msg, 'warning' );
 
 	if ( function_exists( 'f2000cs_send_telegram_notification' ) ) {
@@ -470,7 +480,7 @@ function f2000cs_has_saved_pro_config() {
 	$highest = f2000cs_get_highest_saved_supplier_slot();
 
 	for ( $i = 1; $i <= $highest; $i++ ) {
-		if ( f2000cs_supplier_has_saved_price_rule( $i ) || f2000cs_supplier_has_saved_stock_qty( $i ) ) {
+		if ( f2000cs_supplier_has_saved_stock_qty( $i ) ) {
 			return true;
 		}
 	}

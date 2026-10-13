@@ -244,7 +244,6 @@ $functions = array(
 	'f2000cs_get_recent_export_files',
 	'f2000cs_marketplace_ajax_step',
 	// Pro sync rules (includes/pro-features.php, admin/pro-settings.php).
-	'f2000cs_pro_adjust_price',
 	'f2000cs_apply_variable_low_instock_rule',
 	'f2000cs_handle_export_download',
 	'f2000cs_register_pro_settings',
@@ -346,8 +345,8 @@ if ( function_exists( 'f2000cs_register_pro_settings' ) ) {
 }
 $registered = F2000CS_Test_State::$registered_settings['f2000cs_settings'] ?? array();
 smoke_check(
-	'price adjustment option ' . ( $pro ? 'registered' : 'not registered' ),
-	in_array( 'f2000cs_price_adjust_value_1', $registered, true ) === $pro
+	'price adjustment option registered on every plan',
+	in_array( 'f2000cs_price_adjust_value_1', $registered, true )
 );
 
 $html = smoke_capture( 'f2000cs_update_page' );
@@ -360,8 +359,8 @@ $html = smoke_capture(
 	}
 );
 smoke_check(
-	'supplier price adjustment ' . ( $pro ? 'rendered' : 'absent' ),
-	( false !== strpos( $html, 'f2000cs_price_adjust_type_1' ) ) === $pro
+	'supplier price adjustment rendered on every plan',
+	false !== strpos( $html, 'f2000cs_price_adjust_type_1' )
 );
 smoke_check(
 	'supplier quantity option ' . ( $pro ? 'rendered' : 'absent' ),
@@ -406,10 +405,10 @@ update_option( 'f2000cs_update_stock_qty_1', '1' );
 update_option( 'f2000cs_update_interval', '5_minute' );
 
 $adjust = f2000cs_get_price_adjust_settings( 1 );
-smoke_check( 'price adjustment ' . ( $pro ? 'applied' : 'off' ), ( 10.0 === (float) $adjust['value'] ) === $pro );
+smoke_check( 'price adjustment applied on every plan', 10.0 === (float) $adjust['value'] );
 smoke_check( 'supplier quantity update ' . ( $pro ? 'on' : 'off' ), f2000cs_supplier_updates_stock_qty( 1 ) === $pro );
-// Free build with a saved markup: prices are frozen, never reset to the raw supplier price.
-smoke_check( 'saved markup ' . ( $pro ? 'applied' : 'freezes prices' ), f2000cs_supplier_skip_price( 1 ) === ! $pro );
+smoke_check( 'saved markup does not stop price updates', ! f2000cs_supplier_skip_price( 1 ) );
+smoke_check( 'free core adjusts prices', 110.0 === f2000cs_adjust_price( 100, array( 'type' => 'markup', 'direction' => 'add', 'value' => 10 ) ) );
 smoke_check( 'saved Pro settings detected', f2000cs_has_saved_pro_config() );
 smoke_check( 'effective interval', f2000cs_get_effective_update_interval() === ( $pro ? '5_minute' : 'daily' ) );
 

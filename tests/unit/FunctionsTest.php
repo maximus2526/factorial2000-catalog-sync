@@ -100,9 +100,9 @@ final class F2000CS_Unit_FunctionsTest extends F2000CS_Unit_TestCase {
 
 		$settings = f2000cs_get_price_adjust_settings( 1 );
 
-		$this->assertSame( 'markup', $settings['type'] );
+		$this->assertSame( 'fixed', $settings['type'], 'The free plan reads the saved rule' );
 		$this->assertSame( 'add', $settings['direction'] );
-		$this->assertSame( 0.0, $settings['value'] );
+		$this->assertSame( 99.0, $settings['value'] );
 	}
 
 	/**

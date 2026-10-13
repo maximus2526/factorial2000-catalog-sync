@@ -54,7 +54,7 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
-	 * Price after the Pro rule.
+	 * Price after the rule.
 	 *
 	 * @param mixed  $price     Price.
 	 * @param string $type      Type.
@@ -63,7 +63,7 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 	 * @return float
 	 */
 	private function adjust( $price, string $type, $value, string $direction = 'add' ) {
-		return f2000cs_pro_adjust_price(
+		return f2000cs_adjust_price(
 			$price,
 			array(
 				'type'      => $type,
@@ -123,8 +123,8 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 		$this->assertSame( 10.123, $this->adjust( 10.123, 'markup', -5 ), 'Negative rule value is ignored' );
 		$this->assertSame( 0.0, $this->adjust( 0, 'markup', 10 ) );
 		$this->assertSame( -5.0, $this->adjust( -5, 'fixed', 10 ) );
-		$this->assertSame( 10.0, f2000cs_pro_adjust_price( 10, array() ), 'Empty rule' );
-		$this->assertSame( 10.0, f2000cs_pro_adjust_price( 10, array( 'type' => 'fixed' ) ), 'Rule without value' );
+		$this->assertSame( 10.0, f2000cs_adjust_price( 10, array() ), 'Empty rule' );
+		$this->assertSame( 10.0, f2000cs_adjust_price( 10, array( 'type' => 'fixed' ) ), 'Rule without value' );
 	}
 
 	/**
@@ -135,92 +135,42 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 	public function test_type_fallback_and_string_input() {
 		$this->assertSame( 110.0, $this->adjust( 100, 'bogus', 10 ) );
 		$this->assertSame( 110.0, $this->adjust( '100', 'markup', '10' ) );
-		$this->assertSame( 110.0, f2000cs_pro_adjust_price( 100, array( 'value' => 10 ) ), 'Missing type = markup' );
+		$this->assertSame( 110.0, f2000cs_adjust_price( 100, array( 'value' => 10 ) ), 'Missing type = markup' );
 	}
 
-	// ---------------------------------------------------------------- free filters → Pro
+	// ---------------------------------------------------------------- price rules (free)
 
 	/**
-	 * Saved rules reach the stock updater only with Pro.
+	 * Saved rules are read on every plan.
 	 *
 	 * @return void
 	 */
-	public function test_price_adjust_settings_need_pro() {
+	public function test_price_adjust_settings_are_read_without_pro() {
 		update_option( 'f2000cs_price_adjust_type_2', 'fixed' );
 		update_option( 'f2000cs_price_adjust_direction_2', 'subtract' );
 		update_option( 'f2000cs_price_adjust_value_2', '12.5' );
 
-		$free = f2000cs_get_price_adjust_settings( 2 );
-		$this->assertSame( 0.0, $free['value'] );
-		$this->assertSame( 'markup', $free['type'] );
-
-		$this->enable_pro();
-		$pro = f2000cs_get_price_adjust_settings( '2abc' );
-		$this->assertSame( 'fixed', $pro['type'] );
-		$this->assertSame( 'subtract', $pro['direction'] );
-		$this->assertSame( 12.5, $pro['value'] );
+		$rule = f2000cs_get_price_adjust_settings( '2abc' );
+		$this->assertSame( 'fixed', $rule['type'] );
+		$this->assertSame( 'subtract', $rule['direction'] );
+		$this->assertSame( 12.5, $rule['value'] );
 
 		$this->assertSame( 0.0, f2000cs_get_price_adjust_settings( 3 )['value'], 'Slot without rules' );
 	}
 
 	/**
-	 * A broken third-party filter cannot break the price settings shape.
+	 * End to end on the free plan: options → updater for the slot → price.
 	 *
 	 * @return void
 	 */
-	public function test_price_adjust_settings_survive_bad_filters() {
-		add_filter( 'f2000cs_price_adjust_settings', '__return_false', 99 );
-		$this->assertSame(
-			array(
-				'type'      => 'markup',
-				'direction' => 'add',
-				'value'     => 0.0,
-			),
-			f2000cs_get_price_adjust_settings( 1 )
-		);
-
-		unset( F2000CS_Test_State::$hooks['f2000cs_price_adjust_settings'] );
-		add_filter(
-			'f2000cs_price_adjust_settings',
-			static function () {
-				return array( 'value' => 5 );
-			}
-		);
-		$partial = f2000cs_get_price_adjust_settings( 1 );
-		$this->assertSame( 'markup', $partial['type'] );
-		$this->assertSame( 'add', $partial['direction'] );
-		$this->assertSame( 5, $partial['value'] );
-	}
-
-	/**
-	 * End to end: options → settings → XML_Stock_Updater → price.
-	 *
-	 * @return void
-	 */
-	public function test_updater_applies_saved_rule_only_with_pro() {
+	public function test_updater_applies_saved_rule_without_pro() {
 		update_option( 'f2000cs_price_adjust_type_1', 'markup' );
 		update_option( 'f2000cs_price_adjust_value_1', '20' );
 
-		$free = new XML_Stock_Updater( 'x.xml', '', false, f2000cs_get_price_adjust_settings( 1 ) );
-		$this->assertEquals( 0, F2000CS_Test_Reflection::get( $free, 'price_adjust_value' ) );
-
-		$this->enable_pro();
-		$pro = new XML_Stock_Updater( 'x.xml', '', false, f2000cs_get_price_adjust_settings( 1 ) );
-		$this->assertSame( 120.0, F2000CS_Test_Reflection::invoke( $pro, 'apply_price_adjustment', array( 100.0 ) ) );
-		$this->assertSame( 0.0, F2000CS_Test_Reflection::invoke( $pro, 'apply_price_adjustment', array( 0.0 ) ), 'Missing old price stays 0' );
-	}
-
-	/**
-	 * Without the Pro filter the updater never changes the price.
-	 *
-	 * @return void
-	 */
-	public function test_updater_without_price_filter_is_noop() {
-		unset( F2000CS_Test_State::$hooks['f2000cs_adjust_feed_price'] );
-
-		$updater = new XML_Stock_Updater( 'x.xml', '', false, array( 'value' => 50 ) );
-
-		$this->assertSame( 100.0, F2000CS_Test_Reflection::invoke( $updater, 'apply_price_adjustment', array( 100.0 ) ) );
+		$updater = f2000cs_make_stock_updater( 1, 'x.xml' );
+		$this->assertFalse( F2000CS_Test_Reflection::get( $updater, 'skip_price_updates' ), 'Prices follow the supplier' );
+		$this->assertSame( 120.0, F2000CS_Test_Reflection::invoke( $updater, 'apply_price_adjustment', array( 100.0 ) ) );
+		$this->assertSame( 0.0, F2000CS_Test_Reflection::invoke( $updater, 'apply_price_adjustment', array( 0.0 ) ), 'Missing old price stays 0' );
 	}
 
 	/**
@@ -343,24 +293,17 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
-	 * A saved price rule without Pro freezes prices instead of writing raw supplier prices.
+	 * Only «do not update prices» stops price updates; a saved rule never does.
 	 *
 	 * @return void
 	 */
-	public function test_saved_price_rule_without_pro_skips_prices() {
-		$this->assertFalse( f2000cs_supplier_skip_price( 1 ), 'Nothing saved: prices follow the supplier' );
-
+	public function test_skip_price_only_by_the_flag() {
 		update_option( 'f2000cs_price_adjust_value_1', '20' );
-		$this->assertTrue( f2000cs_supplier_skip_price( 1 ), 'Rule saved, no Pro: leave prices alone' );
-		$this->assertFalse( f2000cs_supplier_skip_price( 2 ), 'Other slots are unaffected' );
+		$this->assertFalse( f2000cs_supplier_skip_price( 1 ) );
 
-		$this->enable_pro();
-		$this->assertFalse( f2000cs_supplier_skip_price( 1 ), 'With Pro the rule is applied, not skipped' );
-
-		unset( F2000CS_Test_State::$hooks['f2000cs_is_pro'] );
-		update_option( 'f2000cs_price_adjust_value_1', '0' );
 		update_option( 'f2000cs_skip_price_1', 'on' );
-		$this->assertTrue( f2000cs_supplier_skip_price( 1 ), 'The explicit flag still wins' );
+		$this->assertTrue( f2000cs_supplier_skip_price( 1 ) );
+		$this->assertFalse( f2000cs_supplier_skip_price( 2 ), 'Other slots are unaffected' );
 	}
 
 	/**
@@ -448,6 +391,7 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 	public function test_pro_settings_registered_for_posted_slots() {
 		$_POST['f2000cs_price_adjust_value_12'] = '5';
 
+		f2000cs_settings_init();
 		f2000cs_register_pro_settings();
 		$registered = F2000CS_Test_State::$registered_settings['f2000cs_settings'];
 
@@ -466,6 +410,7 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 	 * @return void
 	 */
 	public function test_pro_settings_sanitizers() {
+		f2000cs_settings_init();
 		f2000cs_register_pro_settings();
 
 		$sanitize = static function ( $option, $value ) {
@@ -503,7 +448,7 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 	 * @return void
 	 */
 	public function test_pro_option_guards() {
-		$keys = array( 'f2000cs_price_adjust_value_1', 'f2000cs_update_stock_qty_3', 'f2000cs_hide_variable_low_instock', 'f2000cs_img_quality' );
+		$keys = array( 'f2000cs_update_stock_qty_3', 'f2000cs_hide_variable_low_instock', 'f2000cs_img_quality' );
 
 		f2000cs_register_pro_feature_guards();
 		foreach ( $keys as $key ) {
@@ -600,7 +545,7 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 			}
 		);
 
-		$this->assertMatchesRegularExpression( '/name="f2000cs_price_adjust_type_1"[^>]*disabled/', $card );
+		$this->assertDoesNotMatchRegularExpression( '/name="f2000cs_price_adjust_[a-z]+_1"[^>]*disabled/', $card, 'Price rules are free' );
 		$this->assertMatchesRegularExpression( '/name="f2000cs_update_stock_qty_1"[^>]*disabled/', $card );
 		$this->assertStringContainsString( 'f2000cs-pro-badge', $card );
 	}

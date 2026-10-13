@@ -1,7 +1,6 @@
 <?php
 /**
- * Pro settings UI: supplier price adjustment and stock quantity fields, update
- * interval, variable low-instock rule, Import page stock quantity option and the
+ * Pro settings UI: supplier stock quantity field, update interval, variable low-instock rule, Import page stock quantity option and the
  * «Оновити окремі поля» tab with its AJAX handler.
  *
  * Premium-only file (listed in @fs_premium_only of the main plugin file). The
@@ -18,27 +17,9 @@ defined( 'ABSPATH' ) || exit;
  * @return void
  */
 function f2000cs_register_pro_settings() {
-	$flag_args                   = array(
+	$flag_args = array(
 		'sanitize_callback' => function ( $value ) {
 			return ( $value === '1' || $value === 'yes' || $value === 'on' ) ? '1' : '0';
-		},
-	);
-	$price_adjust_type_args      = array(
-		'sanitize_callback' => function ( $value ) {
-			$allowed = array( 'margin', 'markup', 'fixed' );
-			return in_array( $value, $allowed, true ) ? $value : 'markup';
-		},
-	);
-	$price_adjust_direction_args = array(
-		'sanitize_callback' => function ( $value ) {
-			return 'subtract' === $value ? 'subtract' : 'add';
-		},
-	);
-	$price_adjust_value_args     = array(
-		'sanitize_callback' => function ( $value ) {
-			$value = is_numeric( $value ) ? (float) $value : 0;
-			$value = max( 0, min( 1000000, $value ) );
-			return (string) round( $value, 2 );
 		},
 	);
 
@@ -46,9 +27,6 @@ function f2000cs_register_pro_settings() {
 
 	for ( $i = 1; $i <= $slot_max; $i++ ) {
 		register_setting( 'f2000cs_settings', 'f2000cs_update_stock_qty_' . $i, $flag_args );
-		register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_type_' . $i, $price_adjust_type_args );
-		register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_direction_' . $i, $price_adjust_direction_args );
-		register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_value_' . $i, $price_adjust_value_args );
 	}
 
 	register_setting( 'f2000cs_settings', 'f2000cs_hide_variable_low_instock', $flag_args );
@@ -124,62 +102,6 @@ function f2000cs_render_supplier_qty_field( $slot ) {
 			<?php endif; ?>
 		</label>
 		<p class="description"><?php esc_html_e( 'Якщо в XML є quantity / stock_quantity — записати її в WooCommerce.', 'factorial2000-catalog-sync' ); ?></p>
-	</div>
-	<?php
-}
-
-/**
- * «Коригування ціни» block of a supplier card.
- *
- * @param string $slot Slot number, or __INDEX__ for the JS template.
- * @return void
- */
-function f2000cs_render_supplier_price_adjust( $slot ) {
-	$num         = absint( $slot );
-	$type        = $num ? get_option( 'f2000cs_price_adjust_type_' . $num, 'markup' ) : 'markup';
-	$direction   = $num ? get_option( 'f2000cs_price_adjust_direction_' . $num, 'add' ) : 'add';
-	$value       = $num ? get_option( 'f2000cs_price_adjust_value_' . $num, '0' ) : '0';
-	$type_name   = 'f2000cs_price_adjust_type_' . $slot;
-	$dir_name    = 'f2000cs_price_adjust_direction_' . $slot;
-	$val_name    = 'f2000cs_price_adjust_value_' . $slot;
-	$wrap_id     = 'f2000cs_price_adjust_' . $slot . '_wrap';
-	$dir_wrap_id = 'f2000cs_price_adjust_direction_' . $slot . '_wrap';
-	$unit_id     = 'f2000cs_price_adjust_unit_' . $slot;
-	$type_id     = $type_name;
-	$val_id      = $val_name;
-	$currency    = function_exists( 'get_woocommerce_currency_symbol' ) ? get_woocommerce_currency_symbol() : '';
-	$is_pro      = f2000cs_is_pro();
-	$price_cls   = 'f2000cs-price-adjust' . ( $is_pro ? '' : ' f2000cs-pro-feature' );
-	?>
-	<div class="f2000cs-supplier-card__field f2000cs-supplier-card__price">
-		<label>
-			<?php esc_html_e( 'Коригування ціни', 'factorial2000-catalog-sync' ); ?>
-			<?php
-			echo f2000cs_tip_html( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes.
-				__( 'Націнка — % від ціни постачальника. Маржа — бажаний прибуток у % від кінцевої ціни. Фіксована сума — додати або відняти грн/валюту.', 'factorial2000-catalog-sync' )
-			);
-			?>
-			<?php echo $is_pro ? '' : ' <span class="f2000cs-pro-badge">Pro</span>'; ?>
-		</label>
-		<div id="<?php echo esc_attr( $wrap_id ); ?>" class="<?php echo esc_attr( $price_cls ); ?>" data-percent-unit="%" data-currency-unit="<?php echo esc_attr( $currency ); ?>" <?php echo $is_pro ? '' : 'data-pro-tip="' . esc_attr__( 'Відкривається в Pro версії', 'factorial2000-catalog-sync' ) . '"'; ?>>
-			<select name="<?php echo esc_attr( $type_name ); ?>" id="<?php echo esc_attr( $type_id ); ?>" class="f2000cs-price-adjust__type" <?php disabled( ! $is_pro ); ?>>
-				<option value="markup" <?php selected( $type, 'markup' ); ?>><?php esc_html_e( 'Націнка (%)', 'factorial2000-catalog-sync' ); ?></option>
-				<option value="margin" <?php selected( $type, 'margin' ); ?>><?php esc_html_e( 'Маржа (%)', 'factorial2000-catalog-sync' ); ?></option>
-				<option value="fixed" <?php selected( $type, 'fixed' ); ?>><?php esc_html_e( 'Фіксована сума', 'factorial2000-catalog-sync' ); ?></option>
-			</select>
-			<span class="f2000cs-price-adjust__direction" id="<?php echo esc_attr( $dir_wrap_id ); ?>">
-				<label>
-					<input type="radio" name="<?php echo esc_attr( $dir_name ); ?>" value="add" <?php checked( $direction, 'add' ); ?> <?php disabled( ! $is_pro ); ?>>
-					<?php esc_html_e( 'Додати', 'factorial2000-catalog-sync' ); ?>
-				</label>
-				<label>
-					<input type="radio" name="<?php echo esc_attr( $dir_name ); ?>" value="subtract" <?php checked( $direction, 'subtract' ); ?> <?php disabled( ! $is_pro ); ?>>
-					<?php esc_html_e( 'Відняти', 'factorial2000-catalog-sync' ); ?>
-				</label>
-			</span>
-			<input type="number" name="<?php echo esc_attr( $val_name ); ?>" id="<?php echo esc_attr( $val_id ); ?>" value="<?php echo esc_attr( $value ); ?>" min="0" step="0.01" style="width: 100px;" <?php disabled( ! $is_pro ); ?>>
-			<span class="f2000cs-price-adjust__unit" id="<?php echo esc_attr( $unit_id ); ?>"><?php echo esc_html( 'fixed' === $type ? $currency : '%' ); ?></span>
-		</div>
 	</div>
 	<?php
 }

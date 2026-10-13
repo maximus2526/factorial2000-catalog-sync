@@ -86,16 +86,6 @@ if ( ! function_exists( 'f2000cs_render_supplier_qty_field' ) ) {
 	function f2000cs_render_supplier_qty_field( $slot ) {} // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Same signature as the Pro version.
 }
 
-if ( ! function_exists( 'f2000cs_render_supplier_price_adjust' ) ) {
-	/**
-	 * Supplier card price adjustment (Pro only, nothing in the free build).
-	 *
-	 * @param string $slot Slot number or __INDEX__.
-	 * @return void
-	 */
-	function f2000cs_render_supplier_price_adjust( $slot ) {} // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Same signature as the Pro version.
-}
-
 if ( ! function_exists( 'f2000cs_interval_render' ) ) {
 	/**
 	 * Update interval (free build: once a day).
@@ -106,7 +96,7 @@ if ( ! function_exists( 'f2000cs_interval_render' ) ) {
 		?>
 		<strong><?php esc_html_e( 'Щодня', 'factorial2000-catalog-sync' ); ?></strong>
 		<p class="description">
-			<?php esc_html_e( 'Автоматичне оновлення — раз на добу. Частіші інтервали (аж до що 5 хвилин), коригування цін, оновлення кількості та правило для варіативних товарів — у Pro.', 'factorial2000-catalog-sync' ); ?>
+			<?php esc_html_e( 'Автоматичне оновлення — раз на добу. Частіші інтервали (аж до що 5 хвилин), оновлення кількості та правило для варіативних товарів — у Pro.', 'factorial2000-catalog-sync' ); ?>
 			<a href="<?php echo esc_url( f2000cs_get_upgrade_url() ); ?>"><?php esc_html_e( 'Дізнатися про Pro', 'factorial2000-catalog-sync' ); ?></a>
 		</p>
 		<?php

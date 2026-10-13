@@ -307,7 +307,7 @@ function f2000cs_premium_build_missing_notice() {
 	<div class="notice notice-warning">
 		<p>
 			<strong>Factorial2000 Catalog Sync:</strong>
-			<?php esc_html_e( 'Ліцензія, тріал або збережені Pro-налаштування (націнка, кількість) є, але встановлена безкоштовна версія плагіна. Ціни та кількість не оновлюються, поки не встановлено Pro. Pro-функції (кілька постачальників, часті оновлення, коригування цін і кількість, маркетплейси, редактор вигрузок, оновлення полів, обробка зображень) працюють лише в Pro-збірці. Завантажте та встановіть Pro-версію зі сторінки акаунта Freemius.', 'factorial2000-catalog-sync' ); ?>
+			<?php esc_html_e( 'Ліцензія, тріал або збережені Pro-налаштування (оновлення кількості) є, але встановлена безкоштовна версія плагіна. Кількість не оновлюється, поки не встановлено Pro. Pro-функції (кілька постачальників, часті оновлення, оновлення кількості, маркетплейси, редактор вигрузок, оновлення полів, обробка зображень) працюють лише в Pro-збірці. Завантажте та встановіть Pro-версію зі сторінки акаунта Freemius.', 'factorial2000-catalog-sync' ); ?>
 			<?php if ( '' !== $url ) : ?>
 				<a href="<?php echo esc_url( $url ); ?>"><?php esc_html_e( 'Відкрити акаунт', 'factorial2000-catalog-sync' ); ?></a>
 			<?php endif; ?>
@@ -681,6 +681,9 @@ function f2000cs_register_missing_post_preservers() {
 		'f2000cs_url',
 		'f2000cs_sku_prefix_1',
 		'f2000cs_skip_price_1',
+		'f2000cs_price_adjust_type_1',
+		'f2000cs_price_adjust_direction_1',
+		'f2000cs_price_adjust_value_1',
 	);
 
 	$max = function_exists( 'f2000cs_get_supplier_option_register_max' )
@@ -691,6 +694,9 @@ function f2000cs_register_missing_post_preservers() {
 		$keys[] = 'f2000cs_url_' . $i;
 		$keys[] = 'f2000cs_sku_prefix_' . $i;
 		$keys[] = 'f2000cs_skip_price_' . $i;
+		$keys[] = 'f2000cs_price_adjust_type_' . $i;
+		$keys[] = 'f2000cs_price_adjust_direction_' . $i;
+		$keys[] = 'f2000cs_price_adjust_value_' . $i;
 	}
 
 	foreach ( $keys as $key ) {
@@ -840,7 +846,7 @@ function f2000cs_render_pro_plans_panel( $compact = false ) {
 	$pro_features = array(
 		__( 'Необмежено постачальників', 'factorial2000-catalog-sync' ),
 		__( 'Оновлення хоч що 5 хвилин', 'factorial2000-catalog-sync' ),
-		__( 'Коригування цін (націнка / маржа)', 'factorial2000-catalog-sync' ),
+		__( 'Оновлення кількості товару', 'factorial2000-catalog-sync' ),
 		__( 'Налаштування вигрузки + variable з малою наявністю', 'factorial2000-catalog-sync' ),
 		__( 'і не тільки...', 'factorial2000-catalog-sync' ),
 	);
@@ -861,7 +867,7 @@ function f2000cs_render_pro_plans_panel( $compact = false ) {
 				<ul class="f2000cs-pro-plan__features">
 					<li><?php esc_html_e( '1 постачальник (+ уже збережені під час тріалу)', 'factorial2000-catalog-sync' ); ?></li>
 					<li><?php esc_html_e( 'Оновлення наявності 3 рази на добу', 'factorial2000-catalog-sync' ); ?></li>
-					<li class="is-muted"><?php esc_html_e( 'Без коригування цін', 'factorial2000-catalog-sync' ); ?></li>
+					<li><?php esc_html_e( 'Коригування цін (націнка / маржа)', 'factorial2000-catalog-sync' ); ?></li>
 					<li class="is-muted"><?php esc_html_e( 'Без налаштування вигрузки', 'factorial2000-catalog-sync' ); ?></li>
 				</ul>
 				<span class="button disabled f2000cs-pro-plan__cta">

@@ -305,7 +305,7 @@ function f2000cs_docs_page() {
 					</div>
 
 					<div class="f2000cs-docs-card" id="suppliers-price">
-						<h3><?php esc_html_e( 'Коригування ціни', 'factorial2000-catalog-sync' ); ?> <span class="f2000cs-pro-badge">Pro</span></h3>
+						<h3><?php esc_html_e( 'Коригування ціни', 'factorial2000-catalog-sync' ); ?></h3>
 						<p><?php esc_html_e( 'Застосовується при оновленні цін під час оновлення наявності (якщо не увімкнено «не змінювати ціни»). Три типи:', 'factorial2000-catalog-sync' ); ?></p>
 						<ul>
 							<li><strong><?php esc_html_e( 'Націнка (%)', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'відсоток від ціни постачальника (додати або відняти).', 'factorial2000-catalog-sync' ); ?></li>
@@ -641,7 +641,7 @@ function f2000cs_docs_page() {
 							<li><?php esc_html_e( '1 постачальник;', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'імпорт товарів, режим «не змінювати ціни», Telegram, Vendor Code на товарі;', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'автооновлення раз на добу + 3 ручні запуски на добу;', 'factorial2000-catalog-sync' ); ?></li>
-							<li><?php esc_html_e( 'без вигрузки XML і маркетплейсів, без оновлення окремих полів, без обробки зображень, без коригування ціни / кількості / правила малої наявності.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'коригування ціни (націнка / маржа / фіксована сума) доступне; без вигрузки XML і маркетплейсів, без оновлення окремих полів, без обробки зображень, без оновлення кількості та правила малої наявності.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 					</div>
 
@@ -649,7 +649,7 @@ function f2000cs_docs_page() {
 						<h3><?php esc_html_e( 'Pro / тріал', 'factorial2000-catalog-sync' ); ?></h3>
 						<ul>
 							<li><?php esc_html_e( 'багато постачальників, часті інтервали cron, без денного ліміту ручних запусків;', 'factorial2000-catalog-sync' ); ?></li>
-							<li><?php esc_html_e( 'коригування цін, оновлення кількості, мала наявність варіацій;', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'оновлення кількості, мала наявність варіацій;', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'оновлення окремих полів, обробка зображень при імпорті;', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'сторінка вигрузки: фільтр + редактор XML;', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'маркетплейси: вигрузка товарів сайту на Prom.ua з автооновленням.', 'factorial2000-catalog-sync' ); ?></li>
@@ -657,7 +657,7 @@ function f2000cs_docs_page() {
 						<p><?php esc_html_e( 'Під час тріалу доступні ті самі можливості, що й у Pro.', 'factorial2000-catalog-sync' ); ?></p>
 						<div class="f2000cs-docs-note">
 							<strong><?php esc_html_e( 'Pro-збірка:', 'factorial2000-catalog-sync' ); ?></strong>
-							<?php esc_html_e( 'Усі Pro-функції — кілька постачальників, часті оновлення, коригування цін і кількості, правило для варіативних товарів, конвертація зображень, оновлення окремих полів, фільтр і редактор вигрузок, маркетплейси — входять лише до Pro-збірки плагіна; безкоштовна версія з WordPress.org цього коду не містить. Після оформлення підписки чи тріалу встановіть Pro-версію зі сторінки акаунта Freemius (плагін покаже відповідне повідомлення).', 'factorial2000-catalog-sync' ); ?>
+							<?php esc_html_e( 'Усі Pro-функції — кілька постачальників, часті оновлення, оновлення кількості, правило для варіативних товарів, конвертація зображень, оновлення окремих полів, фільтр і редактор вигрузок, маркетплейси — входять лише до Pro-збірки плагіна; безкоштовна версія з WordPress.org цього коду не містить. Після оформлення підписки чи тріалу встановіть Pro-версію зі сторінки акаунта Freemius (плагін покаже відповідне повідомлення).', 'factorial2000-catalog-sync' ); ?>
 						</div>
 					</div>
 				</section>
@@ -742,7 +742,7 @@ function f2000cs_docs_page() {
 							<li><strong><?php esc_html_e( 'f2000cs_marketplace_feeds', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'фільтр: список вигрузок маркетплейсів, через нього можна додати власну.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'f2000cs_marketplace_brand_taxonomies', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'фільтр: список таксономій, з яких береться бренд товару.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
-						<p><?php esc_html_e( 'Решта хуків (коригування цін, інтервали, кількість) використовується всередині Pro-збірки і не є стабільним публічним API.', 'factorial2000-catalog-sync' ); ?></p>
+						<p><?php esc_html_e( 'Решта хуків (інтервали, кількість) використовується всередині Pro-збірки і не є стабільним публічним API.', 'factorial2000-catalog-sync' ); ?></p>
 				</div>
 
 				</section>

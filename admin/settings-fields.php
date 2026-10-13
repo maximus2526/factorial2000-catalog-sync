@@ -16,6 +16,24 @@ function f2000cs_settings_init() {
 		},
 	);
 
+	$price_adjust_type_args      = array(
+		'sanitize_callback' => function ( $value ) {
+			return in_array( $value, array( 'margin', 'markup', 'fixed' ), true ) ? $value : 'markup';
+		},
+	);
+	$price_adjust_direction_args = array(
+		'sanitize_callback' => function ( $value ) {
+			return 'subtract' === $value ? 'subtract' : 'add';
+		},
+	);
+	$price_adjust_value_args     = array(
+		'sanitize_callback' => function ( $value ) {
+			$value = is_numeric( $value ) ? (float) $value : 0;
+			$value = max( 0, min( 1000000, $value ) );
+			return (string) round( $value, 2 );
+		},
+	);
+
 	register_setting( 'f2000cs_settings', 'f2000cs_url', $url_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_sku_prefix_1', $text_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_skip_price_1', $skip_price_args );
@@ -28,6 +46,12 @@ function f2000cs_settings_init() {
 		register_setting( 'f2000cs_settings', 'f2000cs_url_' . $i, $url_args );
 		register_setting( 'f2000cs_settings', 'f2000cs_sku_prefix_' . $i, $text_args );
 		register_setting( 'f2000cs_settings', 'f2000cs_skip_price_' . $i, $skip_price_args );
+	}
+
+	for ( $i = 1; $i <= $slot_max; $i++ ) {
+		register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_type_' . $i, $price_adjust_type_args );
+		register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_direction_' . $i, $price_adjust_direction_args );
+		register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_value_' . $i, $price_adjust_value_args );
 	}
 
 	register_setting(
@@ -459,5 +483,56 @@ function f2000cs_telegram_token_id_render() {
 	?>
 	<input type="text" name="f2000cs_telegram_token_id" value="<?php echo esc_attr( $token_id ); ?>" placeholder="<?php esc_attr_e( '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
 	<p class="description"><?php esc_html_e( 'Токен бота отримаєте у @BotFather: надішліть /newbot, задайте ім\'я — і скопіюйте рядок виду 1234567890:ABCdef... Без токена Telegram-сповіщення не надсилаються.', 'factorial2000-catalog-sync' ); ?></p>
+	<?php
+}
+
+/**
+ * «Коригування ціни» block of a supplier card.
+ *
+ * @param string $slot Slot number, or __INDEX__ for the JS template.
+ * @return void
+ */
+function f2000cs_render_supplier_price_adjust( $slot ) {
+	$num         = absint( $slot );
+	$type        = $num ? get_option( 'f2000cs_price_adjust_type_' . $num, 'markup' ) : 'markup';
+	$direction   = $num ? get_option( 'f2000cs_price_adjust_direction_' . $num, 'add' ) : 'add';
+	$value       = $num ? get_option( 'f2000cs_price_adjust_value_' . $num, '0' ) : '0';
+	$type_name   = 'f2000cs_price_adjust_type_' . $slot;
+	$dir_name    = 'f2000cs_price_adjust_direction_' . $slot;
+	$val_name    = 'f2000cs_price_adjust_value_' . $slot;
+	$wrap_id     = 'f2000cs_price_adjust_' . $slot . '_wrap';
+	$dir_wrap_id = 'f2000cs_price_adjust_direction_' . $slot . '_wrap';
+	$unit_id     = 'f2000cs_price_adjust_unit_' . $slot;
+	$currency    = function_exists( 'get_woocommerce_currency_symbol' ) ? get_woocommerce_currency_symbol() : '';
+	?>
+	<div class="f2000cs-supplier-card__field f2000cs-supplier-card__price">
+		<label>
+			<?php esc_html_e( 'Коригування ціни', 'factorial2000-catalog-sync' ); ?>
+			<?php
+			echo f2000cs_tip_html( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes.
+				__( 'Націнка — % від ціни постачальника. Маржа — бажаний прибуток у % від кінцевої ціни. Фіксована сума — додати або відняти грн/валюту.', 'factorial2000-catalog-sync' )
+			);
+			?>
+		</label>
+		<div id="<?php echo esc_attr( $wrap_id ); ?>" class="f2000cs-price-adjust" data-percent-unit="%" data-currency-unit="<?php echo esc_attr( $currency ); ?>">
+			<select name="<?php echo esc_attr( $type_name ); ?>" id="<?php echo esc_attr( $type_name ); ?>" class="f2000cs-price-adjust__type">
+				<option value="markup" <?php selected( $type, 'markup' ); ?>><?php esc_html_e( 'Націнка (%)', 'factorial2000-catalog-sync' ); ?></option>
+				<option value="margin" <?php selected( $type, 'margin' ); ?>><?php esc_html_e( 'Маржа (%)', 'factorial2000-catalog-sync' ); ?></option>
+				<option value="fixed" <?php selected( $type, 'fixed' ); ?>><?php esc_html_e( 'Фіксована сума', 'factorial2000-catalog-sync' ); ?></option>
+			</select>
+			<span class="f2000cs-price-adjust__direction" id="<?php echo esc_attr( $dir_wrap_id ); ?>">
+				<label>
+					<input type="radio" name="<?php echo esc_attr( $dir_name ); ?>" value="add" <?php checked( $direction, 'add' ); ?>>
+					<?php esc_html_e( 'Додати', 'factorial2000-catalog-sync' ); ?>
+				</label>
+				<label>
+					<input type="radio" name="<?php echo esc_attr( $dir_name ); ?>" value="subtract" <?php checked( $direction, 'subtract' ); ?>>
+					<?php esc_html_e( 'Відняти', 'factorial2000-catalog-sync' ); ?>
+				</label>
+			</span>
+			<input type="number" name="<?php echo esc_attr( $val_name ); ?>" id="<?php echo esc_attr( $val_name ); ?>" value="<?php echo esc_attr( $value ); ?>" min="0" step="0.01" style="width: 100px;">
+			<span class="f2000cs-price-adjust__unit" id="<?php echo esc_attr( $unit_id ); ?>"><?php echo esc_html( 'fixed' === $type ? $currency : '%' ); ?></span>
+		</div>
+	</div>
 	<?php
 }

@@ -1,7 +1,6 @@
 <?php
 /**
- * Pro sync features: price adjustment, stock quantity updates, the variable
- * low-instock rule, frequent cron intervals and the export download proxy.
+ * Pro sync features: stock quantity updates, the variable low-instock rule, frequent cron intervals and the export download proxy.
  *
  * Premium-only file (listed in @fs_premium_only of the main plugin file), so it
  * is not shipped in the free build. The free code reaches these features only
@@ -11,70 +10,6 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-
-/**
- * Saved price adjustment rules for a supplier slot (Pro / trial only).
- *
- * @param array $settings Defaults (no adjustment).
- * @param int   $index    Supplier slot index.
- * @return array{type: string, direction: string, value: float}
- */
-function f2000cs_pro_price_adjust_settings( $settings, $index ) {
-	if ( ! f2000cs_is_pro() ) {
-		return $settings;
-	}
-
-	return array(
-		'type'      => get_option( 'f2000cs_price_adjust_type_' . $index, 'markup' ),
-		'direction' => get_option( 'f2000cs_price_adjust_direction_' . $index, 'add' ),
-		'value'     => (float) get_option( 'f2000cs_price_adjust_value_' . $index, '0' ),
-	);
-}
-add_filter( 'f2000cs_price_adjust_settings', 'f2000cs_pro_price_adjust_settings', 10, 2 );
-
-/**
- * Apply a price adjustment (margin, markup or fixed amount) to a supplier price.
- *
- * Margin is the profit as a percentage of the final selling price:
- *     sell_price = cost / (1 - margin / 100)
- * Markup is a percentage applied on top of the supplier cost:
- *     sell_price = cost * (1 + markup / 100)
- * Fixed adds/subtracts a flat currency amount.
- *
- * @param float $price  Original price from XML.
- * @param array $adjust Rule: type (margin|markup|fixed), direction (add|subtract), value.
- * @return float Adjusted price, rounded to 2 decimals.
- */
-function f2000cs_pro_adjust_price( $price, $adjust ) {
-	$price = (float) $price;
-	$value = isset( $adjust['value'] ) ? (float) $adjust['value'] : 0.0;
-
-	if ( $price <= 0 || $value <= 0 ) {
-		return $price;
-	}
-
-	$sign = ( isset( $adjust['direction'] ) && 'subtract' === $adjust['direction'] ) ? -1 : 1;
-
-	switch ( $adjust['type'] ?? 'markup' ) {
-		case 'margin':
-			// Margin can only ever increase the price and must stay below 100%.
-			$margin = min( 99.99, $value );
-			$price  = $price / ( 1 - ( $margin / 100 ) );
-			break;
-
-		case 'fixed':
-			$price = $price + ( $sign * $value );
-			break;
-
-		case 'markup':
-		default:
-			$price = $price * ( 1 + ( $sign * $value / 100 ) );
-			break;
-	}
-
-	return round( max( 0, $price ), 2 );
-}
-add_filter( 'f2000cs_adjust_feed_price', 'f2000cs_pro_adjust_price', 10, 2 );
 
 /**
  * Per-slot «update stock quantity» option (Pro / trial only).
@@ -227,9 +162,6 @@ function f2000cs_register_pro_feature_guards() {
 
 	for ( $i = 1; $i <= $max; $i++ ) {
 		$keys[] = 'f2000cs_update_stock_qty_' . $i;
-		$keys[] = 'f2000cs_price_adjust_type_' . $i;
-		$keys[] = 'f2000cs_price_adjust_direction_' . $i;
-		$keys[] = 'f2000cs_price_adjust_value_' . $i;
 	}
 
 	$is_pro = f2000cs_is_pro();

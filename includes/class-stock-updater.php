@@ -440,9 +440,6 @@ class XML_Stock_Updater {
 	/**
 	 * Apply the configured price adjustment (margin, markup or fixed amount) to a supplier price.
 	 *
-	 * The rule itself is applied by the Pro build through the `f2000cs_adjust_feed_price`
-	 * filter; without it the price is left unchanged.
-	 *
 	 * @param float $price Original price from XML.
 	 * @return float Adjusted price.
 	 */
@@ -451,14 +448,7 @@ class XML_Stock_Updater {
 			return $price;
 		}
 
-		/**
-		 * Filter a supplier price with the slot's price adjustment rule.
-		 *
-		 * @param float $price  Price from XML (already converted to the store currency).
-		 * @param array $adjust Rule: type (margin|markup|fixed), direction (add|subtract), value.
-		 */
-		return (float) apply_filters(
-			'f2000cs_adjust_feed_price',
+		return f2000cs_adjust_price(
 			$price,
 			array(
 				'type'      => $this->price_adjust_type,
