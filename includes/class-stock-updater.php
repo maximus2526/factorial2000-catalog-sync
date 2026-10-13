@@ -76,6 +76,13 @@ class XML_Stock_Updater {
 	private $update_stock_qty = false;
 
 	/**
+	 * Leave the stock status of products with managed stock untouched.
+	 *
+	 * @var bool
+	 */
+	private $keep_managed_status = false;
+
+	/**
 	 * Currency rates parsed from XML <currencies> section.
 	 *
 	 * @var array<string,float>
@@ -117,14 +124,18 @@ class XML_Stock_Updater {
 	 *     @type float  $value     Percentage (margin/markup) or currency amount (fixed). Default 0.
 	 * }
 	 * @param bool   $update_stock_qty Whether to update stock quantity from XML.
+	 * @param bool   $keep_managed_status Leave the stock status of products with managed
+	 *                                    stock alone (their quantity is not updated either).
 	 */
-	public function __construct( $xml_url, $sku_prefix = '', $skip_price_updates = false, $price_adjust = array(), $update_stock_qty = false ) {
+	public function __construct( $xml_url, $sku_prefix = '', $skip_price_updates = false, $price_adjust = array(), $update_stock_qty = false, $keep_managed_status = false ) {
 		$this->xml_url            = $xml_url;
 		$this->telegram_token_id  = get_option( 'f2000cs_telegram_token_id', '' );
 		$this->telegram_user_ids  = array_map( 'trim', explode( ',', get_option( 'f2000cs_telegram_user_ids', '' ) ) );
 		$this->sku_prefix         = $sku_prefix;
 		$this->skip_price_updates = (bool) $skip_price_updates;
 		$this->update_stock_qty   = (bool) $update_stock_qty;
+
+		$this->keep_managed_status = (bool) $keep_managed_status;
 
 		$price_adjust = wp_parse_args(
 			$price_adjust,
@@ -429,41 +440,32 @@ class XML_Stock_Updater {
 	/**
 	 * Apply the configured price adjustment (margin, markup or fixed amount) to a supplier price.
 	 *
-	 * Margin is the profit as a percentage of the final selling price:
-	 *     sell_price = cost / (1 - margin / 100)
-	 * Markup is a percentage applied on top of the supplier cost:
-	 *     sell_price = cost * (1 + markup / 100)
-	 * Fixed adds/subtracts a flat currency amount.
+	 * The rule itself is applied by the Pro build through the `f2000cs_adjust_feed_price`
+	 * filter; without it the price is left unchanged.
 	 *
 	 * @param float $price Original price from XML.
-	 * @return float Adjusted price, rounded to 2 decimals.
+	 * @return float Adjusted price.
 	 */
 	private function apply_price_adjustment( $price ) {
 		if ( $price <= 0 || $this->price_adjust_value <= 0 ) {
 			return $price;
 		}
 
-		$value = $this->price_adjust_value;
-		$sign  = ( 'subtract' === $this->price_adjust_direction ) ? -1 : 1;
-
-		switch ( $this->price_adjust_type ) {
-			case 'margin':
-				// Margin can only ever increase the price and must stay below 100%.
-				$margin = min( 99.99, $value );
-				$price  = $price / ( 1 - ( $margin / 100 ) );
-				break;
-
-			case 'fixed':
-				$price = $price + ( $sign * $value );
-				break;
-
-			case 'markup':
-			default:
-				$price = $price * ( 1 + ( $sign * $value / 100 ) );
-				break;
-		}
-
-		return round( max( 0, $price ), 2 );
+		/**
+		 * Filter a supplier price with the slot's price adjustment rule.
+		 *
+		 * @param float $price  Price from XML (already converted to the store currency).
+		 * @param array $adjust Rule: type (margin|markup|fixed), direction (add|subtract), value.
+		 */
+		return (float) apply_filters(
+			'f2000cs_adjust_feed_price',
+			$price,
+			array(
+				'type'      => $this->price_adjust_type,
+				'direction' => $this->price_adjust_direction,
+				'value'     => $this->price_adjust_value,
+			)
+		);
 	}
 
 	private function sync_parent_stock_status( $parent_id ) {
@@ -565,7 +567,10 @@ class XML_Stock_Updater {
 						}
 					}
 
-					$stock_status_changed = $this->update_product_stock( $product, $product_data['stock_status'] );
+					// Without Pro the stored quantity is not refreshed; writing only a status for a
+					// product with managed stock would contradict its quantity.
+					$keep_status          = $this->keep_managed_status && $product->managing_stock();
+					$stock_status_changed = $keep_status ? false : $this->update_product_stock( $product, $product_data['stock_status'] );
 					if ( $stock_status_changed ) {
 						$product_data['stock_status'] === 'instock' ? ++$updated_in_stock : ++$updated_out_of_stock;
 						$changes_made = true;

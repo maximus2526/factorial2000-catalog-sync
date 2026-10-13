@@ -38,6 +38,7 @@ const RELEASE_DIR = path.join( ROOT, 'release' );
 const EXCLUDE_LIST = [
 	'.git',
 	'.github',
+	'.claude',
 	'.gitignore',
 	'tests',
 	'bin',

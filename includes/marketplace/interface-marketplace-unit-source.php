@@ -27,9 +27,9 @@ interface Marketplace_Unit_Source {
 	 * Read one page of a pass.
 	 *
 	 * @param string $phase  Pass name.
-	 * @param int    $offset Number of entries already consumed in this pass.
+	 * @param int    $offset Cursor: the "next" value of the previous page (0 at the start of a pass).
 	 * @param int    $limit  Page size.
-	 * @return array{units:array<int,array>,consumed:int,done:bool}
+	 * @return array{units:array<int,array>,next:int,done:bool}
 	 */
 	public function fetch( string $phase, int $offset, int $limit ): array;
 }

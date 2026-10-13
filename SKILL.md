@@ -1,7 +1,7 @@
 # Factorial2000 Catalog Sync — Агентський скіл
 
-> Остання актуальна версія: **0.6.10**
-> Тестове покриття: **251 тест / 1168 асертів**, PHPCS чистий у всіх файлах.
+> Остання актуальна версія: **0.7.0**
+> Тестове покриття: **306 тестів / 3238 асертів** + `bin/simulate-free-build.php` (free/pro smoke), PHPCS чистий у всіх файлах.
 
 Цей документ — **обов'язковий до прочитання** перед будь-якими змінами в репозиторії.
 Порушення конвенцій, описаних тут, зламають тести, білд і сумісність з wp.org.
@@ -42,6 +42,7 @@ factorial2000-catalog-sync/
 │   ├── class-stock-updater.php      — XML_Stock_Updater: оновлення стоку/цін з фіду (cron)
 │   ├── class-xml-export-filter.php  — XML_Export_Filter: вилучення існуючих товарів із XML
 │   ├── class-xml-editor.php         — XML_Editor: фільтрація за категоріями/оферами + умови
+│   ├── pro-features.php             — Pro (premium-only): price adjust, quantity, інтервали, low-instock, download-проксі
 │   ├── class-image-processor.php    — Image_Processor (Pro): resize/convert/optimize зображень
 │   ├── class-frontend-display.php   — Frontend_Display: vendor code у футері для адмінів
 │   └── parsers/
@@ -56,7 +57,9 @@ factorial2000-catalog-sync/
 │   ├── page-update.php              — Сторінка «Оновлення XML»
 │   ├── page-import.php              — Сторінка «Імпорт XML» + AJAX
 │   ├── page-export.php              — Сторінка «Налаштування вигрузки» + фільтр
-│   └── xml-editor.php              — Модуль «Редактор вигрузок XML»: картка + AJAX
+│   ├── xml-editor.php               — Модуль «Редактор вигрузок XML»: картка + AJAX
+│   ├── pro-settings.php             — Pro (premium-only): Pro-опції, поля карток, інтервал, «Оновити окремі поля»
+│   └── premium-upsell.php           — Заглушки free-збірки замість Pro-функцій
 │
 ├── assets/
 │   ├── css/admin-settings.css       — Всі стилі адмінки (BEM)
@@ -114,11 +117,11 @@ factorial2000-catalog-sync/
 ### 3.2 Free vs Pro
 
 - `f2000cs_is_pro()` → `true` коли: оплачена ліцензія Freemius **АБО** Freemius trial (14 днів, без карти) **АБО** `F2000CS_FORCE_PRO` / фільтр `f2000cs_is_pro`.
-- Free: 1 постачальник (+grandfathered), 1 оновлення/добу, без price adjust, без quantity, без variable-low-instock rule.
+- Free: 1 постачальник (+grandfathered), автооновлення раз на добу + 3 ручні запуски/добу (`F2000CS_FREE_DAILY_UPDATES`), без price adjust, без quantity, без variable-low-instock rule.
 - Pro-гейти: і фізичні (`f2000cs_register_pro_option_guards` + `pre_update_option` фільтри), і UI (`disabled` + бейджі).
 - Trial = Pro за функціоналом.
-- **Маркетплейси (Pro, 0.7.0):** `includes/marketplace/` — `Marketplace_Feed` (абстракція фіду: `fields/head/tail/process_unit`), `Prom_Feed` + `Prom_Variations` (порт `wc_to_prom_yml.py`, правила різновидів Prom), `Marketplace_Registry` (реєстр + налаштування, фільтр `f2000cs_marketplace_feeds` для Rozetka/Hotline), `Marketplace_WC_Source` (WooCommerce → рядки у форматі WC CSV → «units»), `Marketplace_Job` (чанкова збірка зі станом в опції, атомарна заміна файлу, блокування, WP-Cron, WP-CLI), `Marketplace_Storage` (uploads/f2000cs-feeds, токен у назві). Сторінка `admin/page-marketplaces.php`. Звірка з оригіналом: `php -d memory_limit=3G tests/integration/prom-golden-compare.php <csv> <yml> <config.json>` (на 13 тис. рядків — 10871 офер і 96 категорій збігаються побайтово).
-- **Дві збірки (з 0.7.0):** Pro-модулі — `class-image-processor.php`, `class-xml-editor.php`, `class-xml-export-filter.php`, `trait-xml-rebuilder.php`, `parsers/class-fields-updater.php`, `admin/xml-editor.php`, `admin/images-settings.php`, `admin/page-export.php`, `assets/js/admin-xml-editor.js`, `includes/marketplace/`, `admin/page-marketplaces.php`, `assets/js/admin-marketplaces.js` — перелічені в `@fs_premium_only` у шапці головного файлу; Freemius вирізає їх із безкоштовної збірки (wp.org). Збірка визначається наявністю файлу (`f2000cs_has_premium_code()`), від цього залежать `is_premium` у `fs_dynamic_init` і `f2000cs_is_pro()` (ліцензія без Pro-збірки нічого не відкриває; показується notice). У безкоштовній збірці `admin/premium-upsell.php` дає заглушки (`f2000cs_render_import_images_panel`, `f2000cs_export_page`). Нові Pro-файли додавайте в `@fs_premium_only` і лише під `if ( f2000cs_has_premium_code() )`.
+- **Маркетплейси (Pro, 0.7.0):** `includes/marketplace/` — `Marketplace_Feed` (абстракція фіду: `fields/head/tail/process_unit`), `Prom_Feed` + `Prom_Variations` (порт `wc_to_prom_yml.py`, правила різновидів Prom), `Marketplace_Registry` (реєстр + налаштування, фільтр `f2000cs_marketplace_feeds` для Rozetka/Hotline), `Marketplace_WC_Source` (WooCommerce → рядки у форматі WC CSV → «units»), `Marketplace_Job` (чанкова збірка зі станом в опції, атомарна заміна файлу, блокування, WP-Cron, WP-CLI; опція фіду `after_sync` — після `f2000cs_stock_update_complete` ставить одноразову подію `f2000cs_marketplace_after_sync` на перезбірку), `Marketplace_Storage` (uploads/f2000cs-feeds, токен у назві). Сторінка `admin/page-marketplaces.php`. Звірка з оригіналом: `php -d memory_limit=3G tests/integration/prom-golden-compare.php <csv> <yml> <config.json>` (на 13 тис. рядків — 10871 офер і 96 категорій збігаються побайтово).
+- **Дві збірки (з 0.7.0):** Pro-модулі — `pro-features.php` (логіка: коригування цін, кількість, інтервали й `cron_schedules`, правило variable-low-instock, download-проксі вигрузок), `admin/pro-settings.php` (Pro-налаштування й поля, вкладка «Оновити окремі поля» + AJAX), `class-image-processor.php`, `class-xml-editor.php`, `class-xml-export-filter.php`, `trait-xml-rebuilder.php`, `parsers/class-fields-updater.php`, `admin/xml-editor.php`, `admin/images-settings.php`, `admin/page-export.php`, `assets/js/admin-xml-editor.js`, `includes/marketplace/`, `admin/page-marketplaces.php`, `assets/js/admin-marketplaces.js` — перелічені в `@fs_premium_only` у шапці головного файлу; Freemius вирізає їх із безкоштовної збірки (wp.org). Збірка визначається наявністю файлу (`f2000cs_has_premium_code()`), від цього залежать `is_premium` у `fs_dynamic_init` і `f2000cs_is_pro()` (ліцензія без Pro-збірки нічого не відкриває; показується notice). У безкоштовній збірці `admin/premium-upsell.php` дає заглушки (`f2000cs_render_import_images_panel`, `f2000cs_export_page`, `f2000cs_interval_render`, `f2000cs_render_supplier_*`, `f2000cs_render_update_fields_panel` …). Free-код звертається до Pro-логіки лише через фільтри з безпечним дефолтом (`f2000cs_price_adjust_settings`, `f2000cs_adjust_feed_price`, `f2000cs_supplier_updates_stock_qty`, `f2000cs_import_stock_qty_allowed`, `f2000cs_effective_update_interval`, дія `f2000cs_stock_update_complete`, `f2000cs_register_schedule_fields`) — Pro-логіку в free-файли не додавайте. Нові Pro-файли додавайте в `@fs_premium_only` і лише під `if ( f2000cs_has_premium_code() )`. `Cron_Job::sync_schedule()` (на `init`) тримає подію cron на ефективному інтервалі; зупинений cron не перезапускає.
 - Перевірка розділення: `php bin/simulate-free-build.php` (CI теж) — збирає free/pro копії, лінтить і ганяє `tests/integration/free-build-smoke.php`; `PluginMetaTest` стереже список і умовні `require_once`.
 
 ### 3.3 Інструменти роботи з XML (5 різних)
@@ -133,7 +136,7 @@ factorial2000-catalog-sync/
 
 ### 3.4 Cron-потік
 
-`f2000cs_update_stock_cron` → `Cron_Job::update_stock()` → перебирає активні URL → `XML_Stock_Updater` на кожен → `f2000cs_after_stock_update_complete()` (low-instock правило + Telegram).
+`f2000cs_update_stock_cron` → `Cron_Job::update_stock()` → перебирає активні URL → `XML_Stock_Updater` на кожен → `f2000cs_after_stock_update_complete()` → дія `f2000cs_stock_update_complete` (Pro: low-instock правило + Telegram у `pro-features.php`; перезбірка фідів маркетплейсів з опцією `after_sync`).
 Фоновий sync: `f2000cs_single_update_event` (one-shot) + `f2000cs_bg_batch_remaining` transient → пост-обробка після останнього завдання.
 
 ### 3.5 JSON/id типи даних
@@ -350,9 +353,8 @@ npx gulp full             # phpcs → phpunit → +patch → release
 
 - Stock sync лише через `XML_Stock_Updater` (legacy path у `XML_Parser` видалено)
 - Дубль логіки перебудови XML між `XML_Export_Filter` і `XML_Editor` (`copy_element_data`)
-- `settings-fields.php` — 33KB, можна розбити далі
+- Free-збірка wp.org ще містить квоти (1 постачальник, 3 ручні запуски/добу) — за правилом 5 wp.org це може стати зауваженням рев'юерів
 - Немає інтеграційних тестів з реальним WP — smoke-скрипт є, але не в CI
-- Робоча гілка містить некомічені зміни релізу 0.6.10 (фікс ініціалізації Freemius: wizard після активації)
 - Редактор вантажить весь XML у пам'ять — для гігантських фідів межа
 
 ---

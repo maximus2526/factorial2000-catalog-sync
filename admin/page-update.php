@@ -273,20 +273,7 @@ function f2000cs_handle_action() {
 
 					foreach ( $xml_urls as $index => $xml_url ) {
 						try {
-							$sku_prefix   = get_option( 'f2000cs_sku_prefix_' . $index, '' );
-							$skip_price   = get_option( 'f2000cs_skip_price_' . $index, '0' );
-							$price_adjust = f2000cs_get_price_adjust_settings( $index );
-							$update_qty   = function_exists( 'f2000cs_supplier_updates_stock_qty' )
-								? f2000cs_supplier_updates_stock_qty( $index )
-								: false;
-							$updater      = new \F2000CS\XML_Stock_Updater(
-								$xml_url,
-								$sku_prefix,
-								( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' ),
-								$price_adjust,
-								$update_qty
-							);
-							$updater->update_products_stock_status();
+							f2000cs_make_stock_updater( $index, $xml_url )->update_products_stock_status();
 							++$success_count;
 						} catch ( Exception $e ) {
 							$msg = sprintf(

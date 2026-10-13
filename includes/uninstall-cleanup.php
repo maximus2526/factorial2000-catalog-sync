@@ -31,6 +31,8 @@ function f2000cs_uninstall_cleanup() {
 		}
 	}
 
+	f2000cs_clear_marketplace_cron();
+
 	// Remove all plugin options
 	delete_option( 'f2000cs_url' );
 	delete_option( 'f2000cs_url_1' );
@@ -83,6 +85,15 @@ function f2000cs_uninstall_cleanup() {
 				$wpdb->esc_like( '_transient_timeout_f2000cs_' ) . '%'
 			)
 		);
+
+		// Marketplace feeds (Pro): settings, build state, last result and file token per feed.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-off uninstall cleanup of this plugin's own options.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+				$wpdb->esc_like( 'f2000cs_mp_' ) . '%'
+			)
+		);
 	}
 
 	// Private upload dirs created by the plugin.
@@ -91,7 +102,77 @@ function f2000cs_uninstall_cleanup() {
 		$basedir = trailingslashit( $upload_dir['basedir'] );
 		f2000cs_uninstall_delete_dir( $basedir . 'f2000cs-exports' );
 		f2000cs_uninstall_delete_dir( $basedir . 'f2000cs-editor-sessions' );
+		f2000cs_uninstall_delete_dir( $basedir . 'f2000cs-feeds' );
 	}
+}
+
+/**
+ * Unschedule every marketplace feed event (recurring build and its continuation).
+ *
+ * The events belong to the Pro marketplace module but are cleared from the free
+ * code, so deactivation, uninstall and the free build can stop them as well.
+ *
+ * @return void
+ */
+function f2000cs_clear_marketplace_cron() {
+	wp_unschedule_hook( 'f2000cs_marketplace_build' );
+	wp_unschedule_hook( 'f2000cs_marketplace_continue' );
+	wp_unschedule_hook( 'f2000cs_marketplace_after_sync' );
+}
+
+/**
+ * Free build: withdraw marketplace feeds left behind by the Pro build.
+ *
+ * The free build cannot rebuild them, so the published files would keep feeding
+ * the marketplace frozen prices and stock. Their events and files are removed;
+ * the saved settings stay for a later return to Pro.
+ *
+ * @return void
+ */
+function f2000cs_cleanup_orphaned_marketplace_feeds() {
+	if ( f2000cs_has_premium_code() ) {
+		return;
+	}
+
+	$upload_dir = wp_upload_dir();
+	$feeds_dir  = empty( $upload_dir['basedir'] ) ? '' : trailingslashit( $upload_dir['basedir'] ) . 'f2000cs-feeds';
+
+	if ( ( '' === $feeds_dir || ! is_dir( $feeds_dir ) ) && ! f2000cs_has_marketplace_events() ) {
+		return;
+	}
+
+	f2000cs_clear_marketplace_cron();
+
+	if ( '' !== $feeds_dir ) {
+		f2000cs_uninstall_delete_dir( $feeds_dir );
+	}
+}
+add_action( 'admin_init', 'f2000cs_cleanup_orphaned_marketplace_feeds' );
+add_action( 'f2000cs_stock_update_complete', 'f2000cs_cleanup_orphaned_marketplace_feeds' );
+
+/**
+ * Whether any marketplace event is scheduled (they carry a feed id argument).
+ *
+ * @return bool
+ */
+function f2000cs_has_marketplace_events() {
+	$crons = _get_cron_array();
+
+	if ( ! is_array( $crons ) ) {
+		return false;
+	}
+
+	foreach ( $crons as $hooks ) {
+		if ( ! is_array( $hooks ) ) {
+			continue;
+		}
+
+		if ( ! empty( $hooks['f2000cs_marketplace_build'] ) || ! empty( $hooks['f2000cs_marketplace_continue'] ) || ! empty( $hooks['f2000cs_marketplace_after_sync'] ) ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /**

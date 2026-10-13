@@ -28,6 +28,11 @@ defined( 'ABSPATH' ) || exit;
 abstract class Marketplace_Feed {
 
 	/**
+	 * Example products kept per skip reason for the admin report.
+	 */
+	const MAX_EXAMPLES = 5;
+
+	/**
 	 * Stable machine id ("prom").
 	 *
 	 * @return string
@@ -71,9 +76,59 @@ abstract class Marketplace_Feed {
 	 * @param array<string,mixed>       $unit     Unit (see class docs).
 	 * @param Marketplace_Category_Tree $tree    Category tree (mutated).
 	 * @param array<string,mixed>       $settings Feed settings.
-	 * @return array{xml:string,exported:int,skipped:int,excluded:array<int,string>,used_ids:array<int,string>}
+	 * @return array{xml:string,exported:int,skipped:int,excluded:array<int,string>,used_ids:array<int,string>,reasons?:array<string,array{count:int,examples:array<int,string>}>}
 	 */
 	abstract public function process_unit( array $unit, Marketplace_Category_Tree $tree, array $settings ): array;
+
+	/**
+	 * Human labels of the skip reasons a feed reports in process_unit()['reasons'].
+	 *
+	 * @return array<string,string>
+	 */
+	public function skip_reason_labels(): array {
+		return array(
+			'no_name'     => __( 'немає назви', 'factorial2000-catalog-sync' ),
+			'no_price'    => __( 'немає ціни', 'factorial2000-catalog-sync' ),
+			'no_pictures' => __( 'немає фото', 'factorial2000-catalog-sync' ),
+			'no_category' => __( 'немає категорії', 'factorial2000-catalog-sync' ),
+			'no_id'       => __( 'немає ID', 'factorial2000-catalog-sync' ),
+			'unpublished' => __( 'не опубліковано', 'factorial2000-catalog-sync' ),
+		);
+	}
+
+	/**
+	 * Add skip reasons to running totals: counts are summed, a few distinct examples kept.
+	 *
+	 * @param array<string,array{count:int,examples:array<int,string>}> $total Totals.
+	 * @param array<string,array{count:int,examples:array<int,string>}> $add   Reasons to add.
+	 * @return array<string,array{count:int,examples:array<int,string>}>
+	 */
+	public static function merge_reasons( array $total, array $add ): array {
+		foreach ( $add as $reason => $info ) {
+			$reason = (string) $reason;
+
+			if ( ! isset( $total[ $reason ] ) ) {
+				$total[ $reason ] = array(
+					'count'    => 0,
+					'examples' => array(),
+				);
+			}
+
+			$total[ $reason ]['count'] += (int) ( $info['count'] ?? 0 );
+
+			foreach ( (array) ( $info['examples'] ?? array() ) as $example ) {
+				if ( count( $total[ $reason ]['examples'] ) >= self::MAX_EXAMPLES ) {
+					break;
+				}
+
+				if ( ! in_array( (string) $example, $total[ $reason ]['examples'], true ) ) {
+					$total[ $reason ]['examples'][] = (string) $example;
+				}
+			}
+		}
+
+		return $total;
+	}
 
 	/**
 	 * File extension of the generated feed.

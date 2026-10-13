@@ -113,7 +113,7 @@ class Marketplace_Registry {
 	}
 
 	/**
-	 * Saved settings of a feed merged with defaults (plus 'schedule').
+	 * Saved settings of a feed merged with defaults (plus 'schedule' and 'after_sync').
 	 *
 	 * @param string $id Feed id.
 	 * @return array<string,mixed>
@@ -131,6 +131,8 @@ class Marketplace_Registry {
 		$settings             = $feed->with_defaults( $saved );
 		$schedule             = (string) ( $saved['schedule'] ?? 'off' );
 		$settings['schedule'] = in_array( $schedule, self::schedules(), true ) ? $schedule : 'off';
+
+		$settings['after_sync'] = ! empty( $saved['after_sync'] );
 
 		return $settings;
 	}
@@ -152,6 +154,8 @@ class Marketplace_Registry {
 		$settings             = $feed->sanitize( $raw );
 		$schedule             = isset( $raw['schedule'] ) ? (string) $raw['schedule'] : 'off';
 		$settings['schedule'] = in_array( $schedule, self::schedules(), true ) ? $schedule : 'off';
+
+		$settings['after_sync'] = ! empty( $raw['after_sync'] ) && '0' !== (string) $raw['after_sync'];
 
 		// autoload=false: only read when building / on the admin page.
 		update_option( self::option_name( $id ), $settings, false );

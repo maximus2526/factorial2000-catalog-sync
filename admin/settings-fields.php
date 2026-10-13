@@ -8,39 +8,17 @@
 defined( 'ABSPATH' ) || exit;
 
 function f2000cs_settings_init() {
-	$url_args                    = array( 'sanitize_callback' => 'esc_url_raw' );
-	$text_args                   = array( 'sanitize_callback' => 'sanitize_text_field' );
-	$skip_price_args             = array(
+	$url_args        = array( 'sanitize_callback' => 'esc_url_raw' );
+	$text_args       = array( 'sanitize_callback' => 'sanitize_text_field' );
+	$skip_price_args = array(
 		'sanitize_callback' => function ( $value ) {
 			return ( $value === '1' || $value === 'yes' || $value === 'on' ) ? '1' : '0';
-		},
-	);
-	$price_adjust_type_args      = array(
-		'sanitize_callback' => function ( $value ) {
-			$allowed = array( 'margin', 'markup', 'fixed' );
-			return in_array( $value, $allowed, true ) ? $value : 'markup';
-		},
-	);
-	$price_adjust_direction_args = array(
-		'sanitize_callback' => function ( $value ) {
-			return 'subtract' === $value ? 'subtract' : 'add';
-		},
-	);
-	$price_adjust_value_args     = array(
-		'sanitize_callback' => function ( $value ) {
-			$value = is_numeric( $value ) ? (float) $value : 0;
-			$value = max( 0, min( 1000000, $value ) );
-			return (string) round( $value, 2 );
 		},
 	);
 
 	register_setting( 'f2000cs_settings', 'f2000cs_url', $url_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_sku_prefix_1', $text_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_skip_price_1', $skip_price_args );
-	register_setting( 'f2000cs_settings', 'f2000cs_update_stock_qty_1', $skip_price_args );
-	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_type_1', $price_adjust_type_args );
-	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_direction_1', $price_adjust_direction_args );
-	register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_value_1', $price_adjust_value_args );
 
 	$slot_max = function_exists( 'f2000cs_get_supplier_option_register_max' )
 		? f2000cs_get_supplier_option_register_max()
@@ -50,10 +28,6 @@ function f2000cs_settings_init() {
 		register_setting( 'f2000cs_settings', 'f2000cs_url_' . $i, $url_args );
 		register_setting( 'f2000cs_settings', 'f2000cs_sku_prefix_' . $i, $text_args );
 		register_setting( 'f2000cs_settings', 'f2000cs_skip_price_' . $i, $skip_price_args );
-		register_setting( 'f2000cs_settings', 'f2000cs_update_stock_qty_' . $i, $skip_price_args );
-		register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_type_' . $i, $price_adjust_type_args );
-		register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_direction_' . $i, $price_adjust_direction_args );
-		register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_value_' . $i, $price_adjust_value_args );
 	}
 
 	register_setting(
@@ -62,29 +36,17 @@ function f2000cs_settings_init() {
 		array(
 			'sanitize_callback' => function ( $value ) {
 				$value = sanitize_text_field( (string) $value );
+
+				// Without Pro the interval is not editable (the field is not posted): keep the saved one for a return to Pro.
+				if ( function_exists( 'f2000cs_is_pro' ) && ! f2000cs_is_pro() ) {
+					return (string) get_option( 'f2000cs_update_interval', 'hourly' );
+				}
+
 				if ( function_exists( 'f2000cs_get_effective_update_interval' ) ) {
 					return f2000cs_get_effective_update_interval( $value );
 				}
 				$allowed = array( '5_minute', '10_minute', '15_minute', '30_minute', 'hourly', '8_times_daily', '6_times_daily', '4_times_daily', 'twicedaily', 'daily' );
 				return in_array( $value, $allowed, true ) ? $value : 'hourly';
-			},
-		)
-	);
-	register_setting(
-		'f2000cs_settings',
-		'f2000cs_hide_variable_low_instock',
-		array(
-			'sanitize_callback' => function ( $value ) {
-				return ( $value === '1' || $value === 'yes' || $value === 'on' ) ? '1' : '0';
-			},
-		)
-	);
-	register_setting(
-		'f2000cs_settings',
-		'f2000cs_variable_low_instock_max',
-		array(
-			'sanitize_callback' => function ( $value ) {
-				return (string) max( 0, absint( $value ) );
 			},
 		)
 	);
@@ -108,8 +70,6 @@ function f2000cs_settings_init() {
 	);
 	register_setting( 'f2000cs_settings', 'f2000cs_telegram_user_ids', $text_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_telegram_token_id', $text_args );
-
-	$is_pro = function_exists( 'f2000cs_is_pro' ) ? f2000cs_is_pro() : true;
 
 	add_settings_section(
 		'f2000cs_section_suppliers',
@@ -135,26 +95,12 @@ function f2000cs_settings_init() {
 		'f2000cs',
 		'f2000cs_section_schedule'
 	);
-	add_settings_field(
-		'f2000cs_hide_variable_low_instock',
-		f2000cs_with_tip(
-			__( 'Мала наявність варіацій', 'factorial2000-catalog-sync' ),
-			__( 'Після sync ховає variable-товари, у яких лишилось замало варіацій «в наявності» (наприклад, майже порожня сітка розмірів). Корисно, щоб такі товари не крутились у рекламі.', 'factorial2000-catalog-sync' )
-		) . ( $is_pro ? '' : ' (Pro)' ),
-		'f2000cs_hide_variable_low_instock_render',
-		'f2000cs',
-		'f2000cs_section_schedule'
-	);
-	add_settings_field(
-		'f2000cs_variable_low_instock_max',
-		f2000cs_with_tip(
-			__( 'Поріг варіацій', 'factorial2000-catalog-sync' ),
-			__( 'Скільки варіацій «в наявності» ще вважається «мало». Наприклад 2: якщо лишилось 0–2 розміри — батьківський товар стає «немає в наявності».', 'factorial2000-catalog-sync' )
-		) . ( $is_pro ? '' : ' (Pro)' ),
-		'f2000cs_variable_low_instock_max_render',
-		'f2000cs',
-		'f2000cs_section_schedule'
-	);
+
+	/**
+	 * Register extra fields of the «Розклад і правила» section (Pro build).
+	 */
+	do_action( 'f2000cs_register_schedule_fields' );
+
 	add_settings_field(
 		'f2000cs_show_vendor_code',
 		f2000cs_with_tip(
@@ -385,56 +331,31 @@ function f2000cs_render_supplier_card( $index, $as_template = false ) {
 	$slot     = $is_tpl ? '__INDEX__' : (string) $num;
 
 	if ( $is_tpl ) {
-		$url_name   = 'f2000cs_url___INDEX__';
-		$url_id     = 'f2000cs_url___INDEX__';
-		$url        = '';
-		$prefix     = '';
-		$skip       = '0';
-		$update_qty = '0';
-		$type       = 'markup';
-		$direction  = 'add';
-		$value      = '0';
+		$url_name = 'f2000cs_url___INDEX__';
+		$url_id   = 'f2000cs_url___INDEX__';
+		$url      = '';
+		$prefix   = '';
+		$skip     = '0';
 	} elseif ( $is_first ) {
-		$url_name   = 'f2000cs_url';
-		$url_id     = 'f2000cs_url';
-		$url        = get_option( 'f2000cs_url', '' );
-		$prefix     = get_option( 'f2000cs_sku_prefix_1', '' );
-		$skip       = get_option( 'f2000cs_skip_price_1', '0' );
-		$update_qty = get_option( 'f2000cs_update_stock_qty_1', '0' );
-		$type       = get_option( 'f2000cs_price_adjust_type_1', 'markup' );
-		$direction  = get_option( 'f2000cs_price_adjust_direction_1', 'add' );
-		$value      = get_option( 'f2000cs_price_adjust_value_1', '0' );
+		$url_name = 'f2000cs_url';
+		$url_id   = 'f2000cs_url';
+		$url      = get_option( 'f2000cs_url', '' );
+		$prefix   = get_option( 'f2000cs_sku_prefix_1', '' );
+		$skip     = get_option( 'f2000cs_skip_price_1', '0' );
 	} else {
-		$url_name   = 'f2000cs_url_' . $num;
-		$url_id     = 'f2000cs_url_' . $num;
-		$url        = get_option( 'f2000cs_url_' . $num, '' );
-		$prefix     = get_option( 'f2000cs_sku_prefix_' . $num, '' );
-		$skip       = get_option( 'f2000cs_skip_price_' . $num, '0' );
-		$update_qty = get_option( 'f2000cs_update_stock_qty_' . $num, '0' );
-		$type       = get_option( 'f2000cs_price_adjust_type_' . $num, 'markup' );
-		$direction  = get_option( 'f2000cs_price_adjust_direction_' . $num, 'add' );
-		$value      = get_option( 'f2000cs_price_adjust_value_' . $num, '0' );
+		$url_name = 'f2000cs_url_' . $num;
+		$url_id   = 'f2000cs_url_' . $num;
+		$url      = get_option( 'f2000cs_url_' . $num, '' );
+		$prefix   = get_option( 'f2000cs_sku_prefix_' . $num, '' );
+		$skip     = get_option( 'f2000cs_skip_price_' . $num, '0' );
 	}
 
 	$prefix_name = $is_tpl ? 'f2000cs_sku_prefix___INDEX__' : 'f2000cs_sku_prefix_' . $num;
 	$prefix_id   = $prefix_name;
 	$skip_name   = $is_tpl ? 'f2000cs_skip_price___INDEX__' : 'f2000cs_skip_price_' . $num;
 	$skip_id     = $skip_name;
-	$qty_name    = $is_tpl ? 'f2000cs_update_stock_qty___INDEX__' : 'f2000cs_update_stock_qty_' . $num;
-	$qty_id      = $qty_name;
-	$type_name   = $is_tpl ? 'f2000cs_price_adjust_type___INDEX__' : 'f2000cs_price_adjust_type_' . $num;
-	$dir_name    = $is_tpl ? 'f2000cs_price_adjust_direction___INDEX__' : 'f2000cs_price_adjust_direction_' . $num;
-	$val_name    = $is_tpl ? 'f2000cs_price_adjust_value___INDEX__' : 'f2000cs_price_adjust_value_' . $num;
-	$wrap_id     = $is_tpl ? 'f2000cs_price_adjust___INDEX___wrap' : 'f2000cs_price_adjust_' . $num . '_wrap';
-	$dir_wrap_id = $is_tpl ? 'f2000cs_price_adjust_direction___INDEX___wrap' : 'f2000cs_price_adjust_direction_' . $num . '_wrap';
-	$unit_id     = $is_tpl ? 'f2000cs_price_adjust_unit___INDEX__' : 'f2000cs_price_adjust_unit_' . $num;
-	$type_id     = $type_name;
-	$val_id      = $val_name;
 
-	$currency  = function_exists( 'get_woocommerce_currency_symbol' ) ? get_woocommerce_currency_symbol() : '';
-	$is_pro    = function_exists( 'f2000cs_is_pro' ) ? f2000cs_is_pro() : true;
-	$price_cls = 'f2000cs-price-adjust' . ( $is_pro ? '' : ' f2000cs-pro-feature' );
-	$card_cls  = 'f2000cs-supplier-card' . ( $is_first ? ' f2000cs-supplier-card--primary' : '' );
+	$card_cls = 'f2000cs-supplier-card' . ( $is_first ? ' f2000cs-supplier-card--primary' : '' );
 	?>
 	<div class="<?php echo esc_attr( $card_cls ); ?>" data-slot="<?php echo esc_attr( $slot ); ?>" data-removable="<?php echo ( $is_tpl || ! $is_first ) ? '1' : '0'; ?>">
 		<div class="f2000cs-supplier-card__header">
@@ -483,120 +404,10 @@ function f2000cs_render_supplier_card( $index, $as_template = false ) {
 				</label>
 			</div>
 
-			<div class="f2000cs-supplier-card__field<?php echo $is_pro ? '' : ' f2000cs-pro-feature'; ?>" <?php echo $is_pro ? '' : 'data-pro-tip="' . esc_attr__( 'Відкривається в Pro версії', 'factorial2000-catalog-sync' ) . '"'; ?>>
-				<input type="hidden" name="<?php echo esc_attr( $qty_name ); ?>" value="0">
-				<label>
-					<input type="checkbox" name="<?php echo esc_attr( $qty_name ); ?>" id="<?php echo esc_attr( $qty_id ); ?>" value="1" <?php checked( $update_qty, '1' ); ?> <?php disabled( ! $is_pro ); ?>>
-					<?php esc_html_e( 'Оновлювати кількість товарів', 'factorial2000-catalog-sync' ); ?>
-					<?php
-					echo f2000cs_tip_html( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes.
-						__( 'Якщо в XML є quantity / stock_quantity — записує залишок у WooCommerce. Без цієї опції оновлюється лише «є / немає в наявності».', 'factorial2000-catalog-sync' )
-					);
-					?>
-					<?php if ( ! $is_pro ) : ?>
-						<span class="f2000cs-pro-badge"><?php esc_html_e( 'Pro', 'factorial2000-catalog-sync' ); ?></span>
-					<?php endif; ?>
-				</label>
-				<p class="description"><?php esc_html_e( 'Якщо в XML є quantity / stock_quantity — записати її в WooCommerce.', 'factorial2000-catalog-sync' ); ?></p>
-			</div>
+			<?php f2000cs_render_supplier_qty_field( $slot ); ?>
 		</div>
 
-		<div class="f2000cs-supplier-card__field f2000cs-supplier-card__price">
-			<label>
-				<?php esc_html_e( 'Коригування ціни', 'factorial2000-catalog-sync' ); ?>
-				<?php
-				echo f2000cs_tip_html( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes.
-					__( 'Націнка — % від ціни постачальника. Маржа — бажаний прибуток у % від кінцевої ціни. Фіксована сума — додати або відняти грн/валюту.', 'factorial2000-catalog-sync' )
-				);
-				?>
-				<?php echo $is_pro ? '' : ' <span class="f2000cs-pro-badge">Pro</span>'; ?>
-			</label>
-			<div id="<?php echo esc_attr( $wrap_id ); ?>" class="<?php echo esc_attr( $price_cls ); ?>" data-percent-unit="%" data-currency-unit="<?php echo esc_attr( $currency ); ?>" <?php echo $is_pro ? '' : 'data-pro-tip="' . esc_attr__( 'Відкривається в Pro версії', 'factorial2000-catalog-sync' ) . '"'; ?>>
-				<select name="<?php echo esc_attr( $type_name ); ?>" id="<?php echo esc_attr( $type_id ); ?>" class="f2000cs-price-adjust__type" <?php disabled( ! $is_pro ); ?>>
-					<option value="markup" <?php selected( $type, 'markup' ); ?>><?php esc_html_e( 'Націнка (%)', 'factorial2000-catalog-sync' ); ?></option>
-					<option value="margin" <?php selected( $type, 'margin' ); ?>><?php esc_html_e( 'Маржа (%)', 'factorial2000-catalog-sync' ); ?></option>
-					<option value="fixed" <?php selected( $type, 'fixed' ); ?>><?php esc_html_e( 'Фіксована сума', 'factorial2000-catalog-sync' ); ?></option>
-				</select>
-				<span class="f2000cs-price-adjust__direction" id="<?php echo esc_attr( $dir_wrap_id ); ?>">
-					<label>
-						<input type="radio" name="<?php echo esc_attr( $dir_name ); ?>" value="add" <?php checked( $direction, 'add' ); ?> <?php disabled( ! $is_pro ); ?>>
-						<?php esc_html_e( 'Додати', 'factorial2000-catalog-sync' ); ?>
-					</label>
-					<label>
-						<input type="radio" name="<?php echo esc_attr( $dir_name ); ?>" value="subtract" <?php checked( $direction, 'subtract' ); ?> <?php disabled( ! $is_pro ); ?>>
-						<?php esc_html_e( 'Відняти', 'factorial2000-catalog-sync' ); ?>
-					</label>
-				</span>
-				<input type="number" name="<?php echo esc_attr( $val_name ); ?>" id="<?php echo esc_attr( $val_id ); ?>" value="<?php echo esc_attr( $value ); ?>" min="0" step="0.01" style="width: 100px;" <?php disabled( ! $is_pro ); ?>>
-				<span class="f2000cs-price-adjust__unit" id="<?php echo esc_attr( $unit_id ); ?>"><?php echo esc_html( 'fixed' === $type ? $currency : '%' ); ?></span>
-			</div>
-		</div>
-	</div>
-	<?php
-}
-
-function f2000cs_interval_render() {
-	$interval = get_option( 'f2000cs_update_interval', 'hourly' );
-	$is_pro   = function_exists( 'f2000cs_is_pro' ) ? f2000cs_is_pro() : true;
-
-	if ( ! $is_pro ) {
-		$interval = 'daily';
-	}
-	?>
-	<select name="f2000cs_update_interval" <?php disabled( ! $is_pro ); ?>>
-		<?php if ( $is_pro ) : ?>
-			<option value="5_minute" <?php selected( $interval, '5_minute' ); ?>><?php esc_html_e( 'Що 5 хв', 'factorial2000-catalog-sync' ); ?></option>
-			<option value="10_minute" <?php selected( $interval, '10_minute' ); ?>><?php esc_html_e( 'Що 10 хв', 'factorial2000-catalog-sync' ); ?></option>
-			<option value="15_minute" <?php selected( $interval, '15_minute' ); ?>><?php esc_html_e( 'Що 15 хв', 'factorial2000-catalog-sync' ); ?></option>
-			<option value="30_minute" <?php selected( $interval, '30_minute' ); ?>><?php esc_html_e( 'Що 30 хв', 'factorial2000-catalog-sync' ); ?></option>
-			<option value="hourly" <?php selected( $interval, 'hourly' ); ?>><?php esc_html_e( 'Щогодини', 'factorial2000-catalog-sync' ); ?></option>
-			<option value="8_times_daily" <?php selected( $interval, '8_times_daily' ); ?>><?php esc_html_e( '8 разів на день', 'factorial2000-catalog-sync' ); ?></option>
-			<option value="6_times_daily" <?php selected( $interval, '6_times_daily' ); ?>><?php esc_html_e( '6 разів на день', 'factorial2000-catalog-sync' ); ?></option>
-			<option value="4_times_daily" <?php selected( $interval, '4_times_daily' ); ?>><?php esc_html_e( '4 рази на день', 'factorial2000-catalog-sync' ); ?></option>
-			<option value="twicedaily" <?php selected( $interval, 'twicedaily' ); ?>><?php esc_html_e( 'Двічі на день', 'factorial2000-catalog-sync' ); ?></option>
-		<?php endif; ?>
-		<option value="daily" <?php selected( $interval, 'daily' ); ?>><?php esc_html_e( 'Щодня', 'factorial2000-catalog-sync' ); ?></option>
-	</select>
-	<?php if ( ! $is_pro ) : ?>
-		<input type="hidden" name="f2000cs_update_interval" value="daily">
-		<p class="description">
-			<?php esc_html_e( 'Free: автоматичне оновлення — раз на добу. Частіші інтервали — у Pro.', 'factorial2000-catalog-sync' ); ?>
-			<a href="<?php echo esc_url( f2000cs_get_upgrade_url() ); ?>"><?php esc_html_e( 'Оформити Pro', 'factorial2000-catalog-sync' ); ?></a>
-		</p>
-	<?php endif; ?>
-	<?php
-}
-
-function f2000cs_hide_variable_low_instock_render() {
-	$val    = get_option( 'f2000cs_hide_variable_low_instock', '0' );
-	$is_pro = function_exists( 'f2000cs_is_pro' ) ? f2000cs_is_pro() : true;
-	?>
-	<div class="<?php echo $is_pro ? '' : 'f2000cs-pro-feature'; ?>" <?php echo $is_pro ? '' : 'data-pro-tip="' . esc_attr__( 'Відкривається в Pro версії', 'factorial2000-catalog-sync' ) . '"'; ?>>
-		<input type="hidden" name="f2000cs_hide_variable_low_instock" value="0">
-		<label>
-			<input type="checkbox" name="f2000cs_hide_variable_low_instock" value="1" <?php checked( $val, '1' ); ?> <?php disabled( ! $is_pro ); ?>>
-			<?php esc_html_e( 'Після оновлення ставити variable-товари в «немає в наявності», якщо варіацій в наявності недостатньо', 'factorial2000-catalog-sync' ); ?>
-			<?php if ( ! $is_pro ) : ?>
-				<span class="f2000cs-pro-badge"><?php esc_html_e( 'Pro', 'factorial2000-catalog-sync' ); ?></span>
-			<?php endif; ?>
-		</label>
-		<p class="description">
-			<?php esc_html_e( 'Застосовується після завершення stock update. Корисна фіча для реклами: товари з малою кількістю розмірів у варіаціях не показуються як доступні, тож у рекламі не крутяться оголошення з майже порожньою розмірною сіткою.', 'factorial2000-catalog-sync' ); ?>
-		</p>
-	</div>
-	<?php
-}
-
-function f2000cs_variable_low_instock_max_render() {
-	$max    = get_option( 'f2000cs_variable_low_instock_max', 2 );
-	$is_pro = function_exists( 'f2000cs_is_pro' ) ? f2000cs_is_pro() : true;
-	?>
-	<div class="<?php echo $is_pro ? '' : 'f2000cs-pro-feature'; ?>" <?php echo $is_pro ? '' : 'data-pro-tip="' . esc_attr__( 'Відкривається в Pro версії', 'factorial2000-catalog-sync' ) . '"'; ?>>
-		<input type="number" name="f2000cs_variable_low_instock_max" value="<?php echo esc_attr( $max ); ?>" min="0" step="1" style="width: 80px;" <?php disabled( ! $is_pro ); ?>>
-		<?php if ( ! $is_pro ) : ?>
-			<span class="f2000cs-pro-badge"><?php esc_html_e( 'Pro', 'factorial2000-catalog-sync' ); ?></span>
-		<?php endif; ?>
-		<p class="description"><?php esc_html_e( 'Максимальна кількість варіацій «в наявності» (включно), при якій батьківський товар буде позначено як «немає в наявності». За замовчуванням: 2. Допомагає прибрати з реклами variable-товари, у яких залишилось замало розмірів.', 'factorial2000-catalog-sync' ); ?></p>
+		<?php f2000cs_render_supplier_price_adjust( $slot ); ?>
 	</div>
 	<?php
 }

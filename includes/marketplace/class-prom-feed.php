@@ -18,6 +18,13 @@ defined( 'ABSPATH' ) || exit;
 class Prom_Feed extends Marketplace_Feed {
 
 	/**
+	 * Why rows of the unit being processed were left out.
+	 *
+	 * @var array<string,array{count:int,examples:array<int,string>}>
+	 */
+	private $reasons = array();
+
+	/**
 	 * Machine id.
 	 *
 	 * @return string
@@ -135,7 +142,7 @@ class Prom_Feed extends Marketplace_Feed {
 					'type'  => 'number',
 					'label' => __( 'Інша кількість…', 'factorial2000-catalog-sync' ),
 					'min'   => 1,
-					'max'   => 20,
+					'max'   => 10,
 				),
 			),
 			'include_unpublished'          => array(
@@ -367,6 +374,15 @@ class Prom_Feed extends Marketplace_Feed {
 			return $raw;
 		}
 
+		// Block editor comments and registered shortcodes mean nothing to the marketplace
+		// (other bracketed text such as "[XL]" is product text and stays).
+		$raw = strip_shortcodes( (string) preg_replace( '/<!--.*?-->/su', '', $raw ) );
+
+		// A classic description is plain text with line breaks: keep them as paragraphs.
+		if ( ! preg_match( '/<(?:p|br|div|ul|ol|li|h[1-6]|table)\b/i', $raw ) ) {
+			$raw = wpautop( $raw );
+		}
+
 		$text = str_replace( array( "\r\n", "\r", "\n" ), ' ', $raw );
 		$text = str_replace( array( '\\n', '\\r' ), ' ', $text );
 		$text = (string) preg_replace( '/>\s+</u', '><', $text );
@@ -522,14 +538,16 @@ class Prom_Feed extends Marketplace_Feed {
 	}
 
 	/**
-	 * Portal category id from rules (substring of the category path), else the default.
+	 * Portal category id from rules (prefix of the category path, whole segments), else the default.
+	 *
+	 * The rule "одяг" matches "Одяг" and "Одяг > Куртки" but not "Дитячий одяг".
 	 *
 	 * @param array<int, array<int, string>> $paths    Category paths.
 	 * @param array<string,mixed>            $settings Settings.
 	 * @return string
 	 */
 	public static function portal_category_for_paths( array $paths, array $settings ): string {
-		$blob = '';
+		$normalized = array();
 
 		foreach ( $paths as $path ) {
 			$segments = array();
@@ -542,15 +560,21 @@ class Prom_Feed extends Marketplace_Feed {
 				}
 			}
 
-			$blob .= ' ' . implode( '>', $segments );
+			$normalized[] = implode( '>', $segments );
 		}
 
 		foreach ( self::parse_pairs( (string) ( $settings['portal_category_rules'] ?? '' ) ) as $sub => $cid ) {
 			$sub = Marketplace_Form::normalize_path( (string) $sub );
 			$cid = Marketplace_Text::clean( $cid );
 
-			if ( '' !== $sub && '' !== $cid && false !== strpos( $blob, $sub ) ) {
-				return $cid;
+			if ( '' === $sub || '' === $cid ) {
+				continue;
+			}
+
+			foreach ( $normalized as $path ) {
+				if ( $path === $sub || 0 === strpos( $path, $sub . '>' ) ) {
+					return $cid;
+				}
 			}
 		}
 
@@ -584,6 +608,8 @@ class Prom_Feed extends Marketplace_Feed {
 		}
 
 		if ( '' === $name ) {
+			$this->skip( 'no_name', $row, $parent_row );
+
 			return array( null, 1 );
 		}
 
@@ -600,6 +626,8 @@ class Prom_Feed extends Marketplace_Feed {
 		}
 
 		if ( null === $price ) {
+			$this->skip( 'no_price', $row, $parent_row );
+
 			return array( null, 1 );
 		}
 
@@ -615,6 +643,8 @@ class Prom_Feed extends Marketplace_Feed {
 		}
 
 		if ( ! $images ) {
+			$this->skip( 'no_pictures', $row, $parent_row );
+
 			return array( null, 1 );
 		}
 
@@ -631,6 +661,8 @@ class Prom_Feed extends Marketplace_Feed {
 		$category_id = $tree->add_paths( $category_paths );
 
 		if ( null === $category_id ) {
+			$this->skip( 'no_category', $row, $parent_row );
+
 			return array( null, 1 );
 		}
 
@@ -641,6 +673,8 @@ class Prom_Feed extends Marketplace_Feed {
 		}
 
 		if ( '' === $offer_id ) {
+			$this->skip( 'no_id', $row, $parent_row );
+
 			return array( null, 1 );
 		}
 
@@ -754,23 +788,82 @@ class Prom_Feed extends Marketplace_Feed {
 	 * @param array<string,mixed>       $unit     Unit.
 	 * @param Marketplace_Category_Tree $tree     Category tree.
 	 * @param array<string,mixed>       $settings Settings.
-	 * @return array{xml:string,exported:int,skipped:int,excluded:array<int,string>,used_ids:array<int,string>}
+	 * @return array{xml:string,exported:int,skipped:int,excluded:array<int,string>,used_ids:array<int,string>,reasons:array<string,array{count:int,examples:array<int,string>}>}
 	 */
 	public function process_unit( array $unit, Marketplace_Category_Tree $tree, array $settings ): array {
-		$settings = $this->with_defaults( $settings );
+		$settings      = $this->with_defaults( $settings );
+		$this->reasons = array();
 
 		switch ( $unit['kind'] ?? '' ) {
 			case 'group':
-				return $this->process_group( $unit['parent'] ?? null, (array) ( $unit['children'] ?? array() ), $tree, $settings );
+				$res = $this->process_group( $unit['parent'] ?? null, (array) ( $unit['children'] ?? array() ), $tree, $settings );
+				break;
 
 			case 'lone':
-				return $this->process_lone( (array) $unit['row'], $unit['parent'] ?? null, $tree, $settings );
+				$res = $this->process_lone( (array) $unit['row'], $unit['parent'] ?? null, $tree, $settings );
+				break;
 
 			case 'simple':
-				return $this->process_simple( (array) $unit['row'], $tree, $settings );
+				$res = $this->process_simple( (array) $unit['row'], $tree, $settings );
+				break;
+
+			default:
+				$res = $this->result();
 		}
 
-		return $this->result();
+		$res['reasons'] = $this->reasons;
+
+		return $res;
+	}
+
+	/**
+	 * Record why a row was left out (shown on the admin page after the build).
+	 *
+	 * @param string                    $reason     Reason key (see skip_reason_labels()).
+	 * @param array<string,string>|null $row        Row.
+	 * @param array<string,string>|null $parent_row Parent row (its SKU names a variation without one).
+	 * @param int                       $count      Offers left out.
+	 * @return void
+	 */
+	private function skip( string $reason, $row, $parent_row = null, int $count = 1 ): void {
+		$label = '';
+
+		foreach ( array( $row, $parent_row ) as $source ) {
+			if ( ! is_array( $source ) ) {
+				continue;
+			}
+
+			$label = Marketplace_Text::clean( $source['SKU'] ?? '' );
+
+			if ( '' === $label && '' !== Marketplace_Text::clean( $source['ID'] ?? '' ) ) {
+				$label = 'ID ' . Marketplace_Text::clean( $source['ID'] );
+			}
+
+			if ( '' !== $label ) {
+				break;
+			}
+		}
+
+		$this->reasons = self::merge_reasons(
+			$this->reasons,
+			array(
+				$reason => array(
+					'count'    => $count,
+					'examples' => '' !== $label ? array( $label ) : array(),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Labels of the skip reasons, Prom-specific ones included.
+	 *
+	 * @return array<string,string>
+	 */
+	public function skip_reason_labels(): array {
+		return parent::skip_reason_labels() + array(
+			'duplicate_variations' => __( 'різновиди з однаковими характеристиками', 'factorial2000-catalog-sync' ),
+		);
 	}
 
 	/**
@@ -801,6 +894,7 @@ class Prom_Feed extends Marketplace_Feed {
 
 		if ( ! self::publish_ok( $row, $settings ) ) {
 			$res['skipped'] = 1;
+			$this->skip( 'unpublished', $row );
 
 			return $res;
 		}
@@ -831,6 +925,7 @@ class Prom_Feed extends Marketplace_Feed {
 
 		if ( ! self::publish_ok( $row, $settings ) ) {
 			$res['skipped'] = 1;
+			$this->skip( 'unpublished', $row );
 
 			return $res;
 		}
@@ -909,6 +1004,7 @@ class Prom_Feed extends Marketplace_Feed {
 
 			if ( '' === $vid ) {
 				++$res['skipped'];
+				$this->skip( 'no_id', $child, $parent_row );
 				continue;
 			}
 
@@ -1021,7 +1117,9 @@ class Prom_Feed extends Marketplace_Feed {
 
 		if ( $try_parent && Prom_Variations::has_duplicate_param_sets( $main_params, $group_params ) ) {
 			$res['excluded'][] = Marketplace_Text::clean( $parent_row['SKU'] ?? '' ) ? Marketplace_Text::clean( $parent_row['SKU'] ?? '' ) : $gid;
-			$res['skipped']   += 1 + count( $slot_entries ) + ( $main_entry ? 1 : 0 );
+			$dropped           = 1 + count( $slot_entries ) + ( $main_entry ? 1 : 0 );
+			$res['skipped']   += $dropped;
+			$this->skip( 'duplicate_variations', $parent_row, null, $dropped );
 
 			foreach ( $slot_entries as $entry ) {
 				$res['used_ids'][] = $entry[0];
@@ -1059,6 +1157,7 @@ class Prom_Feed extends Marketplace_Feed {
 
 			if ( null === $min_p ) {
 				++$res['skipped'];
+				$this->skip( 'no_price', $parent_row );
 			} else {
 				list( $xml, $sk ) = $this->compose_offer(
 					$tree,

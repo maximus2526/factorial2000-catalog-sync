@@ -31,12 +31,12 @@ final class F2000CS_Unit_CronJobTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
-	 * Custom schedules add 5_minute and keep existing entries untouched.
+	 * Pro schedules add 5_minute and keep existing entries untouched.
 	 *
 	 * @return void
 	 */
 	public function test_add_custom_cron_schedule() {
-		$schedules = Cron_Job::add_custom_cron_schedule(
+		$schedules = f2000cs_pro_cron_schedules(
 			array(
 				'hourly' => array(
 					'interval' => 3600,
@@ -169,6 +169,45 @@ final class F2000CS_Unit_CronJobTest extends F2000CS_Unit_TestCase {
 	 */
 	public function test_cron_schedules_filter_registered() {
 		$this->assertArrayHasKey( 'cron_schedules', F2000CS_Test_State::$hooks );
+	}
+
+	/**
+	 * A cron event left on another interval is moved to the effective one (free: daily).
+	 *
+	 * @return void
+	 */
+	public function test_sync_schedule_moves_event_to_effective_interval() {
+		wp_schedule_event( time(), '5_minute', Cron_Job::CRON_HOOK );
+
+		Cron_Job::sync_schedule();
+
+		$this->assertSame( 'daily', wp_get_schedule( Cron_Job::CRON_HOOK ) );
+	}
+
+	/**
+	 * With Pro the saved interval is restored (e.g. after a trial starts).
+	 *
+	 * @return void
+	 */
+	public function test_sync_schedule_uses_pro_interval() {
+		add_filter( 'f2000cs_is_pro', '__return_true' );
+		update_option( 'f2000cs_update_interval', 'hourly' );
+		wp_schedule_event( time(), 'daily', Cron_Job::CRON_HOOK );
+
+		Cron_Job::sync_schedule();
+
+		$this->assertSame( 'hourly', wp_get_schedule( Cron_Job::CRON_HOOK ) );
+	}
+
+	/**
+	 * A cron stopped by the admin is not restarted.
+	 *
+	 * @return void
+	 */
+	public function test_sync_schedule_keeps_stopped_cron_stopped() {
+		Cron_Job::sync_schedule();
+
+		$this->assertFalse( wp_get_schedule( Cron_Job::CRON_HOOK ) );
 	}
 
 	/**

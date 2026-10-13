@@ -51,7 +51,7 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 	 */
 	private function statuses(): array {
 		return '1' === (string) ( $this->settings['include_unpublished'] ?? '0' )
-			? array( 'publish', 'draft', 'pending', 'private' )
+			? array( 'publish', 'draft', 'pending' )
 			: array( 'publish' );
 	}
 
@@ -59,22 +59,37 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 	 * Read one page of a pass.
 	 *
 	 * @param string $phase  "variable" or "simple".
-	 * @param int    $offset Entries consumed so far in this pass.
+	 * @param int    $offset Cursor: the last product id of the previous page (0 at the start).
 	 * @param int    $limit  Page size.
-	 * @return array{units:array<int,array>,consumed:int,done:bool}
+	 * @return array{units:array<int,array>,next:int,done:bool}
 	 */
 	public function fetch( string $phase, int $offset, int $limit ): array {
-		$ids = (array) wc_get_products(
-			array(
-				'type'    => 'variable' === $phase ? array( 'variable' ) : array( 'simple', 'external' ),
-				'status'  => $this->statuses(),
-				'limit'   => $limit,
-				'offset'  => $offset,
-				'orderby' => 'ID',
-				'order'   => 'ASC',
-				'return'  => 'ids',
-			)
-		);
+		// Paging by id, not by offset: a stock sync that drafts products between two
+		// steps would shift an offset and silently skip products.
+		$after = static function ( $where ) use ( $offset ) {
+			global $wpdb;
+
+			return $where . $wpdb->prepare( " AND {$wpdb->posts}.ID > %d", $offset );
+		};
+
+		add_filter( 'posts_where', $after );
+
+		try {
+			$ids = (array) wc_get_products(
+				array(
+					'type'    => 'variable' === $phase ? array( 'variable' ) : array( 'simple', 'external' ),
+					'status'  => $this->statuses(),
+					'limit'   => $limit,
+					'orderby' => 'ID',
+					'order'   => 'ASC',
+					'return'  => 'ids',
+				)
+			);
+		} finally {
+			remove_filter( 'posts_where', $after );
+		}
+
+		$next = $ids ? max( array_map( 'intval', $ids ) ) : $offset;
 
 		$units = array();
 
@@ -96,9 +111,9 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 		}
 
 		return array(
-			'units'    => $units,
-			'consumed' => count( $ids ),
-			'done'     => count( $ids ) < $limit,
+			'units' => $units,
+			'next'  => $next,
+			'done'  => count( $ids ) < $limit,
 		);
 	}
 
@@ -112,7 +127,7 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 		$parent_row = $this->row( $parent_product );
 		$children   = array();
 
-		foreach ( (array) $parent_product->get_children() as $child_id ) {
+		foreach ( $this->child_ids( $parent_product ) as $child_id ) {
 			$variation = wc_get_product( (int) $child_id );
 
 			if ( ! $variation || 'variation' !== $variation->get_type() ) {
@@ -130,6 +145,37 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 			'kind'     => 'group',
 			'parent'   => $parent_row,
 			'children' => $children,
+		);
+	}
+
+	/**
+	 * Variation ids; with unpublished products allowed, draft variations too
+	 * (get_children() lists only published and private ones).
+	 *
+	 * @param \WC_Product $parent_product Variable product.
+	 * @return array<int,int>
+	 */
+	private function child_ids( $parent_product ): array {
+		if ( '1' !== (string) ( $this->settings['include_unpublished'] ?? '0' ) ) {
+			return array_map( 'intval', (array) $parent_product->get_children() );
+		}
+
+		return array_map(
+			'intval',
+			(array) get_posts(
+				array(
+					'post_type'        => 'product_variation',
+					'post_parent'      => $parent_product->get_id(),
+					'post_status'      => array( 'publish', 'draft', 'pending' ),
+					'orderby'          => array(
+						'menu_order' => 'ASC',
+						'ID'         => 'ASC',
+					),
+					'fields'           => 'ids',
+					'numberposts'      => -1,
+					'suppress_filters' => true,
+				)
+			)
 		);
 	}
 
@@ -304,7 +350,7 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 			$url = wp_get_attachment_url( $attachment_id );
 
 			if ( $url ) {
-				$urls[] = $this->esc( (string) $url );
+				$urls[] = $this->esc( Marketplace_Text::encode_url( (string) $url ) );
 			}
 		}
 

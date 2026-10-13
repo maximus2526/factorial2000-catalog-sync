@@ -35,6 +35,7 @@ final class F2000CS_Unit_AdminSmokeTest extends F2000CS_Unit_TestCase {
 
 		require_once $this->admin_dir . '/admin-menu.php';
 		require_once $this->admin_dir . '/settings-fields.php';
+		require_once $this->admin_dir . '/pro-settings.php';
 		require_once $this->admin_dir . '/page-update.php';
 		require_once $this->admin_dir . '/page-import.php';
 		require_once $this->admin_dir . '/page-export.php';
@@ -149,6 +150,7 @@ final class F2000CS_Unit_AdminSmokeTest extends F2000CS_Unit_TestCase {
 
 	public function test_settings_includes_pro_options(): void {
 		f2000cs_settings_init();
+		f2000cs_register_pro_settings();
 
 		$registered = F2000CS_Test_State::$registered_settings['f2000cs_settings'] ?? array();
 

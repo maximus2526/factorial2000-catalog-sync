@@ -29,8 +29,44 @@ define( 'HOUR_IN_SECONDS', 3600 );
 define( 'DAY_IN_SECONDS', 86400 );
 define( 'WEEK_IN_SECONDS', 604800 );
 define( 'MONTH_IN_SECONDS', 2592000 );
-define( 'F2000CS_FS_ID', 'YOUR_PLUGIN_ID' ); // Keeps the Freemius SDK from booting.
-define( 'F2000CS_FS_PUBLIC_KEY', 'YOUR_PUBLIC_KEY' );
+// Credentials look real, but the SDK never boots: f2000cs_fs() returns the
+// fake below because $f2000cs_fs is already set (license / trial scenarios).
+define( 'F2000CS_FS_ID', '99999' );
+define( 'F2000CS_FS_PUBLIC_KEY', 'pk_smoke' );
+
+/**
+ * Stand-in for the Freemius instance: license and trial state are plain fields.
+ */
+final class F2000CS_Smoke_Freemius {
+	/** @var bool */
+	public $paying = false;
+	/** @var bool */
+	public $trial = false;
+	/** @var string */
+	public $trial_ends = '';
+
+	public function is_paying() {
+		return $this->paying;
+	}
+
+	public function is_trial() {
+		return $this->trial;
+	}
+
+	public function get_site() {
+		return (object) array( 'trial_ends' => $this->trial_ends );
+	}
+
+	public function get_upgrade_url() {
+		return 'https://example.org/upgrade';
+	}
+
+	public function get_account_url() {
+		return 'https://example.org/account';
+	}
+}
+
+$f2000cs_fs = new F2000CS_Smoke_Freemius();
 
 require_once $repo . '/vendor/autoload.php';
 require_once $repo . '/tests/includes/wp-stubs.php';
@@ -202,7 +238,18 @@ foreach ( $classes as $class ) {
 	smoke_check( $class . ( $pro ? ' present' : ' absent' ), class_exists( $class, false ) === $pro );
 }
 
-$functions = array( 'f2000cs_xml_editor_ajax', 'f2000cs_register_image_settings', 'f2000cs_get_recent_export_files', 'f2000cs_marketplace_ajax_step' );
+$functions = array(
+	'f2000cs_xml_editor_ajax',
+	'f2000cs_register_image_settings',
+	'f2000cs_get_recent_export_files',
+	'f2000cs_marketplace_ajax_step',
+	// Pro sync rules (includes/pro-features.php, admin/pro-settings.php).
+	'f2000cs_pro_adjust_price',
+	'f2000cs_apply_variable_low_instock_rule',
+	'f2000cs_handle_export_download',
+	'f2000cs_register_pro_settings',
+	'f2000cs_handle_update_fields_action',
+);
 foreach ( $functions as $fn ) {
 	smoke_check( $fn . '() ' . ( $pro ? 'present' : 'absent' ), function_exists( $fn ) === $pro );
 }
@@ -212,6 +259,48 @@ smoke_check( 'free-core classes always present', class_exists( 'F2000CS\\XML_Par
 // ---------------------------------------------------------------- Pro gate
 
 smoke_check( 'f2000cs_is_pro() is false without license', false === f2000cs_is_pro() );
+
+// ---------------------------------------------------------------- license / trial (fake Freemius)
+
+$screen                                 = new stdClass();
+$screen->id                             = 'catalog-sync_page_f2000cs-update';
+F2000CS_Test_State::$current_screen     = $screen;
+F2000CS_Test_State::$can_manage_options = true;
+update_option( 'f2000cs_update_interval', '5_minute' );
+
+smoke_check( 'no license: no build notice', '' === trim( smoke_capture( 'f2000cs_premium_build_missing_notice' ) ) );
+
+$f2000cs_fs->trial      = true;
+$f2000cs_fs->trial_ends = gmdate( 'Y-m-d H:i:s', time() + 5 * DAY_IN_SECONDS );
+smoke_check( 'trial: Pro only in the Pro build', f2000cs_is_pro() === $pro );
+smoke_check( 'trial: end date read', f2000cs_get_trial_ends_at() > time() );
+$html = smoke_capture( 'f2000cs_render_trial_countdown' );
+smoke_check(
+	'trial: countdown ' . ( $pro ? 'shown' : 'hidden on the free build' ),
+	( false !== strpos( $html, 'f2000cs-trial-countdown' ) ) === $pro
+);
+$html = smoke_capture( 'f2000cs_premium_build_missing_notice' );
+smoke_check(
+	'trial: «install Pro» notice ' . ( $pro ? 'absent' : 'shown' ),
+	( false !== strpos( $html, 'example.org/account' ) ) === ! $pro
+);
+smoke_check( 'trial: effective interval', f2000cs_get_effective_update_interval() === ( $pro ? '5_minute' : 'daily' ) );
+smoke_check( 'trial: supplier slots', f2000cs_can_add_supplier_slot() === $pro );
+
+$f2000cs_fs->trial  = false;
+$f2000cs_fs->paying = true;
+smoke_check( 'license: Pro only in the Pro build', f2000cs_is_pro() === $pro );
+smoke_check( 'license: no countdown', '' === trim( smoke_capture( 'f2000cs_render_trial_countdown' ) ) );
+smoke_check(
+	'license: «install Pro» notice ' . ( $pro ? 'absent' : 'shown' ),
+	( false !== strpos( smoke_capture( 'f2000cs_premium_build_missing_notice' ), 'example.org/account' ) ) === ! $pro
+);
+smoke_check( 'license: free quota ' . ( $pro ? 'lifted' : 'kept' ), f2000cs_free_updates_remaining() === ( $pro ? 999 : F2000CS_FREE_DAILY_UPDATES ) );
+
+$f2000cs_fs->paying = false;
+smoke_check( 'license expired: free plan', false === f2000cs_is_pro() );
+delete_option( 'f2000cs_update_interval' );
+F2000CS_Test_State::$current_screen = null;
 
 add_filter( 'f2000cs_is_pro', '__return_true' ); // Simulate an active license / trial.
 
@@ -240,10 +329,48 @@ if ( $pro ) {
 	smoke_check( 'marketplaces page is an upsell placeholder', false !== strpos( $html, 'Pro' ) && false === strpos( $html, 'f2000cs-mp-build' ) );
 }
 
+$_GET['page'] = 'f2000cs-import';
+$html         = smoke_capture( 'f2000cs_import_page' );
+smoke_check(
+	'import stock quantity option ' . ( $pro ? 'present' : 'absent' ),
+	( false !== strpos( $html, 'name="import_stock_qty"' ) ) === $pro
+);
+smoke_check(
+	'update-fields list ' . ( $pro ? 'present' : 'replaced by an upsell' ),
+	( false !== strpos( $html, 'id="start-update-fields"' ) ) === $pro
+);
+
+smoke_check( 'settings init runs', null === smoke_json( 'f2000cs_settings_init' ) );
+if ( function_exists( 'f2000cs_register_pro_settings' ) ) {
+	f2000cs_register_pro_settings();
+}
+$registered = F2000CS_Test_State::$registered_settings['f2000cs_settings'] ?? array();
+smoke_check(
+	'price adjustment option ' . ( $pro ? 'registered' : 'not registered' ),
+	in_array( 'f2000cs_price_adjust_value_1', $registered, true ) === $pro
+);
+
 $html = smoke_capture( 'f2000cs_update_page' );
 smoke_check( 'update page renders', false !== strpos( $html, 'Запуск оновлення' ) );
 
-smoke_check( 'settings init runs', null === smoke_json( 'f2000cs_settings_init' ) );
+$html = smoke_capture(
+	static function () {
+		f2000cs_render_supplier_card( 1 );
+		f2000cs_interval_render();
+	}
+);
+smoke_check(
+	'supplier price adjustment ' . ( $pro ? 'rendered' : 'absent' ),
+	( false !== strpos( $html, 'f2000cs_price_adjust_type_1' ) ) === $pro
+);
+smoke_check(
+	'supplier quantity option ' . ( $pro ? 'rendered' : 'absent' ),
+	( false !== strpos( $html, 'f2000cs_update_stock_qty_1' ) ) === $pro
+);
+smoke_check(
+	'interval ' . ( $pro ? 'select with frequent intervals' : 'fixed to daily' ),
+	( false !== strpos( $html, 'value="5_minute"' ) ) === $pro
+);
 
 // ---------------------------------------------------------------- assets
 
@@ -259,12 +386,73 @@ smoke_check(
 
 // ---------------------------------------------------------------- AJAX
 
-$_POST['f2000cs_import_nonce'] = 'x';
-$response                      = smoke_json( 'f2000cs_handle_update_fields_action' );
-smoke_check( 'update-fields handler answers with JSON (no fatal)', null !== $response );
-if ( ! $pro && $response ) {
-	smoke_check( 'free build: update-fields refuses even with a license filter', false === $response->success );
+smoke_check(
+	'update-fields AJAX action ' . ( $pro ? 'registered' : 'not registered' ),
+	(bool) has_filter( 'wp_ajax_f2000cs_update_fields_action' ) === $pro
+);
+smoke_check(
+	'export download action ' . ( $pro ? 'registered' : 'not registered' ),
+	(bool) has_filter( 'admin_post_f2000cs_download_export' ) === $pro
+);
+if ( $pro ) {
+	$_POST['f2000cs_import_nonce'] = 'x';
+	smoke_check( 'update-fields handler answers with JSON (no fatal)', null !== smoke_json( 'f2000cs_handle_update_fields_action' ) );
 }
+
+// ---------------------------------------------------------------- sync rules (license filter still on)
+
+update_option( 'f2000cs_price_adjust_value_1', '10' );
+update_option( 'f2000cs_update_stock_qty_1', '1' );
+update_option( 'f2000cs_update_interval', '5_minute' );
+
+$adjust = f2000cs_get_price_adjust_settings( 1 );
+smoke_check( 'price adjustment ' . ( $pro ? 'applied' : 'off' ), ( 10.0 === (float) $adjust['value'] ) === $pro );
+smoke_check( 'supplier quantity update ' . ( $pro ? 'on' : 'off' ), f2000cs_supplier_updates_stock_qty( 1 ) === $pro );
+// Free build with a saved markup: prices are frozen, never reset to the raw supplier price.
+smoke_check( 'saved markup ' . ( $pro ? 'applied' : 'freezes prices' ), f2000cs_supplier_skip_price( 1 ) === ! $pro );
+smoke_check( 'saved Pro settings detected', f2000cs_has_saved_pro_config() );
+smoke_check( 'effective interval', f2000cs_get_effective_update_interval() === ( $pro ? '5_minute' : 'daily' ) );
+
+// The next run keeps its time when the interval changes: no immediate full sync.
+$next_run = time() + 3600;
+wp_schedule_event( $next_run, $pro ? 'daily' : '5_minute', F2000CS\Cron_Job::CRON_HOOK );
+F2000CS\Cron_Job::sync_schedule();
+smoke_check( 'interval change keeps the next run time', wp_next_scheduled( F2000CS\Cron_Job::CRON_HOOK ) === $next_run );
+wp_clear_scheduled_hook( F2000CS\Cron_Job::CRON_HOOK );
+smoke_check(
+	'frequent cron schedules ' . ( $pro ? 'registered' : 'absent' ),
+	isset( apply_filters( 'cron_schedules', array() )['5_minute'] ) === $pro
+);
+
+// A cron event left on another interval (trial ended, Pro build replaced by free) follows the effective one.
+wp_schedule_event( time(), $pro ? 'daily' : '5_minute', F2000CS\Cron_Job::CRON_HOOK );
+F2000CS\Cron_Job::sync_schedule();
+smoke_check( 'stock cron moved to the effective interval', wp_get_schedule( F2000CS\Cron_Job::CRON_HOOK ) === ( $pro ? '5_minute' : 'daily' ) );
+wp_clear_scheduled_hook( F2000CS\Cron_Job::CRON_HOOK );
+F2000CS\Cron_Job::sync_schedule();
+smoke_check( 'stopped stock cron stays stopped', false === wp_get_schedule( F2000CS\Cron_Job::CRON_HOOK ) );
+
+// Marketplace events and feed files left by the Pro build: the free build withdraws them, Pro keeps them.
+$feeds_dir = wp_upload_dir()['basedir'] . '/f2000cs-feeds';
+if ( ! is_dir( $feeds_dir ) ) {
+	mkdir( $feeds_dir, 0777, true );
+}
+file_put_contents( $feeds_dir . '/prom-smoketoken.xml', '<yml_catalog/>' );
+wp_schedule_event( time(), 'daily', 'f2000cs_marketplace_build', array( 'prom' ) );
+f2000cs_cleanup_orphaned_marketplace_feeds();
+smoke_check( 'marketplace events ' . ( $pro ? 'kept' : 'withdrawn' ), f2000cs_has_marketplace_events() === $pro );
+smoke_check( 'marketplace feed file ' . ( $pro ? 'kept' : 'deleted' ), is_file( $feeds_dir . '/prom-smoketoken.xml' ) === $pro );
+@unlink( $feeds_dir . '/prom-smoketoken.xml' );
+
+// The free build also withdraws them after a stock update (no admin visit needed).
+if ( ! $pro ) {
+	mkdir( $feeds_dir, 0777, true );
+	file_put_contents( $feeds_dir . '/prom-smoketoken.xml', '<yml_catalog/>' );
+	do_action( 'f2000cs_stock_update_complete' );
+	smoke_check( 'free build: stock update withdraws an orphaned feed', ! is_file( $feeds_dir . '/prom-smoketoken.xml' ) );
+}
+f2000cs_clear_marketplace_cron();
+smoke_check( 'marketplace events cleared on deactivation', ! f2000cs_has_marketplace_events() );
 
 // ---------------------------------------------------------------- shared code paths
 

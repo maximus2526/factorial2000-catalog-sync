@@ -36,6 +36,10 @@ if ( defined( 'WP_CLI' ) && WP_CLI && class_exists( '\WP_CLI' ) ) {
 		public function build( $args ) {
 			$id = (string) ( $args[0] ?? '' );
 
+			if ( ! function_exists( 'f2000cs_is_pro' ) || ! f2000cs_is_pro() ) {
+				\WP_CLI::error( 'Marketplace feeds need an active Pro license or trial.' );
+			}
+
 			if ( ! Marketplace_Registry::get( $id ) ) {
 				\WP_CLI::error( 'Unknown feed: ' . $id );
 			}

@@ -23,6 +23,7 @@ class XML_Parser {
 	private bool $new_category             = false;
 	private bool $new_category_subcats     = false;
 	private bool $import_stock_qty         = false; // Import <quantity>/<qty_stock> and enable stock management (Pro).
+	private bool $in_stock_only            = false; // Skip offers that are out of stock.
 	private ?int $new_arrivals_term_id     = null; // Cache for the "Новинки" term ID.
 	private array $new_category_term_cache = array(); // Cache for terms nested under "Новинки".
 	protected string $sku_prefix           = '';
@@ -38,13 +39,16 @@ class XML_Parser {
 	 *                                     under "Новинки" as subcategories (only relevant when
 	 *                                     $new_category is true).
 	 * @param bool   $import_stock_qty Whether to import the stock quantity from the XML.
+	 * @param bool   $in_stock_only Import only offers that are in stock (a variable product
+	 *                              gets only its in-stock variations).
 	 */
-	public function __construct( string $file_path, bool $new_category, string $sku_prefix = '', bool $new_category_subcats = false, bool $import_stock_qty = false ) {
+	public function __construct( string $file_path, bool $new_category, string $sku_prefix = '', bool $new_category_subcats = false, bool $import_stock_qty = false, bool $in_stock_only = false ) {
 		$this->xml_url              = $file_path;
 		$this->new_category         = $new_category;
 		$this->sku_prefix           = $sku_prefix;
 		$this->new_category_subcats = $new_category_subcats;
 		$this->import_stock_qty     = $import_stock_qty;
+		$this->in_stock_only        = $in_stock_only;
 	}
 
 	/**
@@ -336,6 +340,22 @@ class XML_Parser {
 			}
 		}
 
+		// Filtered after grouping, so a group keeps its type: an out-of-stock size
+		// never turns its in-stock sibling into a separate simple product.
+		if ( $this->in_stock_only ) {
+			$simple_products = array_values( array_filter( $simple_products, array( $this, 'offer_in_stock' ) ) );
+
+			foreach ( $grouped_products as $group_id => $variations ) {
+				$variations = array_values( array_filter( $variations, array( $this, 'offer_in_stock' ) ) );
+
+				if ( $variations ) {
+					$grouped_products[ $group_id ] = $variations;
+				} else {
+					unset( $grouped_products[ $group_id ] );
+				}
+			}
+		}
+
 		// Second pass: Create products.
 		$imported       = 0;
 		$skipped        = 0;
@@ -403,6 +423,16 @@ class XML_Parser {
 			'total'     => $total_products,
 			'finished'  => ( $offset + $processed ) >= $total_products,
 		);
+	}
+
+	/**
+	 * Whether an offer is in stock.
+	 *
+	 * @param array $offer_data Offer data from extract_offer_data().
+	 * @return bool
+	 */
+	private function offer_in_stock( array $offer_data ): bool {
+		return 'instock' === ( $offer_data['available'] ?? '' );
 	}
 
 	/**

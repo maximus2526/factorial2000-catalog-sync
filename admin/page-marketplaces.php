@@ -9,6 +9,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
+use F2000CS\Marketplace_Feed;
 use F2000CS\Marketplace_Form;
 use F2000CS\Marketplace_Job;
 use F2000CS\Marketplace_Registry;
@@ -343,6 +344,7 @@ function f2000cs_marketplaces_page() {
 							<?php else : ?>
 								<span style="color:#b32d2e"><?php echo esc_html( (string) ( $result['message'] ?? '' ) ); ?></span>
 							<?php endif; ?>
+							<?php f2000cs_marketplace_render_skip_reasons( $feed, (array) ( $result['reasons'] ?? array() ) ); ?>
 						<?php else : ?>
 							—
 						<?php endif; ?>
@@ -354,6 +356,11 @@ function f2000cs_marketplaces_page() {
 				<button type="button" class="button button-primary f2000cs-mp-build" data-feed="<?php echo esc_attr( $id ); ?>" data-resume="<?php echo $running ? '1' : '0'; ?>">
 					<?php echo $running ? esc_html__( 'Продовжити генерацію', 'factorial2000-catalog-sync' ) : esc_html__( 'Згенерувати зараз', 'factorial2000-catalog-sync' ); ?>
 				</button>
+				<?php if ( ! $running && ! empty( $result['drop'] ) ) : ?>
+					<button type="button" class="button f2000cs-mp-build" data-feed="<?php echo esc_attr( $id ); ?>" data-force="1">
+						<?php esc_html_e( 'Скорочення очікуване — опублікувати', 'factorial2000-catalog-sync' ); ?>
+					</button>
+				<?php endif; ?>
 				<span class="f2000cs-mp-progress" aria-live="polite" style="margin-left:10px"></span>
 			</p>
 		</div>
@@ -374,6 +381,17 @@ function f2000cs_marketplaces_page() {
 							<?php endforeach; ?>
 						</select>
 						<p class="description"><?php esc_html_e( 'Файл перегенеровується у фоні через WP-Cron; поки триває генерація, маркетплейс бачить попередній файл.', 'factorial2000-catalog-sync' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Після оновлення наявності', 'factorial2000-catalog-sync' ); ?></th>
+					<td>
+						<input type="hidden" name="mp[after_sync]" value="0">
+						<label>
+							<input type="checkbox" id="f2000cs-mp-after-sync" name="mp[after_sync]" value="1" <?php checked( ! empty( $settings['after_sync'] ) ); ?>>
+							<?php esc_html_e( 'Оновлювати вигрузку після кожного оновлення наявності й цін', 'factorial2000-catalog-sync' ); ?>
+						</label>
+						<p class="description"><?php esc_html_e( 'Після завершення синхронізації з постачальниками (за розкладом або кнопкою) вигрузка у фоні збирається заново з товарів сайту за правилами нижче, і за тим самим посиланням Prom отримує актуальні ціни та наявність.', 'factorial2000-catalog-sync' ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -484,6 +502,53 @@ function f2000cs_marketplace_handle_save() {
 add_action( 'admin_post_f2000cs_marketplace_save', 'f2000cs_marketplace_handle_save' );
 
 /**
+ * Why products were left out of the last build, with a few SKUs each.
+ *
+ * @param Marketplace_Feed                                          $feed    Feed.
+ * @param array<string,array{count:int,examples:array<int,string>}> $reasons Reasons.
+ * @return void
+ */
+function f2000cs_marketplace_render_skip_reasons( Marketplace_Feed $feed, array $reasons ) {
+	$reasons = array_filter(
+		$reasons,
+		static function ( $info ) {
+			return (int) ( $info['count'] ?? 0 ) > 0;
+		}
+	);
+
+	if ( ! $reasons ) {
+		return;
+	}
+
+	uasort(
+		$reasons,
+		static function ( $a, $b ) {
+			return (int) $b['count'] - (int) $a['count'];
+		}
+	);
+
+	$labels = $feed->skip_reason_labels();
+	?>
+	<details class="f2000cs-mp-reasons">
+		<summary><?php esc_html_e( 'Чому товари пропущено', 'factorial2000-catalog-sync' ); ?></summary>
+		<ul>
+			<?php foreach ( $reasons as $reason => $info ) : ?>
+				<li>
+					<strong><?php echo esc_html( $labels[ $reason ] ?? (string) $reason ); ?>:</strong>
+					<?php echo esc_html( number_format_i18n( (int) $info['count'] ) ); ?>
+					<?php if ( ! empty( $info['examples'] ) ) : ?>
+						<span class="description">
+							(<?php echo esc_html( implode( ', ', array_map( 'strval', (array) $info['examples'] ) ) ); ?><?php echo (int) $info['count'] > count( (array) $info['examples'] ) ? '…' : ''; ?>)
+						</span>
+					<?php endif; ?>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+	</details>
+	<?php
+}
+
+/**
  * AJAX: run one slice of a feed build.
  *
  * @return void
@@ -507,11 +572,21 @@ function f2000cs_marketplace_ajax_step() {
 
 	$restart = isset( $_POST['restart'] ) && '1' === $_POST['restart'];
 
+	// Follow-up requests only continue a build: if another process finished it
+	// meanwhile, report that result instead of starting a new build.
+	$resume = isset( $_POST['resume'] ) && '1' === $_POST['resume'];
+
+	// «The shrink is expected»: the next build is published whatever its size.
+	if ( isset( $_POST['force'] ) && '1' === $_POST['force'] ) {
+		update_option( Marketplace_Job::accept_drop_option( $id ), time(), false );
+		$restart = true;
+	}
+
 	if ( function_exists( 'set_time_limit' ) ) {
 		@set_time_limit( 120 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.NoSilencedErrors.Discouraged -- Best effort.
 	}
 
-	$result = Marketplace_Job::step( $id, 20, null, $restart );
+	$result = Marketplace_Job::step( $id, 20, null, $restart, $resume );
 
 	wp_send_json_success( $result );
 }

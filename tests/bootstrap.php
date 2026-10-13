@@ -49,6 +49,8 @@ if ( ! defined( 'F2000CS_FS_PUBLIC_KEY' ) ) {
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/class-cron-job.php';
 require_once __DIR__ . '/../includes/class-licensing.php';
+require_once __DIR__ . '/../includes/pro-features.php';
+require_once __DIR__ . '/../includes/uninstall-cleanup.php';
 require_once __DIR__ . '/../includes/freemius-uk-i18n.php';
 require_once __DIR__ . '/../includes/class-stock-updater.php';
 require_once __DIR__ . '/../includes/parsers/class-xml-parser.php';

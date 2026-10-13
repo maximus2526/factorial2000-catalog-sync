@@ -27,6 +27,13 @@ class F2000CS_ImportSpyParser extends XML_Parser {
 	public $variable_groups = array();
 
 	/**
+	 * Variation SKUs passed per group.
+	 *
+	 * @var array<string, array<int, string>>
+	 */
+	public $variation_skus = array();
+
+	/**
 	 * Return value for simple imports.
 	 *
 	 * @var bool
@@ -69,7 +76,8 @@ class F2000CS_ImportSpyParser extends XML_Parser {
 	 * @return bool
 	 */
 	protected function import_variable_product( string $group_id, array $variations_data ): bool {
-		$this->variable_groups[] = $group_id;
+		$this->variable_groups[]           = $group_id;
+		$this->variation_skus[ $group_id ] = array_map( 'strval', array_column( $variations_data, 'sku' ) );
 		return $this->variable_return;
 	}
 }

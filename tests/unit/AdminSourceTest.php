@@ -22,6 +22,7 @@ final class F2000CS_Unit_AdminSourceTest extends F2000CS_Unit_TestCase {
 		parent::setUp();
 
 		require_once dirname( __DIR__, 2 ) . '/admin/page-import.php';
+		require_once dirname( __DIR__, 2 ) . '/admin/pro-settings.php';
 	}
 
 	/**

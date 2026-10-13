@@ -321,6 +321,9 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 		$updater = new XML_Stock_Updater( 'x.xml', 'P_' );
 		$result  = F2000CS_Test_Reflection::invoke( $updater, 'maybe_republish_product', array( $this->fake_product( 9, 'draft' ) ) );
 
+		// Hooks are not reset between tests: do not leak the filter.
+		remove_filter( 'f2000cs_republish_returned_products', '__return_false' );
+
 		$this->assertFalse( $result );
 		$this->assertSame( array(), F2000CS_Test_State::$updated_posts );
 	}

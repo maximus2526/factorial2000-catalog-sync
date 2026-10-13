@@ -23,16 +23,17 @@ class Cron_Job {
 	/**
 	 * Activates the cron job.
 	 *
+	 * @param int $first_run Timestamp of the first run (0 = now).
 	 * @return void
 	 */
-	public static function activate() {
+	public static function activate( $first_run = 0 ) {
 		$interval = function_exists( 'f2000cs_get_effective_update_interval' )
 			? f2000cs_get_effective_update_interval()
 			: get_option( 'f2000cs_update_interval', 'hourly' );
 
 		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
 			// The hook itself is already attached to update_stock() on every request via f2000cs_init().
-			wp_schedule_event( time(), $interval, self::CRON_HOOK );
+			wp_schedule_event( $first_run > 0 ? (int) $first_run : time(), $interval, self::CRON_HOOK );
 		}
 	}
 
@@ -46,67 +47,33 @@ class Cron_Job {
 	}
 
 	/**
-	 * Adds custom cron schedules.
+	 * Keep the scheduled event on the effective interval.
 	 *
-	 * @param array $schedules Array of existing cron schedules.
-	 * @return array Modified array of cron schedules.
+	 * The interval changes without a settings save when a trial starts or ends,
+	 * a license is activated or expires, or the free build replaces the Pro one
+	 * (whose frequent schedules then no longer exist). A stopped cron (no event)
+	 * is left stopped.
+	 *
+	 * @return void
 	 */
-	public static function add_custom_cron_schedule( $schedules ) {
-		// phpcs:ignore WordPress.WP.CronInterval.CronSchedulesInterval -- User-selectable sync intervals, including sub-15-min for Pro.
-		$schedules['5_minute']  = array(
-			'interval' => 300,
-			'display'  => __( 'Що 5 хвилин', 'factorial2000-catalog-sync' ),
-		);
-		$schedules['10_minute'] = array(
-			'interval' => 600,
-			'display'  => __( 'Що 10 хвилин', 'factorial2000-catalog-sync' ),
-		);
-		$schedules['15_minute'] = array(
-			'interval' => 900,
-			'display'  => __( 'Що 15 хвилин', 'factorial2000-catalog-sync' ),
-		);
-		$schedules['30_minute'] = array(
-			'interval' => 1800,
-			'display'  => __( 'Що 30 хвилин', 'factorial2000-catalog-sync' ),
-		);
-
-		if ( ! isset( $schedules['hourly'] ) ) {
-			$schedules['hourly'] = array(
-				'interval' => 3600,
-				'display'  => __( 'Щогодини', 'factorial2000-catalog-sync' ),
-			);
+	public static function sync_schedule() {
+		$current = wp_get_schedule( self::CRON_HOOK );
+		if ( false === $current ) {
+			return;
 		}
 
-		$schedules['8_times_daily'] = array(
-			'interval' => 10800,
-			'display'  => __( '8 разів на день', 'factorial2000-catalog-sync' ),
-		);
+		$interval = function_exists( 'f2000cs_get_effective_update_interval' )
+			? f2000cs_get_effective_update_interval()
+			: 'daily';
 
-		$schedules['6_times_daily'] = array(
-			'interval' => 14400,
-			'display'  => __( '6 разів на день', 'factorial2000-catalog-sync' ),
-		);
+		if ( $current !== $interval ) {
+			// Keep the next run where it was: a changed interval (e.g. a free build
+			// replacing Pro) must not trigger an immediate full sync.
+			$next = (int) wp_next_scheduled( self::CRON_HOOK );
 
-		$schedules['4_times_daily'] = array(
-			'interval' => 21600,
-			'display'  => __( '4 рази на день', 'factorial2000-catalog-sync' ),
-		);
-
-		if ( ! isset( $schedules['twicedaily'] ) ) {
-			$schedules['twicedaily'] = array(
-				'interval' => 43200,
-				'display'  => __( 'Двічі на день', 'factorial2000-catalog-sync' ),
-			);
+			self::deactivate();
+			self::activate( $next > time() ? $next : time() + 300 );
 		}
-
-		if ( ! isset( $schedules['daily'] ) ) {
-			$schedules['daily'] = array(
-				'interval' => 86400,
-				'display'  => __( 'Щодня', 'factorial2000-catalog-sync' ),
-			);
-		}
-
-		return $schedules;
 	}
 
 	/**
@@ -141,20 +108,7 @@ class Cron_Job {
 
 			foreach ( $xml_urls as $index => $xml_url ) {
 				try {
-					$sku_prefix   = get_option( 'f2000cs_sku_prefix_' . $index, '' );
-					$skip_price   = get_option( 'f2000cs_skip_price_' . $index, '0' );
-					$price_adjust = f2000cs_get_price_adjust_settings( $index );
-					$update_qty   = function_exists( 'f2000cs_supplier_updates_stock_qty' )
-						? f2000cs_supplier_updates_stock_qty( $index )
-						: false;
-					$updater      = new XML_Stock_Updater(
-						$xml_url,
-						$sku_prefix,
-						( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' ),
-						$price_adjust,
-						$update_qty
-					);
-					$updater->update_products_stock_status();
+					f2000cs_make_stock_updater( $index, $xml_url )->update_products_stock_status();
 				} catch ( Exception $e ) {
 					$msg = sprintf(
 						'Stock update failed for supplier #%d (%s): %s',
@@ -179,9 +133,6 @@ class Cron_Job {
 		}
 	}
 }
-
-	// phpcs:ignore WordPress.WP.CronInterval.CronSchedulesInterval -- 5-minute sync is an explicitly user-selectable plugin feature (Pro plan).
-	add_filter( 'cron_schedules', array( Cron_Job::class, 'add_custom_cron_schedule' ) );
 
 /**
  * Reschedule the cron job whenever the update interval setting changes,

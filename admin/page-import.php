@@ -10,7 +10,6 @@ defined( 'ABSPATH' ) || exit;
 function f2000cs_import_page() {
 	$is_pro      = function_exists( 'f2000cs_is_pro' ) ? f2000cs_is_pro() : true;
 	$last        = f2000cs_get_last_import_prefs();
-	$last_url    = $last['xml_url'];
 	$last_prefix = $last['sku_prefix'];
 	if ( '' === $last_prefix ) {
 		$last_prefix = (string) get_option( 'f2000cs_sku_prefix_1', '' );
@@ -57,7 +56,7 @@ function f2000cs_import_page() {
 								<div class="f2000cs-import-source-fields">
 									<div id="import-source-url-row" class="f2000cs-import-field-block">
 										<label for="import_xml_url"><?php esc_html_e( 'URL XML файлу', 'factorial2000-catalog-sync' ); ?></label>
-										<input type="url" name="import_xml_url" id="import_xml_url" class="regular-text" value="<?php echo esc_attr( $last_url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/products.xml', 'factorial2000-catalog-sync' ); ?>">
+										<input type="url" name="import_xml_url" id="import_xml_url" class="regular-text" value="" autocomplete="off" placeholder="<?php esc_attr_e( 'https://example.com/products.xml', 'factorial2000-catalog-sync' ); ?>">
 										<p class="description"><?php esc_html_e( 'Пряме посилання на XML/YML вигрузку Prom або постачальника.', 'factorial2000-catalog-sync' ); ?></p>
 									</div>
 									<div id="import-source-file-row" class="f2000cs-import-field-block is-hidden" hidden>
@@ -131,16 +130,15 @@ function f2000cs_import_page() {
 									</div>
 								</div>
 
+								<?php f2000cs_render_import_stock_qty_option( $is_pro ); ?>
+
 								<div class="f2000cs-import-field">
-									<label for="import_stock_qty">
-										<input type="checkbox" name="import_stock_qty" id="import_stock_qty" value="1" <?php disabled( ! $is_pro ); ?>>
-										<?php esc_html_e( 'Імпортувати кількість товару (Stock quantity) з XML', 'factorial2000-catalog-sync' ); ?>
-										<?php if ( ! $is_pro ) : ?>
-											<span class="f2000cs-pro-badge"><?php esc_html_e( 'Pro', 'factorial2000-catalog-sync' ); ?></span>
-										<?php endif; ?>
+									<label for="import_in_stock_only">
+										<input type="checkbox" name="import_in_stock_only" id="import_in_stock_only" value="1">
+										<?php esc_html_e( 'Імпортувати тільки товари в наявності', 'factorial2000-catalog-sync' ); ?>
 									</label>
 									<p class="description">
-										<?php esc_html_e( 'Береться з тегів quantity, stock_quantity або qty_stock. Для товару вмикається керування запасами з цією кількістю. Статус «в наявності» визначається незалежно від цієї опції.', 'factorial2000-catalog-sync' ); ?>
+										<?php esc_html_e( 'Товари, яких немає в наявності, пропускаються. Для варіативних товарів створюються лише варіації в наявності; групу без жодної такої варіації пропущено.', 'factorial2000-catalog-sync' ); ?>
 									</p>
 								</div>
 
@@ -185,92 +183,7 @@ function f2000cs_import_page() {
 								data-f2000cs-panel="update-fields"
 								hidden
 							>
-								<div class="f2000cs-update-fields">
-									<p class="f2000cs-update-fields__title">
-										<strong><?php esc_html_e( 'Інформація, яку потрібно оновити', 'factorial2000-catalog-sync' ); ?></strong>
-									</p>
-									<p class="description f2000cs-update-fields__hint">
-										<?php esc_html_e( 'Якщо за заданим SKU (з урахуванням Prefix) товар уже існує — у ньому буде оновлена / додана обрана нижче інформація з XML.', 'factorial2000-catalog-sync' ); ?>
-									</p>
-									<div
-										class="f2000cs-update-fields__list<?php echo $is_pro ? '' : ' f2000cs-update-fields__list--locked'; ?>"
-										<?php echo $is_pro ? '' : 'data-pro-tip="' . esc_attr__( 'Відкривається в Pro версії', 'factorial2000-catalog-sync' ) . '"'; ?>
-									>
-										<label class="f2000cs-update-fields__option f2000cs-update-fields__option--all">
-											<input type="checkbox" id="update_fields_select_all" value="all" <?php disabled( ! $is_pro ); ?>>
-											<?php esc_html_e( 'Вибрати всі', 'factorial2000-catalog-sync' ); ?>
-										</label>
-										<label class="f2000cs-update-fields__option">
-											<input type="checkbox" name="update_fields[]" value="name" class="f2000cs-update-field" <?php disabled( ! $is_pro ); ?>>
-											<?php esc_html_e( 'Назва', 'factorial2000-catalog-sync' ); ?>
-										</label>
-										<label class="f2000cs-update-fields__option">
-											<input type="checkbox" name="update_fields[]" value="description" class="f2000cs-update-field" <?php disabled( ! $is_pro ); ?>>
-											<?php esc_html_e( 'Опис', 'factorial2000-catalog-sync' ); ?>
-										</label>
-										<label class="f2000cs-update-fields__option">
-											<input type="checkbox" name="update_fields[]" value="short_description" class="f2000cs-update-field" <?php disabled( ! $is_pro ); ?>>
-											<?php esc_html_e( 'Короткий опис', 'factorial2000-catalog-sync' ); ?>
-											<span class="f2000cs-update-fields__note">
-												<?php esc_html_e( '(тільки якщо в XML є тег short_description)', 'factorial2000-catalog-sync' ); ?>
-											</span>
-										</label>
-										<label class="f2000cs-update-fields__option">
-											<input type="checkbox" name="update_fields[]" value="tags" class="f2000cs-update-field" <?php disabled( ! $is_pro ); ?>>
-											<?php esc_html_e( 'Теги товару', 'factorial2000-catalog-sync' ); ?>
-											<span class="f2000cs-update-fields__note">
-												<?php esc_html_e( '(ключові запити з Prom)', 'factorial2000-catalog-sync' ); ?>
-											</span>
-										</label>
-										<label class="f2000cs-update-fields__option">
-											<input type="checkbox" name="update_fields[]" value="price" class="f2000cs-update-field" <?php disabled( ! $is_pro ); ?>>
-											<?php esc_html_e( 'Ціна', 'factorial2000-catalog-sync' ); ?>
-										</label>
-										<label class="f2000cs-update-fields__option">
-											<input type="checkbox" name="update_fields[]" value="oldprice" class="f2000cs-update-field" <?php disabled( ! $is_pro ); ?>>
-											<?php esc_html_e( 'Стара ціна', 'factorial2000-catalog-sync' ); ?>
-										</label>
-										<label class="f2000cs-update-fields__option">
-											<input type="checkbox" name="update_fields[]" value="status" class="f2000cs-update-field" <?php disabled( ! $is_pro ); ?>>
-											<?php esc_html_e( 'Статус', 'factorial2000-catalog-sync' ); ?>
-										</label>
-										<label class="f2000cs-update-fields__option">
-											<input type="checkbox" name="update_fields[]" value="stock_quantity" class="f2000cs-update-field" <?php disabled( ! $is_pro ); ?>>
-											<?php esc_html_e( 'Кількість на складі', 'factorial2000-catalog-sync' ); ?>
-										</label>
-										<label class="f2000cs-update-fields__option">
-											<input type="checkbox" name="update_fields[]" value="images" class="f2000cs-update-field" <?php disabled( ! $is_pro ); ?>>
-											<?php esc_html_e( 'Фото', 'factorial2000-catalog-sync' ); ?>
-										</label>
-										<label class="f2000cs-update-fields__option">
-											<input type="checkbox" name="update_fields[]" value="attributes" class="f2000cs-update-field" <?php disabled( ! $is_pro ); ?>>
-											<?php esc_html_e( 'Атрибути / характеристики', 'factorial2000-catalog-sync' ); ?>
-										</label>
-										<label class="f2000cs-update-fields__option">
-											<input type="checkbox" name="update_fields[]" value="categories" class="f2000cs-update-field" <?php disabled( ! $is_pro ); ?>>
-											<?php esc_html_e( 'Категорії', 'factorial2000-catalog-sync' ); ?>
-										</label>
-										<label class="f2000cs-update-fields__option">
-											<input type="checkbox" name="update_fields[]" value="vendorCode" class="f2000cs-update-field" <?php disabled( ! $is_pro ); ?>>
-											<?php esc_html_e( 'Код постачальника (vendorCode)', 'factorial2000-catalog-sync' ); ?>
-											<span class="f2000cs-update-fields__note">
-												<?php esc_html_e( '(з XML; показується адміну на сторінці товару для копіювання)', 'factorial2000-catalog-sync' ); ?>
-											</span>
-										</label>
-									</div>
-								</div>
-
-								<div class="f2000cs-import-actions">
-									<button type="button" id="start-update-fields" class="button button-primary" <?php disabled( ! $is_pro ); ?>>
-										<?php esc_html_e( 'Оновити', 'factorial2000-catalog-sync' ); ?>
-										<?php if ( ! $is_pro ) : ?>
-											<span class="f2000cs-pro-badge"><?php esc_html_e( 'Pro', 'factorial2000-catalog-sync' ); ?></span>
-										<?php endif; ?>
-									</button>
-									<button type="button" id="stop-update-fields" class="button button-secondary is-hidden">
-										<?php esc_html_e( 'Зупинити', 'factorial2000-catalog-sync' ); ?>
-									</button>
-								</div>
+								<?php f2000cs_render_update_fields_panel( $is_pro ); ?>
 							</div>
 						</div>
 					</section>
@@ -328,7 +241,7 @@ function f2000cs_import_page() {
 					<p class="description"><?php esc_html_e( 'Атрибути offer:', 'factorial2000-catalog-sync' ); ?></p>
 					<ul class="f2000cs-import-guide__list">
 						<li><code>id</code> — <?php esc_html_e( 'артикул; у WooCommerce стає SKU з префіксом.', 'factorial2000-catalog-sync' ); ?></li>
-						<li><code>available</code> — <?php esc_html_e( 'наявність: true / 1 / yes → instock, інакше outofstock.', 'factorial2000-catalog-sync' ); ?></li>
+						<li><code>available</code> — <?php esc_html_e( 'наявність: true / 1 / yes / y — «в наявності»; false / 0 / no / n або порожнє значення — «немає в наявності». Якщо атрибута немає, плагін дивиться на кількість (більше 0 — «в наявності»).', 'factorial2000-catalog-sync' ); ?></li>
 						<li><code>group_id</code> — <?php esc_html_e( 'група варіацій (режим «Варіативні», 2+ offers). У режимі «Прості» без group_id або з 1 offer → simple.', 'factorial2000-catalog-sync' ); ?></li>
 					</ul>
 					<p class="description"><?php esc_html_e( 'Дочірні теги при імпорті:', 'factorial2000-catalog-sync' ); ?></p>
@@ -399,88 +312,59 @@ function f2000cs_import_page() {
 }
 
 /**
- * User meta key for last import URL / SKU prefix.
+ * User meta key for the last import SKU prefix.
  */
 const F2000CS_LAST_IMPORT_META = 'f2000cs_last_import';
 
 /**
- * Last import URL and SKU prefix for the current admin.
+ * Last import SKU prefix for the current admin.
  *
- * @return array{xml_url:string,sku_prefix:string}
+ * The XML URL is deliberately not remembered: every import starts with an empty URL field.
+ *
+ * @return array{sku_prefix:string}
  */
 function f2000cs_get_last_import_prefs(): array {
 	$user_id = get_current_user_id();
 	$raw     = $user_id ? get_user_meta( $user_id, F2000CS_LAST_IMPORT_META, true ) : array();
-	if ( ! is_array( $raw ) ) {
-		$raw = array();
-	}
-
-	$url    = isset( $raw['xml_url'] ) ? esc_url_raw( (string) $raw['xml_url'] ) : '';
-	$prefix = isset( $raw['sku_prefix'] ) ? sanitize_text_field( (string) $raw['sku_prefix'] ) : '';
-
-	if ( $url && ! preg_match( '#^https?://#i', $url ) ) {
-		$url = '';
-	}
 
 	return array(
-		'xml_url'    => $url,
-		'sku_prefix' => $prefix,
+		'sku_prefix' => is_array( $raw ) && isset( $raw['sku_prefix'] ) ? sanitize_text_field( (string) $raw['sku_prefix'] ) : '',
 	);
 }
 
 /**
- * Persist last import URL and SKU prefix for the current admin.
+ * Persist the last import SKU prefix for the current admin.
  *
- * Empty fields keep the previously stored value so a file-source import
- * does not wipe a remembered URL.
+ * An empty prefix keeps the stored one. A URL stored by an older version is dropped.
  *
- * @param string $xml_url    Remote XML URL (optional).
- * @param string $sku_prefix SKU prefix (optional).
+ * @param string $sku_prefix SKU prefix.
  * @return void
  */
-function f2000cs_save_last_import_prefs( string $xml_url, string $sku_prefix ): void {
+function f2000cs_save_last_import_prefs( string $sku_prefix ): void {
 	$user_id = get_current_user_id();
 	if ( ! $user_id ) {
 		return;
 	}
 
-	$current = f2000cs_get_last_import_prefs();
-	$url     = $xml_url ? esc_url_raw( $xml_url ) : $current['xml_url'];
-	$prefix  = '' !== $sku_prefix ? sanitize_text_field( $sku_prefix ) : $current['sku_prefix'];
+	$stored = get_user_meta( $user_id, F2000CS_LAST_IMPORT_META, true );
+	$prefix = '' !== $sku_prefix ? sanitize_text_field( $sku_prefix ) : f2000cs_get_last_import_prefs()['sku_prefix'];
+	$prefs  = array( 'sku_prefix' => $prefix );
 
-	if ( $url && ! preg_match( '#^https?://#i', $url ) ) {
-		$url = $current['xml_url'];
+	if ( $stored !== $prefs ) {
+		update_user_meta( $user_id, F2000CS_LAST_IMPORT_META, $prefs );
 	}
-
-	if ( $url === $current['xml_url'] && $prefix === $current['sku_prefix'] ) {
-		return;
-	}
-
-	update_user_meta(
-		$user_id,
-		F2000CS_LAST_IMPORT_META,
-		array(
-			'xml_url'    => $url,
-			'sku_prefix' => $prefix,
-		)
-	);
 }
 
 /**
- * Remember URL / SKU from the current import AJAX request.
+ * Remember the SKU prefix from the current import AJAX request.
  *
  * @return void
  */
 function f2000cs_remember_last_import_from_request(): void {
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Called only after nonce verification in AJAX handlers.
-	$source = isset( $_POST['import_source'] ) ? sanitize_text_field( wp_unslash( $_POST['import_source'] ) ) : '';
-	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Same as above.
-	$raw_url = isset( $_POST['import_xml_url'] ) ? esc_url_raw( wp_unslash( $_POST['import_xml_url'] ) ) : '';
-	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Same as above.
 	$prefix = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( wp_unslash( $_POST['sku_prefix'] ) ) : '';
-	$url    = ( 'url' === $source ) ? $raw_url : '';
 
-	f2000cs_save_last_import_prefs( $url, $prefix );
+	f2000cs_save_last_import_prefs( $prefix );
 }
 
 /**
@@ -614,7 +498,7 @@ function f2000cs_cleanup_import_xml_session( $session ) {
  *
  * @param string $session  Import session key.
  * @param int    $offset   Cumulative offset of the last successfully imported product.
- * @param array  $context  Import settings (sku_prefix, new_category, new_category_subcats, import_variations, import_stock_qty, selected_attributes).
+ * @param array  $context  Import settings (sku_prefix, new_category, new_category_subcats, import_variations, import_stock_qty, in_stock_only, selected_attributes).
  * @return void
  */
 function f2000cs_import_save_checkpoint( string $session, int $offset, array $context ): void {
@@ -633,6 +517,7 @@ function f2000cs_import_save_checkpoint( string $session, int $offset, array $co
 			'new_category_subcats' => (bool) ( $context['new_category_subcats'] ?? false ),
 			'import_variations'    => (bool) ( $context['import_variations'] ?? false ),
 			'import_stock_qty'     => (bool) ( $context['import_stock_qty'] ?? false ),
+			'in_stock_only'        => (bool) ( $context['in_stock_only'] ?? false ),
 			'selected_attributes'  => (array) ( $context['selected_attributes'] ?? array() ),
 		),
 		HOUR_IN_SECONDS
@@ -760,10 +645,11 @@ function f2000cs_handle_import_action() {
 	$new_category         = isset( $_POST['new_category'] ) && '1' === $_POST['new_category'];
 	$new_category_subcats = $new_category && isset( $_POST['new_category_subcats'] ) && '1' === $_POST['new_category_subcats'];
 	$import_variations    = isset( $_POST['import_variations'] ) && '1' === $_POST['import_variations'];
-	// Stock quantity import is a Pro option.
+	// Stock quantity import is a Pro option (allowed by the Pro build).
 	$import_stock_qty = isset( $_POST['import_stock_qty'] ) && '1' === $_POST['import_stock_qty']
-		&& ( ! function_exists( 'f2000cs_is_pro' ) || f2000cs_is_pro() );
+		&& (bool) apply_filters( 'f2000cs_import_stock_qty_allowed', false );
 	$sku_prefix       = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( wp_unslash( $_POST['sku_prefix'] ) ) : '';
+	$in_stock_only    = isset( $_POST['import_in_stock_only'] ) && '1' === $_POST['import_in_stock_only'];
 
 	$selected_attributes = array();
 	if ( isset( $_POST['selected_attributes'] ) ) {
@@ -777,7 +663,7 @@ function f2000cs_handle_import_action() {
 	set_transient( 'f2000cs_import_variations_temp', $import_variations ? '1' : '0', HOUR_IN_SECONDS );
 	set_transient( 'f2000cs_selected_attributes_temp', $selected_attributes, HOUR_IN_SECONDS );
 
-	$xml_parser = new \F2000CS\XML_Parser( $file_path, $new_category, $sku_prefix, $new_category_subcats, $import_stock_qty );
+	$xml_parser = new \F2000CS\XML_Parser( $file_path, $new_category, $sku_prefix, $new_category_subcats, $import_stock_qty, $in_stock_only );
 	try {
 		$result = $xml_parser->import_products( $offset, 1 );
 
@@ -806,6 +692,7 @@ function f2000cs_handle_import_action() {
 					'new_category_subcats' => $new_category_subcats,
 					'import_variations'    => $import_variations,
 					'import_stock_qty'     => $import_stock_qty,
+					'in_stock_only'        => $in_stock_only,
 					'selected_attributes'  => $selected_attributes,
 				)
 			);
@@ -829,7 +716,6 @@ function f2000cs_handle_import_action() {
 add_action( 'wp_ajax_f2000cs_import_action', 'f2000cs_handle_import_action' );
 add_action( 'wp_ajax_f2000cs_import_discard', 'f2000cs_handle_import_discard' );
 add_action( 'wp_ajax_f2000cs_analyze_groups', 'f2000cs_handle_analyze_groups' );
-add_action( 'wp_ajax_f2000cs_update_fields_action', 'f2000cs_handle_update_fields_action' );
 
 /**
  * AJAX: discard a pending import session (remove temp files + transients).
@@ -851,81 +737,6 @@ function f2000cs_handle_import_discard() {
 	}
 
 	wp_send_json_success();
-}
-
-/**
- * Handle the "Оновити окремі поля" AJAX action: for existing products matched
- * by SKU (with prefix), update only the fields the user selected, one XML
- * offer per request (mirrors the chunked import flow).
- *
- * @return void
- */
-function f2000cs_handle_update_fields_action() {
-	if ( ! isset( $_POST['f2000cs_import_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['f2000cs_import_nonce'] ) ), 'f2000cs_import_action' ) ) {
-		wp_send_json_error( array( 'message' => __( 'Помилка перевірки безпеки (nonce). Оновіть сторінку.', 'factorial2000-catalog-sync' ) ) );
-	}
-
-	if ( ! current_user_can( 'manage_options' ) ) {
-		wp_send_json_error( array( 'message' => __( 'Недостатньо прав.', 'factorial2000-catalog-sync' ) ) );
-	}
-
-	if ( function_exists( 'f2000cs_is_pro' ) && ! f2000cs_is_pro() ) {
-		wp_send_json_error( array( 'message' => __( 'Оновлення окремих полів доступне лише у Pro версії.', 'factorial2000-catalog-sync' ) ) );
-	}
-
-	if ( ! class_exists( '\F2000CS\Fields_Updater' ) ) {
-		wp_send_json_error( array( 'message' => __( 'Оновлення окремих полів входить до Pro-збірки плагіна. Встановіть Pro-версію.', 'factorial2000-catalog-sync' ) ) );
-	}
-
-	$resolved = f2000cs_resolve_import_xml_source();
-	if ( is_wp_error( $resolved ) ) {
-		wp_send_json_error( array( 'message' => $resolved->get_error_message() ) );
-	}
-
-	$file_path  = $resolved['path'];
-	$offset     = isset( $_POST['offset'] ) ? intval( $_POST['offset'] ) : 0;
-	$sku_prefix = isset( $_POST['sku_prefix'] ) ? sanitize_text_field( wp_unslash( $_POST['sku_prefix'] ) ) : '';
-
-	$fields = array();
-	if ( isset( $_POST['update_fields'] ) && is_array( $_POST['update_fields'] ) ) {
-		$fields = array_map( 'sanitize_text_field', wp_unslash( $_POST['update_fields'] ) );
-	}
-
-	$fields = array_values( array_intersect( \F2000CS\Fields_Updater::ALLOWED_FIELDS, $fields ) );
-
-	if ( empty( $fields ) ) {
-		if ( ! empty( $resolved['session'] ) ) {
-			f2000cs_cleanup_import_xml_session( $resolved['session'] );
-		}
-		wp_send_json_error( array( 'message' => __( 'Виберіть хоча б одне поле для оновлення.', 'factorial2000-catalog-sync' ) ) );
-	}
-
-	$updater = new \F2000CS\Fields_Updater( $file_path, $sku_prefix, $fields );
-
-	try {
-		$result = $updater->update_fields( $offset, 1 );
-
-		if ( ! empty( $result['finished'] ) && ! empty( $resolved['session'] ) ) {
-			f2000cs_cleanup_import_xml_session( $resolved['session'] );
-		}
-
-		wp_send_json_success(
-			array(
-				'imported'       => $result['processed'] + $offset,
-				'total'          => $result['total'],
-				'finished'       => $result['finished'],
-				'updated'        => $result['updated'],
-				'not_found'      => $result['not_found'],
-				'skipped'        => $result['skipped'],
-				'import_session' => $resolved['session'],
-			)
-		);
-	} catch ( Exception $e ) {
-		if ( ! empty( $resolved['session'] ) ) {
-			f2000cs_cleanup_import_xml_session( $resolved['session'] );
-		}
-		wp_send_json_error( array( 'message' => $e->getMessage() ) );
-	}
 }
 
 /**

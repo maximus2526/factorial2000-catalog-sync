@@ -1100,13 +1100,25 @@ class Prom_Variations {
 			$low_map[ Marketplace_Text::lower( $t ) ] = $t;
 		}
 
+		$size_key = self::normalized_attr_key( $size_name_orig );
+
 		foreach ( $by_color as $grp ) {
 			$grp_sorted = self::sort_rows_by_id( $grp );
+			$claimed    = array();
+			$unknown    = array();
 
-			foreach ( $grp_sorted as $idx => $vr ) {
+			foreach ( $grp_sorted as $vr ) {
 				$vid = Marketplace_Text::clean( $vr['ID'] ?? '' );
 
 				if ( '' === $vid ) {
+					continue;
+				}
+
+				// A size of its own: no hint needed, but that size is taken.
+				$own = self::own_axis_value( $vr, $size_key );
+
+				if ( '' !== $own ) {
+					$claimed[ Marketplace_Text::lower( $own ) ] = true;
 					continue;
 				}
 
@@ -1146,14 +1158,54 @@ class Prom_Variations {
 				}
 
 				if ( null === $canon ) {
-					$canon = $sorted_sizes[ $idx % count( $sorted_sizes ) ];
+					$unknown[] = $vid;
+					continue;
 				}
 
-				$hints[ $vid ] = array( $size_name_orig, $canon );
+				$claimed[ Marketplace_Text::lower( $canon ) ] = true;
+				$hints[ $vid ]                                = array( $size_name_orig, $canon );
+			}
+
+			// Guess by position only when it is unambiguous: exactly one free size
+			// per variation without one. Otherwise a wrong size would be published
+			// (and bought); without a hint such a group is left out instead.
+			$free = array();
+
+			foreach ( $sorted_sizes as $t ) {
+				if ( ! isset( $claimed[ Marketplace_Text::lower( $t ) ] ) ) {
+					$free[] = $t;
+				}
+			}
+
+			if ( $unknown && count( $unknown ) === count( $free ) ) {
+				foreach ( $unknown as $i => $vid ) {
+					$hints[ $vid ] = array( $size_name_orig, $free[ $i ] );
+				}
 			}
 		}
 
 		return $hints;
+	}
+
+	/**
+	 * A variation's own value of an axis ('' when it has none, e.g. "any size").
+	 *
+	 * @param array<string,string> $row      Variation row.
+	 * @param string               $axis_key Normalized axis key.
+	 * @return string
+	 */
+	private static function own_axis_value( array $row, string $axis_key ): string {
+		foreach ( self::collect_params( $row, true ) as $pair ) {
+			if ( self::normalized_attr_key( $pair[0] ) === $axis_key ) {
+				$value = self::normalize_param_value( $pair[1] );
+
+				if ( '' !== $value ) {
+					return $value;
+				}
+			}
+		}
+
+		return '';
 	}
 
 	/**

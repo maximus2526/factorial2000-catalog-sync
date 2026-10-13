@@ -594,6 +594,7 @@
 				.prop('checked', true);
 			$('#new_category').prop('checked', !!pending.context.new_category);
 			$('#import_stock_qty').prop('checked', !!pending.context.import_stock_qty);
+			$('#import_in_stock_only').prop('checked', !!pending.context.in_stock_only);
 			$('#new_category_subcats')
 				.prop('disabled', !pending.context.new_category)
 				.prop('checked', !!pending.context.new_category && !!pending.context.new_category_subcats);
@@ -616,6 +617,7 @@
 			formData.set('import_variations',    pending.context.import_variations ? '1' : '0');
 			formData.set('new_category',         pending.context.new_category ? '1' : '0');
 			formData.set('import_stock_qty',     pending.context.import_stock_qty ? '1' : '0');
+			formData.set('import_in_stock_only', pending.context.in_stock_only ? '1' : '0');
 			formData.set('new_category_subcats', (pending.context.new_category && pending.context.new_category_subcats) ? '1' : '0');
 			formData.set('selected_attributes',  JSON.stringify(pending.context.selected_attributes || {}));
 			formData.set('f2000cs_import_nonce', $('[name="f2000cs_import_nonce"]').val() || $resume.data('f2000cs-nonce') || '');

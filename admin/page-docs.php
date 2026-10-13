@@ -92,6 +92,9 @@ function f2000cs_docs_page() {
 					<li>
 						<a href="#faq" class="f2000cs-docs-nav__item is-parent"><?php esc_html_e( 'Часті питання', 'factorial2000-catalog-sync' ); ?></a>
 					</li>
+					<li>
+						<a href="#developers" class="f2000cs-docs-nav__item is-parent"><?php esc_html_e( 'Для розробників', 'factorial2000-catalog-sync' ); ?></a>
+					</li>
 				</ul>
 			</nav>
 
@@ -113,28 +116,42 @@ function f2000cs_docs_page() {
 							</li>
 							<li>
 								<strong><?php esc_html_e( 'Увімкніть автооновлення', 'factorial2000-catalog-sync' ); ?></strong>
-								— <?php esc_html_e( 'На «Оновлення XML» оберіть інтервал і запустіть оновлення один раз (або дочекайтесь WP-Cron). Далі плагін оновлюватиме наявність і ціни з XML постачальників.', 'factorial2000-catalog-sync' ); ?>
+								— <?php esc_html_e( 'На «Оновлення XML» оберіть інтервал і запустіть оновлення один раз (або дочекайтесь автоматичного запуску). Далі плагін оновлюватиме наявність і ціни з XML постачальників.', 'factorial2000-catalog-sync' ); ?>
 							</li>
 						</ol>
 					</div>
 
 					<div class="f2000cs-docs-card">
 						<h3><?php esc_html_e( 'Що таке XML постачальника?', 'factorial2000-catalog-sync' ); ?></h3>
-						<p><?php esc_html_e( 'Файл у форматі YML / Prom.ua: yml_catalog → shop → currencies + categories + offers. Повний перелік полів — у розділі «Схема XML».', 'factorial2000-catalog-sync' ); ?></p>
+						<p><?php esc_html_e( 'Це файл зі списком товарів (назви, ціни, фото, наявність), який постачальник або сам Prom.ua віддає за посиланням. Зазвичай посилання є в кабінеті постачальника в розділі «Вигрузка для Prom» або «YML». Технічну будову файлу описано в розділі «Схема XML» — для щоденної роботи вона не потрібна.', 'factorial2000-catalog-sync' ); ?></p>
 					</div>
 
 					<div class="f2000cs-docs-card">
 						<h3><?php esc_html_e( 'Сторінки плагіна', 'factorial2000-catalog-sync' ); ?></h3>
 						<ul>
-							<li><strong><?php esc_html_e( 'Оновлення XML', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'постачальники, розклад, Telegram, ручний запуск sync, статус cron.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Оновлення XML', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'постачальники, розклад, Telegram, ручний запуск оновлення, стан автооновлення.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Імпорт XML', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'імпорт товарів, оновлення окремих полів (Pro), налаштування обробки зображень (Pro).', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Налаштування вигрузки', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'фільтр і редактор XML (лише Pro).', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Маркетплейси', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'вигрузка товарів сайту на Prom.ua за постійним посиланням (лише Pro).', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Документація', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'ця сторінка.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<div class="f2000cs-docs-note">
 							<strong><?php esc_html_e( 'Потрібен WooCommerce:', 'factorial2000-catalog-sync' ); ?></strong> <?php esc_html_e( 'меню з’являється лише коли WooCommerce активний.', 'factorial2000-catalog-sync' ); ?>
 						</div>
 					</div>
+
+				<div class="f2000cs-docs-card" id="glossary">
+						<h3><?php esc_html_e( 'Словничок', 'factorial2000-catalog-sync' ); ?></h3>
+						<ul>
+							<li><strong><?php esc_html_e( 'SKU (артикул)', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'унікальний код товару в магазині. Плагін складає його з префікса і артикула з XML, наприклад NEW_123.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'SKU-префікс', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'кілька літер на початку SKU (наприклад NEW_), щоб товари різних постачальників не змішувались.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Offer', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'один товар у файлі постачальника.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Постачальник (картка)', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'одне посилання на XML зі своїм префіксом і правилами цін.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Автооновлення (WP-Cron)', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'вбудований у WordPress планувальник: запускає оновлення за розкладом, коли хтось відвідує сайт.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Вигрузка', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'файл із товарами, який віддається назовні (для Prom.ua або для вашого використання).', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Pro', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'платна версія плагіна. 14 днів можна користуватись безкоштовно, без банківської картки.', 'factorial2000-catalog-sync' ); ?></li>
+						</ul>
+				</div>
 				</section>
 
 				<section id="xml-schema" class="f2000cs-docs-section">
@@ -167,7 +184,7 @@ function f2000cs_docs_page() {
 						<p><strong><?php esc_html_e( 'Атрибути тега offer', 'factorial2000-catalog-sync' ); ?></strong></p>
 						<ul>
 							<li><code>id</code> — <?php esc_html_e( 'артикул; під час імпорту/оновлення стає SKU з префіксом постачальника.', 'factorial2000-catalog-sync' ); ?></li>
-							<li><code>available</code> — <?php esc_html_e( 'наявність. true / 1 / yes / y → instock; false / 0 / no / n → outofstock. Порожній атрибут (available="", так пише OneBox) — outofstock. Якщо атрибута немає взагалі — береться кількість (більше 0 → instock, 0 → outofstock), а без кількості — instock.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><code>available</code> — <?php esc_html_e( 'наявність. true / 1 / yes / y — «в наявності»; false / 0 / no / n — «немає в наявності». Порожній атрибут (available="", так пише OneBox) — «немає в наявності». Якщо атрибута немає взагалі — береться кількість (більше 0 — «в наявності», 0 — «немає в наявності»), а без кількості — «в наявності».', 'factorial2000-catalog-sync' ); ?></li>
 							<li><code>group_id</code> — <?php esc_html_e( 'ідентифікатор групи для варіативного товару. У режимі «Прості» offers без group_id (і одиночні з group_id) стають simple; у режимі «Варіативні» без group_id або з однією offer у групі — пропускаються.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<p><strong><?php esc_html_e( 'Читається при імпорті (створення товарів)', 'factorial2000-catalog-sync' ); ?></strong></p>
@@ -189,19 +206,19 @@ function f2000cs_docs_page() {
 						<ul>
 							<li><code>id</code>, <code>available</code>, <code>group_id</code></li>
 							<li><code>price</code>, <code>oldprice</code>, <code>currencyId</code> — <?php esc_html_e( 'якщо не увімкнено «не змінювати ціни».', 'factorial2000-catalog-sync' ); ?></li>
-							<li><code>vendorCode</code> — <?php esc_html_e( 'у метаполе f2000cs-updater-vendor, лише якщо воно ще порожнє.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><code>vendorCode</code> — <?php esc_html_e( 'у службове поле товару (f2000cs-updater-vendor), лише якщо воно ще порожнє.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><code>quantity</code> / <code>stock_quantity</code> / <code>qty_stock</code> — <?php esc_html_e( 'кількість на складі (Pro, опція в картці постачальника). Пріоритет: quantity, потім stock_quantity, потім qty_stock; значення на кшталт 1.000 читається як 1.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<p><strong><?php esc_html_e( 'Додатково в «Оновленні окремих полів» (Pro)', 'factorial2000-catalog-sync' ); ?></strong></p>
 						<ul>
 							<li><code>short_description</code>, <code>short_description_ua</code></li>
 							<li><code>keywords</code> — <?php esc_html_e( 'теги WooCommerce (роздільники «,» або «;»).', 'factorial2000-catalog-sync' ); ?></li>
-							<li><code>vendorCode</code> — <?php esc_html_e( 'примусове оновлення метаполя (на відміну від stock sync).', 'factorial2000-catalog-sync' ); ?></li>
+							<li><code>vendorCode</code> — <?php esc_html_e( 'примусове оновлення метаполя (на відміну від оновлення наявності).', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'а також name/description, ціни, available, quantity, picture, param, categoryId — за вибраними чекбоксами.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<div class="f2000cs-docs-note">
 							<strong><?php esc_html_e( 'Важливо:', 'factorial2000-catalog-sync' ); ?></strong>
-							<?php esc_html_e( 'vendorCode при першому імпорті (створенні товару) не записується — лише після stock update або оновлення полів. Кількість при імпорті виставляється лише з увімкненою Pro-опцією «Імпортувати кількість товару (Stock quantity) з XML»; без неї _manage_stock = no.', 'factorial2000-catalog-sync' ); ?>
+							<?php esc_html_e( 'vendorCode при першому імпорті (створенні товару) не записується — лише після оновлення наявності або оновлення окремих полів. Кількість при імпорті виставляється лише з увімкненою Pro-опцією «Імпортувати кількість товару (Stock quantity) з XML»; без неї облік запасів для товару не вмикається.', 'factorial2000-catalog-sync' ); ?>
 						</div>
 					</div>
 
@@ -282,14 +299,14 @@ function f2000cs_docs_page() {
 					<div class="f2000cs-docs-card" id="suppliers-flags">
 						<h3><?php esc_html_e( 'Ціна та кількість', 'factorial2000-catalog-sync' ); ?></h3>
 						<ul>
-							<li><strong><?php esc_html_e( 'Не змінювати ціни…', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'під час stock update оновлюється лише наявність (і кількість, якщо увімкнено), ціни з XML не перезаписуються.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Не змінювати ціни…', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'під час оновлення наявності оновлюється лише наявність (і кількість, якщо увімкнено), ціни з XML не перезаписуються.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Оновлювати кількість товарів', 'factorial2000-catalog-sync' ); ?></strong> <span class="f2000cs-pro-badge">Pro</span> — <?php esc_html_e( 'якщо в XML є quantity / stock_quantity / qty_stock — записує залишок у WooCommerce. Без опції оновлюється лише «є / немає в наявності».', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 					</div>
 
 					<div class="f2000cs-docs-card" id="suppliers-price">
 						<h3><?php esc_html_e( 'Коригування ціни', 'factorial2000-catalog-sync' ); ?> <span class="f2000cs-pro-badge">Pro</span></h3>
-						<p><?php esc_html_e( 'Застосовується при оновленні цін зі stock update (якщо не увімкнено «не змінювати ціни»). Три типи:', 'factorial2000-catalog-sync' ); ?></p>
+						<p><?php esc_html_e( 'Застосовується при оновленні цін під час оновлення наявності (якщо не увімкнено «не змінювати ціни»). Три типи:', 'factorial2000-catalog-sync' ); ?></p>
 						<ul>
 							<li><strong><?php esc_html_e( 'Націнка (%)', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'відсоток від ціни постачальника (додати або відняти).', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Маржа (%)', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'бажаний прибуток у % від кінцевої ціни (ціна = собівартість / (1 − маржа)).', 'factorial2000-catalog-sync' ); ?></li>
@@ -331,14 +348,14 @@ function f2000cs_docs_page() {
 							<li><?php esc_html_e( 'Free: лише «Щодня»; частіші інтервали недоступні.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<div class="f2000cs-docs-note">
-							<strong><?php esc_html_e( 'Free:', 'factorial2000-catalog-sync' ); ?></strong> <?php esc_html_e( 'також не більше 1 ручного запуску оновлення на добу.', 'factorial2000-catalog-sync' ); ?>
+							<strong><?php esc_html_e( 'Free:', 'factorial2000-catalog-sync' ); ?></strong> <?php esc_html_e( 'також не більше 3 ручних запусків оновлення на добу (автооновлення за розкладом у ліміт не входить).', 'factorial2000-catalog-sync' ); ?>
 						</div>
 					</div>
 
 					<div class="f2000cs-docs-card" id="update-prices">
-						<h3><?php esc_html_e( 'Що оновлює stock update', 'factorial2000-catalog-sync' ); ?></h3>
+						<h3><?php esc_html_e( 'Що оновлює оновлення наявності', 'factorial2000-catalog-sync' ); ?></h3>
 						<ul>
-							<li><?php esc_html_e( 'Наявність (instock / outofstock) за атрибутом available у offer.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Наявність («в наявності» / «немає в наявності») за атрибутом available у offer.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'Ціни (якщо не увімкнено «не змінювати ціни»), з урахуванням коригування Pro.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'Кількість на складі — Pro-опція; теги quantity, stock_quantity або qty_stock.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'vendorCode — у метаполе менеджера, якщо воно ще порожнє.', 'factorial2000-catalog-sync' ); ?></li>
@@ -363,13 +380,30 @@ function f2000cs_docs_page() {
 
 					<div class="f2000cs-docs-card" id="update-variable-low">
 						<h3><?php esc_html_e( 'Мала наявність варіацій', 'factorial2000-catalog-sync' ); ?> <span class="f2000cs-pro-badge">Pro</span></h3>
-						<p><?php esc_html_e( 'Після stock update можна автоматично позначати variable-товар як «немає в наявності», якщо кількість варіацій «в наявності» не більша за поріг (за замовчуванням 2). Корисно, щоб у рекламі не крутились товари з майже порожньою сіткою розмірів.', 'factorial2000-catalog-sync' ); ?></p>
+						<p><?php esc_html_e( 'Після оновлення наявності можна автоматично позначати варіативний товар як «немає в наявності», якщо кількість варіацій «в наявності» не більша за поріг (за замовчуванням 2). Корисно, щоб у рекламі не крутились товари з майже порожньою сіткою розмірів.', 'factorial2000-catalog-sync' ); ?></p>
 					</div>
 
 					<div class="f2000cs-docs-card" id="update-vendor">
 						<h3><?php esc_html_e( 'Vendor Code на товарі', 'factorial2000-catalog-sync' ); ?></h3>
 						<p><?php esc_html_e( 'Опція «Показувати vendorCode адміну на сторінці товару» (Оновлення XML → Розклад і правила). Якщо увімкнено — адміністратор (manage_options) бачить у підвалі сторінки товару код з метаполя f2000cs-updater-vendor і може скопіювати кліком. Покупці блок не бачать. За замовчуванням увімкнено.', 'factorial2000-catalog-sync' ); ?></p>
 					</div>
+
+				<div class="f2000cs-docs-card" id="update-ssl">
+						<h3><?php esc_html_e( 'Слабкі SSL-сертифікати', 'factorial2000-catalog-sync' ); ?></h3>
+						<p><?php esc_html_e( 'Коли плагін завантажує XML і фото, він перевіряє сертифікат безпеки (https) сайту постачальника. Якщо в постачальника сертифікат прострочений або «самопідписаний», файл не завантажиться. Тоді на сторінці «Оновлення XML» (блок «Розклад і правила») увімкніть «Слабкі SSL-сертифікати».', 'factorial2000-catalog-sync' ); ?></p>
+						<div class="f2000cs-docs-note"><strong><?php esc_html_e( 'Увага:', 'factorial2000-catalog-sync' ); ?></strong> <?php esc_html_e( 'перевірка вимикається для всіх завантажень XML і фото. Вмикайте лише якщо довіряєте постачальнику. Розробники можуть керувати цим фільтром f2000cs_ssl_verify.', 'factorial2000-catalog-sync' ); ?></div>
+				</div>
+
+				<div class="f2000cs-docs-card" id="update-status">
+						<h3><?php esc_html_e( 'Панель статусу', 'factorial2000-catalog-sync' ); ?></h3>
+						<ul>
+							<li><strong><?php esc_html_e( 'Ліміт Free сьогодні', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'скільки з 3 ручних запусків на добу вже використано (лише у Free).', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Автооновлення', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'активне чи зупинене.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Наступний запуск', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'коли оновлення стартує за розкладом.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Інтервал', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'як часто воно запускається.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Фонове оновлення', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( '«В черзі» — задачу вже поставлено; «Заплановано на» — час її старту.', 'factorial2000-catalog-sync' ); ?></li>
+						</ul>
+				</div>
 				</section>
 
 				<section id="import" class="f2000cs-docs-section">
@@ -381,7 +415,7 @@ function f2000cs_docs_page() {
 							<li><strong><?php esc_html_e( 'URL', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'пряме посилання на XML/YML; підтримує продовження після обриву.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Файл', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'завантаження .xml з комп’ютера; зручно для тесту або разового імпорту.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
-						<p><?php esc_html_e( 'Обов’язково вкажіть SKU-префікс (той самий, що в картці постачальника). Опційно — додавати нові товари в категорію «Новинки» (за потреби категорії з вигрузки вкладаються під «Новинки» як підкатегорії). Pro: опція «Імпортувати кількість товару (Stock quantity) з XML» записує залишок і вмикає керування запасами.', 'factorial2000-catalog-sync' ); ?></p>
+						<p><?php esc_html_e( 'Обов’язково вкажіть SKU-префікс (той самий, що в картці постачальника). Опційно — додавати нові товари в категорію «Новинки» (за потреби категорії з вигрузки вкладаються під «Новинки» як підкатегорії). Pro: опція «Імпортувати кількість товару (Stock quantity) з XML» записує залишок і вмикає керування запасами. Опція «Імпортувати тільки товари в наявності» пропускає товари, яких немає в наявності; варіативний товар отримує лише варіації в наявності.', 'factorial2000-catalog-sync' ); ?></p>
 						<div class="f2000cs-docs-note">
 							<strong><?php esc_html_e( 'Формат:', 'factorial2000-catalog-sync' ); ?></strong>
 							<?php esc_html_e( 'YML / Prom.ua. Повний перелік полів і приклад — у розділі «Схема XML».', 'factorial2000-catalog-sync' ); ?>
@@ -408,10 +442,10 @@ function f2000cs_docs_page() {
 						<p><?php esc_html_e( 'Режим «Варіативні продукти»: натисніть «Проаналізувати XML». Плагін знайде групи за group_id з 2+ offers, покаже атрибути (з unit, як при імпорті) і позначить ті, що варіюються. Оберіть атрибути й запустіть імпорт.', 'factorial2000-catalog-sync' ); ?></p>
 						<ul>
 							<li><?php esc_html_e( 'SKU батька = префікс + group_id; SKU варіації = префікс + offer id.', 'factorial2000-catalog-sync' ); ?></li>
-							<li><?php esc_html_e( 'Створюється рівно одна WC-варіація на кожен offer у групі (не декартовий добуток атрибутів).', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'На кожен товар групи створюється одна варіація (наприклад, один розмір — одна варіація). Усі можливі комбінації атрибутів плагін не створює.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'Назва/опис/категорії/фото батька беруться з першого offer групи (назва — спільна база з titles).', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'Offers без group_id і групи з 1 offer у цьому режимі пропускаються.', 'factorial2000-catalog-sync' ); ?></li>
-							<li><?php esc_html_e( 'Якщо вибір атрибутів «мертвий», плагін спробує auto-detect (пріоритет: розмір → колір → перший варіативний).', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Якщо жоден атрибут не підходить, плагін обере сам: спочатку розмір, потім колір, потім перший, значення якого відрізняються.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'Варіація з порожнім SKU/назвою або price ≤ 0 пропускається; якщо не створилось жодної — батько видаляється.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<div class="f2000cs-docs-note">
@@ -499,29 +533,70 @@ function f2000cs_docs_page() {
 				<section id="marketplaces" class="f2000cs-docs-section">
 					<h2 class="f2000cs-docs-section__title"><?php esc_html_e( 'Маркетплейси', 'factorial2000-catalog-sync' ); ?> <span class="f2000cs-pro-badge">Pro</span></h2>
 
-					<div class="f2000cs-docs-card" id="marketplaces-prom">
+				<div class="f2000cs-docs-card" id="marketplaces-prom">
 						<h3><?php esc_html_e( 'Вигрузка товарів WooCommerce на Prom.ua', 'factorial2000-catalog-sync' ); ?></h3>
-						<p><?php esc_html_e( 'Сторінка «Маркетплейси» формує YML-файл із ваших товарів WooCommerce і дає на нього посилання, яке вказується в кабінеті Prom як джерело імпорту. Це зворотний напрям до імпорту з XML постачальника.', 'factorial2000-catalog-sync' ); ?></p>
+						<p><?php esc_html_e( 'Сторінка «Маркетплейси» збирає з ваших товарів WooCommerce файл для Prom.ua і дає на нього постійне посилання. Prom сам заходить за цим посиланням і підтягує ваші товари, ціни та наявність. Тобто це зворотний напрям до імпорту: товари йдуть з вашого сайту на Prom, а не від постачальника на сайт.', 'factorial2000-catalog-sync' ); ?></p>
+						<ol class="f2000cs-docs-steps">
+							<li><?php esc_html_e( 'Відкрийте «Синхронізація каталогу» → «Маркетплейси». Для початку підійдуть налаштування за замовчуванням.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Натисніть «Згенерувати зараз» і дочекайтесь напису «Готово!». Великий каталог збирається кілька хвилин; якщо збирання перервалось, натисніть «Продовжити генерацію».', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Скопіюйте «Посилання на вигрузку».', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'У кабінеті Prom.ua додайте це посилання як джерело імпорту товарів (імпорт за посиланням) і виберіть, як часто Prom його перечитує.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Щоб Prom завжди бачив свіжі ціни й наявність, увімкніть «Після оновлення наявності» та/або виберіть розклад.', 'factorial2000-catalog-sync' ); ?></li>
+						</ol>
+						<div class="f2000cs-docs-note"><strong><?php esc_html_e( 'Безпека:', 'factorial2000-catalog-sync' ); ?></strong> <?php esc_html_e( 'посилання містить секретний код. Кожен, хто його знає, може прочитати дані ваших товарів — так само, як Prom. Не публікуйте його відкрито.', 'factorial2000-catalog-sync' ); ?></div>
+				</div>
+
+				<div class="f2000cs-docs-card" id="marketplaces-settings">
+						<h3><?php esc_html_e( 'Налаштування вигрузки', 'factorial2000-catalog-sync' ); ?></h3>
 						<ul>
-							<li><?php esc_html_e( 'Експортуються лише опубліковані товари з ціною, фото та категорією (інші лічильником «пропущено»). Неопубліковані можна додати окремою опцією.', 'factorial2000-catalog-sync' ); ?></li>
-							<li><?php esc_html_e( 'Варіативні товари перетворюються на різновиди Prom: до трьох характеристик (розмір / колір у пріоритеті), унікальний набір для кожного різновиду; основний товар у вигрузці — це реальний різновид. Групи, у яких Prom не прийняв би однакові набори, пропускаються, а їхні SKU показуються на сторінці.', 'factorial2000-catalog-sync' ); ?></li>
-							<li><?php esc_html_e( 'Бренд береться з таксономії брендів товару, з відповідністю «бренд на сайті=бренд у Prom» і виробником за замовчуванням; код постачальника — з мета-поля f2000cs-updater-vendor (<mpn>).', 'factorial2000-catalog-sync' ); ?></li>
-							<li><?php esc_html_e( 'portal_category_id задається за правилами «частина шляху категорії=номер категорії Prom» або за замовчуванням.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Магазин', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'назва магазину й компанії, адреса сайту та валюта цін. За замовчуванням беруться з налаштувань WordPress і WooCommerce.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Фото на товар', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'скільки фото передавати в Prom (Prom приймає до 10).', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Неопубліковані товари', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'за замовчуванням у файл потрапляють лише опубліковані товари; цією опцією можна додати й чернетки.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Якщо в товара немає опису', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'Prom вимагає опис, тому після назви додається коротка фраза. Можна залишити лише назву або написати свій текст.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Виробник (бренд)', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'береться бренд товару. Якщо його немає — підставляється «Виробник, якщо бренд не вказано» (наприклад, «Без бренду»). Прапорець «Завжди цей виробник» замінює бренди всіх товарів одним значенням, зазвичай він не потрібен. У таблиці «Назви брендів у Prom» вкажіть відповідність, якщо бренд на сайті пишеться інакше, ніж у довіднику Prom (під час введення з’являються підказки).', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Категорії на Prom', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'Prom вимагає номер своєї категорії для кожного товару. Вкажіть «Категорію Prom за замовчуванням» і/або впишіть номери в таблиці «Категорії магазину → категорії Prom»; правило для батьківської категорії діє й на вкладені. Блок «Свої правила (для досвідчених)» — той самий вибір текстом у форматі «частина шляху=номер»; спрацьовує перше правило, що збіглося.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Код постачальника (MPN)', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'звідки взяти артикул постачальника для Prom. За замовчуванням це код, який плагін запам’ятовує при оновленні наявності (тег vendorCode). Можна вибрати інше поле або нічого не передавати.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Оновлення вигрузки', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'розклад: вручну, щогодини, 6 / 4 / 2 рази на день або щодня.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
-						<p><?php esc_html_e( 'Файл формується частинами (великі каталоги не впираються в ліміт часу PHP) і замінює опублікований лише після успішної перевірки — Prom ніколи не бачить недописаний або порожній файл. Автооновлення — через WP-Cron за розкладом; для сервера: wp f2000cs marketplace build prom.', 'factorial2000-catalog-sync' ); ?></p>
-						<div class="f2000cs-docs-note">
-							<strong><?php esc_html_e( 'Далі:', 'factorial2000-catalog-sync' ); ?></strong> <?php esc_html_e( 'Rozetka та Hotline додаватимуться як окремі вкладки тієї ж сторінки.', 'factorial2000-catalog-sync' ); ?>
-						</div>
-					</div>
+				</div>
+
+				<div class="f2000cs-docs-card" id="marketplaces-rules">
+						<h3><?php esc_html_e( 'Які товари потрапляють у файл', 'factorial2000-catalog-sync' ); ?></h3>
+						<ul>
+							<li><?php esc_html_e( 'Лише опубліковані товари, у яких є ціна, фото та категорія. Решта рахується як «пропущено».', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Товари з розмірами й кольорами перетворюються на «різновиди» Prom: до трьох характеристик, і в кожного різновиду набір має бути унікальним. Якщо в групі два різновиди з однаковими характеристиками, Prom такий товар не прийме — групу пропущено, а її артикули показано на сторінці, щоб ви виправили характеристики.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Товар без залишку лишається у файлі зі статусом «немає в наявності».', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Товар, який оновлення наявності перевело в чернетку, у файл не потрапляє (якщо не ввімкнено «Неопубліковані товари»).', 'factorial2000-catalog-sync' ); ?></li>
+						</ul>
+				</div>
+
+				<div class="f2000cs-docs-card" id="marketplaces-auto">
+						<h3><?php esc_html_e( 'Автоматичне оновлення вигрузки', 'factorial2000-catalog-sync' ); ?></h3>
+						<ul>
+							<li><?php esc_html_e( 'Файл збирається частинами, тому великі каталоги не впираються в ліміт часу сервера. Поки йде збирання, Prom бачить попередній повний файл; новий замінює його лише коли повністю готовий.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Після оновлення наявності', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'якщо ввімкнено, то після кожного оновлення від постачальників (за розкладом, у фоні чи кнопкою «Одразу») вигрузка за хвилину-дві збирається заново. Prom за тим самим посиланням отримує свіжі ціни й наявність. Можна поєднувати з розкладом.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Для сервера є команда: wp f2000cs marketplace build prom.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Без активної Pro-ліцензії чи тріалу вигрузка не оновлюється. Файл, якому більше 3 днів, знімається, щоб Prom не брав застарілі ціни. Після поновлення ліцензії збирання продовжується само.', 'factorial2000-catalog-sync' ); ?></li>
+						</ul>
+						<div class="f2000cs-docs-note"><strong><?php esc_html_e( 'Далі:', 'factorial2000-catalog-sync' ); ?></strong> <?php esc_html_e( 'Rozetka та Hotline додаватимуться як окремі вкладки тієї ж сторінки.', 'factorial2000-catalog-sync' ); ?></div>
+				</div>
+
 				</section>
 
 				<section id="telegram" class="f2000cs-docs-section">
 					<h2 class="f2000cs-docs-section__title"><?php esc_html_e( 'Telegram-сповіщення', 'factorial2000-catalog-sync' ); ?></h2>
 
-					<div class="f2000cs-docs-card">
-						<p><?php esc_html_e( 'На сторінці «Оновлення XML» можна вказати токен бота (@BotFather) і ID чатів (@userinfobot, через кому). Спершу напишіть боту /start.', 'factorial2000-catalog-sync' ); ?></p>
-						<p><?php esc_html_e( 'Плагін надсилає повідомлення про завершення оновлення стоку та інші службові події (за наявності токена й ID). Доступно у Free і Pro.', 'factorial2000-catalog-sync' ); ?></p>
-					</div>
+				<div class="f2000cs-docs-card" id="telegram-setup">
+						<h3><?php esc_html_e( 'Як підключити', 'factorial2000-catalog-sync' ); ?></h3>
+						<p><?php esc_html_e( 'Telegram-звіти необов’язкові: якщо поля порожні, нічого не надсилається. Доступно у Free і Pro. Плагін повідомляє про завершення оновлення наявності, імпорту та інші службові події.', 'factorial2000-catalog-sync' ); ?></p>
+						<ol class="f2000cs-docs-steps">
+							<li><?php esc_html_e( 'У Telegram знайдіть бота @BotFather, надішліть команду /newbot, задайте ім’я — він видасть токен (рядок виду 1234567890:ABC…).', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Знайдіть бота @userinfobot, натисніть Start — він покаже ваш числовий ID. Для групи додайте свого бота в групу і використайте ID групи (від’ємне число).', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'На сторінці «Оновлення XML» у блоці «Telegram-сповіщення» вставте токен у «Токен бота», а ID — у «ID користувачів» (кілька через кому).', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Обов’язково спершу напишіть своєму боту /start (або додайте його в групу) — інакше Telegram не дозволить йому писати вам.', 'factorial2000-catalog-sync' ); ?></li>
+						</ol>
+				</div>
+
 				</section>
 
 				<section id="cron" class="f2000cs-docs-section">
@@ -539,8 +614,17 @@ function f2000cs_docs_page() {
 
 					<div class="f2000cs-docs-card">
 						<h3><?php esc_html_e( 'Кнопка «Зупинити cron»', 'factorial2000-catalog-sync' ); ?></h3>
-						<p><?php esc_html_e( 'Знімає з черги заплановані завдання плагіна (рекурентне оновлення і фонові одиночні задачі). Автооновлення зупиняється. Щоб знову запланувати — запустіть оновлення вручну або дочекайтесь реакції плагіна на запуск sync / активацію (лише збереження інтервалу без вже активного розкладу може не відновити cron).', 'factorial2000-catalog-sync' ); ?></p>
+						<p><?php esc_html_e( 'Знімає з черги заплановані завдання оновлення наявності (рекурентне оновлення і фонові одиночні задачі); розклад вигрузок на маркетплейси не зачіпає. Автооновлення залишається зупиненим, доки ви не запустите оновлення у фоновому режимі або не активуєте плагін повторно (саме лише збереження інтервалу cron не відновлює).', 'factorial2000-catalog-sync' ); ?></p>
 					</div>
+
+				<div class="f2000cs-docs-card" id="cron-uninstall">
+						<h3><?php esc_html_e( 'Деактивація і видалення плагіна', 'factorial2000-catalog-sync' ); ?></h3>
+						<ul>
+							<li><?php esc_html_e( 'Деактивація зупиняє автооновлення наявності та оновлення вигрузок на маркетплейси. Налаштування лишаються.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Видалення плагіна прибирає його налаштування, тимчасові дані, створені XML-файли та файли вигрузок на маркетплейси. Товари WooCommerce не видаляються.', 'factorial2000-catalog-sync' ); ?></li>
+						</ul>
+				</div>
+
 				</section>
 
 				<section id="plans" class="f2000cs-docs-section">
@@ -548,16 +632,16 @@ function f2000cs_docs_page() {
 
 					<div class="f2000cs-docs-card">
 						<h3><?php esc_html_e( 'Безкоштовний тріал', 'factorial2000-catalog-sync' ); ?></h3>
-						<p><?php esc_html_e( 'Спробуйте Pro безкоштовно 14 днів — без прив’язки банківської карти. Під час тріалу доступні всі Pro-функції; після закінчення залишається Free-план, якщо не оформити підписку.', 'factorial2000-catalog-sync' ); ?></p>
+						<p><?php esc_html_e( 'Спробуйте Pro безкоштовно 14 днів — без прив’язки банківської карти. Під час тріалу в Pro-версії плагіна (її пропонує встановити Freemius) доступні всі Pro-функції; після закінчення залишається Free-план, якщо не оформити підписку.', 'factorial2000-catalog-sync' ); ?></p>
 					</div>
 
 					<div class="f2000cs-docs-card">
 						<h3><?php esc_html_e( 'Free', 'factorial2000-catalog-sync' ); ?></h3>
 						<ul>
-							<li><?php esc_html_e( '1 слот нового постачальника;', 'factorial2000-catalog-sync' ); ?></li>
-							<li><?php esc_html_e( 'імпорт товарів, skip price, Telegram, Vendor Code на товарі;', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( '1 постачальник;', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'імпорт товарів, режим «не змінювати ціни», Telegram, Vendor Code на товарі;', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'автооновлення раз на добу + 3 ручні запуски на добу;', 'factorial2000-catalog-sync' ); ?></li>
-							<li><?php esc_html_e( 'без вигрузки, без оновлення окремих полів, без обробки зображень, без коригування ціни / кількості / правила малої наявності.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'без вигрузки XML і маркетплейсів, без оновлення окремих полів, без обробки зображень, без коригування ціни / кількості / правила малої наявності.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 					</div>
 
@@ -567,12 +651,13 @@ function f2000cs_docs_page() {
 							<li><?php esc_html_e( 'багато постачальників, часті інтервали cron, без денного ліміту ручних запусків;', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'коригування цін, оновлення кількості, мала наявність варіацій;', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'оновлення окремих полів, обробка зображень при імпорті;', 'factorial2000-catalog-sync' ); ?></li>
-							<li><?php esc_html_e( 'сторінка вигрузки: фільтр + редактор XML.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'сторінка вигрузки: фільтр + редактор XML;', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'маркетплейси: вигрузка товарів сайту на Prom.ua з автооновленням.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<p><?php esc_html_e( 'Під час тріалу доступні ті самі можливості, що й у Pro.', 'factorial2000-catalog-sync' ); ?></p>
 						<div class="f2000cs-docs-note">
 							<strong><?php esc_html_e( 'Pro-збірка:', 'factorial2000-catalog-sync' ); ?></strong>
-							<?php esc_html_e( 'Конвертація зображень, оновлення окремих полів, фільтр XML-вигрузки та редактор вигрузок входять лише до Pro-збірки плагіна — безкоштовна версія з WordPress.org цього коду не містить. Після оформлення підписки чи тріалу встановіть Pro-версію зі сторінки акаунта Freemius (плагін покаже відповідне повідомлення).', 'factorial2000-catalog-sync' ); ?>
+							<?php esc_html_e( 'Усі Pro-функції — кілька постачальників, часті оновлення, коригування цін і кількості, правило для варіативних товарів, конвертація зображень, оновлення окремих полів, фільтр і редактор вигрузок, маркетплейси — входять лише до Pro-збірки плагіна; безкоштовна версія з WordPress.org цього коду не містить. Після оформлення підписки чи тріалу встановіть Pro-версію зі сторінки акаунта Freemius (плагін покаже відповідне повідомлення).', 'factorial2000-catalog-sync' ); ?>
 						</div>
 					</div>
 				</section>
@@ -602,7 +687,7 @@ function f2000cs_docs_page() {
 
 					<div class="f2000cs-docs-card">
 						<h3><?php esc_html_e( 'Кілька постачальників', 'factorial2000-catalog-sync' ); ?></h3>
-						<p><?php esc_html_e( 'Імпортуйте кожен XML окремо з унікальним SKU-префіксом і додайте відповідний слот на «Оновлення XML» (додаткові слоти — Pro).', 'factorial2000-catalog-sync' ); ?></p>
+						<p><?php esc_html_e( 'Імпортуйте кожен XML окремо з унікальним SKU-префіксом і додайте окремого постачальника (картку) на «Оновлення XML» (додаткові слоти — Pro).', 'factorial2000-catalog-sync' ); ?></p>
 					</div>
 
 					<div class="f2000cs-docs-card">
@@ -624,6 +709,42 @@ function f2000cs_docs_page() {
 						<h3><?php esc_html_e( 'Немає меню плагіна', 'factorial2000-catalog-sync' ); ?></h3>
 						<p><?php esc_html_e( 'Активуйте WooCommerce. Без нього пункт «Синхронізація каталогу» не реєструється.', 'factorial2000-catalog-sync' ); ?></p>
 					</div>
+
+				<div class="f2000cs-docs-card" id="faq-prom-missing">
+						<h3><?php esc_html_e( 'Чому товару немає у вигрузці для Prom?', 'factorial2000-catalog-sync' ); ?></h3>
+						<ul>
+							<li><?php esc_html_e( 'Перевірте, що товар опублікований, має ціну, фото та категорію.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Для варіативного товару в різновидів мають бути різні характеристики (наприклад, розмір) — інакше групу пропущено, а її артикул показано на сторінці «Маркетплейси».', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Після змін натисніть «Згенерувати зараз» або дочекайтесь наступного оновлення вигрузки.', 'factorial2000-catalog-sync' ); ?></li>
+						</ul>
+				</div>
+
+				<div class="f2000cs-docs-card" id="faq-prom-categories">
+						<h3><?php esc_html_e( 'Prom просить номер категорії. Де його взяти?', 'factorial2000-catalog-sync' ); ?></h3>
+						<p><?php esc_html_e( 'Номер (portal_category_id) показано в довіднику категорій Prom і в таблицях імпорту Prom. Впишіть його в таблицю «Категорії магазину → категорії Prom» або в «Категорію Prom за замовчуванням».', 'factorial2000-catalog-sync' ); ?></p>
+				</div>
+
+				<div class="f2000cs-docs-card" id="faq-ssl">
+						<h3><?php esc_html_e( 'Не вдається завантажити файл постачальника через сертифікат', 'factorial2000-catalog-sync' ); ?></h3>
+						<p><?php esc_html_e( 'Увімкніть «Слабкі SSL-сертифікати» на сторінці «Оновлення XML». Деталі — у розділі «Оновлення XML → Слабкі SSL-сертифікати».', 'factorial2000-catalog-sync' ); ?></p>
+				</div>
+				</section>
+
+				<section id="developers" class="f2000cs-docs-section">
+					<h2 class="f2000cs-docs-section__title"><?php esc_html_e( 'Для розробників', 'factorial2000-catalog-sync' ); ?></h2>
+
+				<div class="f2000cs-docs-card" id="developers-hooks">
+						<h3><?php esc_html_e( 'Фільтри та дії', 'factorial2000-catalog-sync' ); ?></h3>
+						<ul>
+							<li><strong><?php esc_html_e( 'f2000cs_ssl_verify', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'фільтр: true чи false — чи перевіряти SSL-сертифікати під час завантажень XML і фото.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'f2000cs_republish_returned_products', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'фільтр: повернути false, щоб не публікувати знову товари, які плагін сам перевів у чернетку, коли вони з’явились у файлі.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'f2000cs_stock_update_complete', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'дія: спрацьовує після завершення повного циклу оновлення наявності.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'f2000cs_marketplace_feeds', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'фільтр: список вигрузок маркетплейсів, через нього можна додати власну.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'f2000cs_marketplace_brand_taxonomies', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'фільтр: список таксономій, з яких береться бренд товару.', 'factorial2000-catalog-sync' ); ?></li>
+						</ul>
+						<p><?php esc_html_e( 'Решта хуків (коригування цін, інтервали, кількість) використовується всередині Pro-збірки і не є стабільним публічним API.', 'factorial2000-catalog-sync' ); ?></p>
+				</div>
+
 				</section>
 
 			</main>

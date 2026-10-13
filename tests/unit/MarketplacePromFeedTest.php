@@ -55,7 +55,7 @@ final class F2000CS_Fake_Unit_Source implements Marketplace_Unit_Source {
 	 * Page of units.
 	 *
 	 * @param string $phase  Phase.
-	 * @param int    $offset Offset.
+	 * @param int    $offset Cursor (row index here).
 	 * @param int    $limit  Limit.
 	 * @return array
 	 */
@@ -63,9 +63,102 @@ final class F2000CS_Fake_Unit_Source implements Marketplace_Unit_Source {
 		$slice = array_slice( $this->by_phase[ $phase ], $offset, $limit );
 
 		return array(
-			'units'    => $slice,
-			'consumed' => count( $slice ),
-			'done'     => count( $slice ) < $limit,
+			'units' => $slice,
+			'next'  => $offset + count( $slice ),
+			'done'  => count( $slice ) < $limit,
+		);
+	}
+}
+
+/**
+ * Source paged by an id cursor; some rows vanish after the first page is read.
+ */
+final class F2000CS_Fake_Cursor_Source implements Marketplace_Unit_Source {
+
+	/**
+	 * Product ids.
+	 *
+	 * @var array<int,int>
+	 */
+	public $ids;
+
+	/**
+	 * Ids removed after the first fetch.
+	 *
+	 * @var array<int,int>
+	 */
+	private $vanish;
+
+	/**
+	 * Ids handed out so far.
+	 *
+	 * @var array<int,int>
+	 */
+	public $seen = array();
+
+	/**
+	 * Constructor.
+	 *
+	 * @param array<int,int> $ids    Ids.
+	 * @param array<int,int> $vanish Ids that disappear after the first page.
+	 */
+	public function __construct( array $ids, array $vanish ) {
+		$this->ids    = $ids;
+		$this->vanish = $vanish;
+	}
+
+	/**
+	 * Phases.
+	 *
+	 * @return array<int,string>
+	 */
+	public function phases(): array {
+		return array( 'simple' );
+	}
+
+	/**
+	 * Page after the cursor.
+	 *
+	 * @param string $phase  Phase.
+	 * @param int    $offset Cursor.
+	 * @param int    $limit  Limit.
+	 * @return array
+	 */
+	public function fetch( string $phase, int $offset, int $limit ): array {
+		$after = array();
+
+		foreach ( $this->ids as $id ) {
+			if ( $id > $offset ) {
+				$after[] = $id;
+			}
+		}
+
+		$page  = array_slice( $after, 0, $limit );
+		$units = array();
+
+		foreach ( $page as $id ) {
+			$this->seen[] = $id;
+			$units[]      = array(
+				'kind' => 'simple',
+				'row'  => array(
+					'ID'            => (string) $id,
+					'SKU'           => 'S' . $id,
+					'Name'          => 'Товар ' . $id,
+					'Published'     => '1',
+					'In stock?'     => '1',
+					'Regular price' => '10',
+					'Categories'    => 'Одяг',
+					'Images'        => 'https://shop.test/a.jpg',
+				),
+			);
+		}
+
+		$this->ids = array_values( array_diff( $this->ids, $this->vanish ) );
+
+		return array(
+			'units' => $units,
+			'next'  => $page ? max( $page ) : $offset,
+			'done'  => count( $page ) < $limit,
 		);
 	}
 }
@@ -303,7 +396,7 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		$this->settings['description_fallback_snippet'] = "Деталі в характеристиках";
 		$this->settings['default_vendor']               = 'Власне виробництво';
 		$this->settings['vendor_aliases']               = "acme=ACME Ukraine";
-		$this->settings['portal_category_rules']        = "куртки=555\nвзуття=777";
+		$this->settings['portal_category_rules']        = "одяг>куртки=555\nвзуття=777";
 		$this->settings['default_portal_category_id']   = '999';
 
 		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Description' => '<p> </p>', 'Brands' => 'Acme' ) ) ) );
@@ -495,7 +588,7 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		);
 
 		$this->assertSame( 'Shop', $saved['shop_name'] );
-		$this->assertSame( '20', $saved['max_pictures'], 'Capped to the schema maximum' );
+		$this->assertSame( '10', $saved['max_pictures'], 'Capped to the schema maximum' );
 		$this->assertSame( '1', $saved['include_unpublished'] );
 		$this->assertSame( "a=b\nc=d", $saved['vendor_aliases'] );
 		$this->assertSame( 'off', $saved['schedule'], 'Unknown schedules fall back to off' );
@@ -521,6 +614,480 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		$this->assertMatchesRegularExpression( '/^[a-z0-9]{24}$/', $token );
 		$this->assertSame( $token, Marketplace_Storage::token( 'prom' ) );
 		$this->assertStringEndsWith( "/f2000cs-feeds/prom-{$token}.xml", Marketplace_Storage::url( $feed ) );
+	}
+
+	/**
+	 * Without Pro an outdated feed file is withdrawn, a fresh one is kept.
+	 *
+	 * @return void
+	 */
+	public function test_stale_feed_is_withdrawn_without_pro() {
+		$path = Marketplace_Storage::path( Marketplace_Registry::get( 'prom' ) );
+
+		file_put_contents( $path, '<yml_catalog/>' );
+		$this->assertFalse( Marketplace_Job::withdraw_stale_feed( 'prom' ), 'A fresh feed must stay' );
+		$this->assertFileExists( $path );
+
+		touch( $path, time() - Marketplace_Job::STALE_AFTER - 60 );
+		clearstatcache();
+		$this->assertTrue( Marketplace_Job::withdraw_stale_feed( 'prom' ) );
+		$this->assertFileDoesNotExist( $path );
+	}
+
+	/**
+	 * Without Pro a stock update withdraws an outdated feed even when it has no schedule.
+	 *
+	 * @return void
+	 */
+	public function test_stock_update_withdraws_stale_feed_without_pro() {
+		Marketplace_Registry::save_settings( 'prom', array( 'after_sync' => '1' ) );
+		$path = Marketplace_Storage::path( Marketplace_Registry::get( 'prom' ) );
+		file_put_contents( $path, '<yml_catalog/>' );
+		touch( $path, time() - Marketplace_Job::STALE_AFTER - 60 );
+		clearstatcache();
+
+		do_action( 'f2000cs_stock_update_complete' );
+
+		$this->assertFileDoesNotExist( $path );
+		$this->assertFalse( wp_next_scheduled( Marketplace_Job::SYNC_HOOK, array( 'prom' ) ) );
+	}
+
+	/**
+	 * Deactivation / uninstall clear marketplace events whatever their feed argument.
+	 *
+	 * @return void
+	 */
+	public function test_marketplace_cron_is_cleared() {
+		wp_schedule_event( time(), 'daily', Marketplace_Job::CRON_HOOK, array( 'prom' ) );
+		wp_schedule_single_event( time(), Marketplace_Job::CONT_HOOK, array( 'prom' ) );
+		$this->assertTrue( f2000cs_has_marketplace_events() );
+
+		f2000cs_clear_marketplace_cron();
+
+		$this->assertFalse( f2000cs_has_marketplace_events() );
+	}
+
+	/**
+	 * «Після оновлення наявності» is off by default and saved as a boolean.
+	 *
+	 * @return void
+	 */
+	public function test_after_sync_setting() {
+		$this->assertFalse( Marketplace_Registry::settings( 'prom' )['after_sync'] );
+
+		Marketplace_Registry::save_settings( 'prom', array( 'after_sync' => '1' ) );
+		$this->assertTrue( Marketplace_Registry::settings( 'prom' )['after_sync'] );
+
+		Marketplace_Registry::save_settings( 'prom', array( 'after_sync' => '0' ) );
+		$this->assertFalse( Marketplace_Registry::settings( 'prom' )['after_sync'] );
+	}
+
+	/**
+	 * A finished stock update queues one rebuild of the feeds that ask for it (Pro only).
+	 *
+	 * @return void
+	 */
+	public function test_stock_update_queues_feed_rebuild() {
+		Marketplace_Registry::save_settings( 'prom', array( 'after_sync' => '1' ) );
+
+		do_action( 'f2000cs_stock_update_complete' );
+		$this->assertFalse( wp_next_scheduled( Marketplace_Job::SYNC_HOOK, array( 'prom' ) ), 'Free plan: no rebuild' );
+
+		$this->enable_pro();
+		do_action( 'f2000cs_stock_update_complete' );
+		do_action( 'f2000cs_stock_update_complete' );
+
+		$this->assertNotFalse( wp_next_scheduled( Marketplace_Job::SYNC_HOOK, array( 'prom' ) ) );
+		$this->assertCount(
+			1,
+			array_filter(
+				F2000CS_Test_State::$cron_events,
+				static function ( $event ) {
+					return Marketplace_Job::SYNC_HOOK === $event['hook'];
+				}
+			),
+			'Repeated syncs must not stack rebuilds'
+		);
+		$this->assertTrue( has_filter( Marketplace_Job::SYNC_HOOK ) );
+	}
+
+	/**
+	 * A requested rebuild that hits a running build is retried, not dropped.
+	 *
+	 * @return void
+	 */
+	public function test_locked_rebuild_is_retried() {
+		$this->enable_pro();
+		set_transient( 'f2000cs_mp_lock_prom', 1, 60 );
+
+		Marketplace_Job::cron_build( 'prom' );
+
+		$this->assertNotFalse( wp_next_scheduled( Marketplace_Job::SYNC_HOOK, array( 'prom' ) ) );
+		delete_transient( 'f2000cs_mp_lock_prom' );
+	}
+
+	/**
+	 * A locked continuation is not turned into a fresh rebuild, and a pending
+	 * retry is not duplicated.
+	 *
+	 * @return void
+	 */
+	public function test_locked_retry_boundaries() {
+		$this->enable_pro();
+		set_transient( 'f2000cs_mp_lock_prom', 1, 60 );
+
+		Marketplace_Job::cron_continue( 'prom' );
+		$this->assertFalse( wp_next_scheduled( Marketplace_Job::SYNC_HOOK, array( 'prom' ) ), 'Continuation: the running build continues itself' );
+
+		Marketplace_Job::cron_build( 'prom' );
+		Marketplace_Job::cron_build( 'prom' );
+		$retries = array_filter(
+			F2000CS_Test_State::$cron_events,
+			static function ( $event ) {
+				return Marketplace_Job::SYNC_HOOK === $event['hook'];
+			}
+		);
+		$this->assertCount( 1, $retries );
+
+		delete_transient( 'f2000cs_mp_lock_prom' );
+	}
+
+	/**
+	 * A category rule is a prefix of the path made of whole segments, not a substring.
+	 *
+	 * @return void
+	 */
+	public function test_portal_rule_matches_path_prefix_not_substring() {
+		$settings = array(
+			'portal_category_rules'      => "одяг=100\nодяг>куртки=200",
+			'default_portal_category_id' => '999',
+		);
+
+		$this->assertSame( '100', Prom_Feed::portal_category_for_paths( array( array( 'Одяг' ) ), $settings ) );
+		$this->assertSame( '100', Prom_Feed::portal_category_for_paths( array( array( 'Одяг', 'Штани' ) ), $settings ) );
+		$this->assertSame( '999', Prom_Feed::portal_category_for_paths( array( array( 'Дитячий одяг' ) ), $settings ) );
+		$this->assertSame( '999', Prom_Feed::portal_category_for_paths( array( array( 'Спорт', 'Спортивний одяг' ) ), $settings ) );
+		$this->assertSame( '999', Prom_Feed::portal_category_for_paths( array( array( 'Одяг для дому' ) ), $settings ) );
+	}
+
+	/**
+	 * Cyrillic and spaces in picture URLs are percent-encoded; existing escapes stay.
+	 *
+	 * @return void
+	 */
+	public function test_picture_urls_are_encoded() {
+		$this->assertSame(
+			'https://shop.test/wp-content/uploads/%D0%BA%D1%83%D1%80%D1%82%D0%BA%D0%B0%20a.jpg?x=1&y=%20',
+			Marketplace_Text::encode_url( 'https://shop.test/wp-content/uploads/куртка a.jpg?x=1&y=%20' )
+		);
+		$this->assertSame( 'https://shop.test/a.jpg', Marketplace_Text::encode_url( 'https://shop.test/a.jpg' ) );
+	}
+
+	/**
+	 * Fake source producing a fixed number of simple offers.
+	 *
+	 * @param int $count Offers.
+	 * @return F2000CS_Fake_Unit_Source
+	 */
+	private function source_with_offers( int $count ): F2000CS_Fake_Unit_Source {
+		$units = array();
+
+		for ( $i = 1; $i <= $count; $i++ ) {
+			$units[] = array(
+				'kind' => 'simple',
+				'row'  => $this->simple_row(
+					array(
+						'ID'  => (string) $i,
+						'SKU' => 'S' . $i,
+					)
+				),
+			);
+		}
+
+		return new F2000CS_Fake_Unit_Source( array( 'simple' => $units ) );
+	}
+
+	/**
+	 * A build that suddenly has far fewer offers does not replace the published feed.
+	 *
+	 * @return void
+	 */
+	public function test_collapsed_build_does_not_replace_feed() {
+		$this->enable_pro();
+		$path = Marketplace_Storage::path( Marketplace_Registry::get( 'prom' ) );
+
+		$ok = Marketplace_Job::run( 'prom', 30, $this->source_with_offers( 10 ) );
+		$this->assertSame( 'done', $ok['status'] );
+		$good = file_get_contents( $path );
+
+		$bad = Marketplace_Job::run( 'prom', 30, $this->source_with_offers( 2 ) );
+		$this->assertSame( 'error', $bad['status'] );
+		$this->assertSame( $good, file_get_contents( $path ), 'Previous feed is kept' );
+		$this->assertSame( 10, (int) get_option( Marketplace_Job::published_option( 'prom' ) ), 'Baseline is not lowered by a rejected build' );
+
+		$smaller = Marketplace_Job::run( 'prom', 30, $this->source_with_offers( 6 ) );
+		$this->assertSame( 'done', $smaller['status'], 'A moderate shrink is accepted' );
+	}
+
+	/**
+	 * A sync during a running build flags it as dirty instead of restarting it.
+	 *
+	 * @return void
+	 */
+	public function test_rebuild_request_during_build_sets_dirty_flag() {
+		$this->enable_pro();
+
+		Marketplace_Job::start( Marketplace_Registry::get( 'prom' ) );
+		$state           = Marketplace_Job::state( 'prom' );
+		$state['offset'] = 40;
+		update_option( Marketplace_Job::state_option( 'prom' ), $state, false );
+
+		Marketplace_Job::cron_build( 'prom' );
+
+		$this->assertSame( 40, (int) Marketplace_Job::state( 'prom' )['offset'], 'Progress is not reset' );
+		$this->assertNotEmpty( get_option( Marketplace_Job::dirty_option( 'prom' ) ) );
+		$this->assertNotFalse( wp_next_scheduled( Marketplace_Job::CONT_HOOK, array( 'prom' ) ) );
+	}
+
+	/**
+	 * When a dirty build finishes, one more build is queued and a fresh start clears the flag.
+	 *
+	 * @return void
+	 */
+	public function test_dirty_build_queues_a_fresh_one() {
+		$this->enable_pro();
+		$feed = Marketplace_Registry::get( 'prom' );
+
+		Marketplace_Job::start( $feed );
+		update_option( Marketplace_Job::dirty_option( 'prom' ), time(), false );
+
+		$res = Marketplace_Job::step( 'prom', 30, $this->source_with_offers( 3 ) );
+
+		$this->assertSame( 'done', $res['status'] );
+		$this->assertNotFalse( wp_next_scheduled( Marketplace_Job::SYNC_HOOK, array( 'prom' ) ) );
+
+		Marketplace_Job::start( $feed );
+		$this->assertFalse( get_option( Marketplace_Job::dirty_option( 'prom' ), false ) );
+	}
+
+	/**
+	 * A source that returns a cursor is paged by it, so rows vanishing between steps skip nothing.
+	 *
+	 * @return void
+	 */
+	public function test_cursor_paging_survives_removed_rows() {
+		$this->enable_pro();
+
+		$source = new F2000CS_Fake_Cursor_Source( array( 3, 5, 8, 9, 12, 15, 21, 22, 30, 31, 40, 41, 50, 51, 52, 60, 61, 70, 71, 72, 80, 81, 90 ), array( 3, 5, 8 ) );
+
+		$res = Marketplace_Job::run( 'prom', 30, $source );
+
+		$this->assertSame( 'done', $res['status'] );
+		$this->assertSame( array( 80, 81, 90 ), array_slice( $source->seen, -3 ), 'Nothing after the removed rows is skipped' );
+		$this->assertCount( 23, $source->seen );
+	}
+
+	/**
+	 * Shortcodes and block comments are dropped; plain-text line breaks survive as paragraphs.
+	 *
+	 * @return void
+	 */
+	public function test_description_cleanup() {
+		$this->assertSame(
+			'<p>Один [XL]</p><p>Два<br /> Три</p>',
+			Prom_Feed::normalize_description_html( "[gallery ids=\"1,2\"]Один [XL]\n\nДва\nТри" )
+		);
+		$this->assertSame(
+			'<p>Текст</p>',
+			Prom_Feed::normalize_description_html( "<!-- wp:paragraph -->\n<p>Текст</p>\n<!-- /wp:paragraph -->" )
+		);
+	}
+
+	/**
+	 * A variation without a size gets the one size nobody else has.
+	 *
+	 * @return void
+	 */
+	public function test_size_hint_fills_the_single_free_size() {
+		$unit = $this->group_unit( array( 'S' => 'S', 'M' => 'M', 'L' => 'L' ) );
+
+		// The middle variation is "any size" and its title says nothing.
+		$unit['children'][1]['Attribute 1 value(s)'] = '';
+		$unit['children'][1]['Name']                 = 'Футболка';
+
+		$hints = Prom_Variations::infer_size_hints( $unit['parent'], $unit['children'] );
+
+		$this->assertSame( 'M', $hints['102'][1] );
+		$this->assertArrayNotHasKey( '101', $hints, 'Own sizes need no hint' );
+	}
+
+	/**
+	 * When the free sizes cannot be matched one to one, nothing is guessed.
+	 *
+	 * @return void
+	 */
+	public function test_size_hint_is_not_guessed_when_ambiguous() {
+		$unit = $this->group_unit( array( 'S' => 'S', 'M' => 'M', 'L' => 'L', 'XL' => 'XL' ) );
+
+		// Parent offers four sizes, one variation has S, two have none: three free sizes for two variations.
+		foreach ( array( 1, 2 ) as $i ) {
+			$unit['children'][ $i ]['Attribute 1 value(s)'] = '';
+			$unit['children'][ $i ]['Name']                 = 'Футболка';
+		}
+		unset( $unit['children'][3] );
+
+		$hints = Prom_Variations::infer_size_hints( $unit['parent'], array_values( $unit['children'] ) );
+
+		$this->assertArrayNotHasKey( '102', $hints );
+		$this->assertArrayNotHasKey( '103', $hints );
+	}
+
+	/**
+	 * Skipped offers are counted by reason with example SKUs, and the totals reach the build result.
+	 *
+	 * @return void
+	 */
+	public function test_skip_reasons_are_reported() {
+		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Images' => '' ) ) ) );
+
+		$this->assertSame( 1, $res['skipped'] );
+		$this->assertSame( 1, $res['reasons']['no_pictures']['count'] );
+		$this->assertSame( array( 'SKU-10' ), $res['reasons']['no_pictures']['examples'] );
+
+		$next = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Regular price' => '' ) ) ) );
+		$this->assertSame( array( 'no_price' ), array_keys( $next['reasons'] ), 'Reasons do not leak between units' );
+
+		$this->enable_pro();
+		$units = array(
+			array( 'kind' => 'simple', 'row' => $this->simple_row() ),
+			array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'ID' => '11', 'SKU' => 'S-11', 'Categories' => '' ) ) ),
+			array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'ID' => '12', 'SKU' => 'S-12', 'Categories' => '' ) ) ),
+		);
+		$built = Marketplace_Job::run( 'prom', 30, new F2000CS_Fake_Unit_Source( array( 'simple' => $units ) ) );
+
+		$this->assertSame( 'done', $built['status'] );
+		$this->assertSame( 2, $built['reasons']['no_category']['count'] );
+		$this->assertSame( array( 'S-11', 'S-12' ), $built['reasons']['no_category']['examples'] );
+		$this->assertArrayHasKey( 'no_category', ( new Prom_Feed() )->skip_reason_labels() );
+	}
+
+	/**
+	 * Waiting for another process's build never starts a new one.
+	 *
+	 * @return void
+	 */
+	public function test_resume_only_reports_the_finished_build() {
+		$this->enable_pro();
+
+		$done = Marketplace_Job::run( 'prom', 30, $this->source_with_offers( 3 ) );
+		$this->assertSame( 'done', $done['status'] );
+
+		$res = Marketplace_Job::step( 'prom', 5, $this->source_with_offers( 1 ), false, true );
+
+		$this->assertSame( 'done', $res['status'] );
+		$this->assertSame( 3, $res['exported'], 'The result of the finished build, not a new build' );
+		$this->assertSame( array(), Marketplace_Job::state( 'prom' ) );
+	}
+
+	/**
+	 * «The shrink is expected» publishes the next build once, then the check is back.
+	 *
+	 * @return void
+	 */
+	public function test_accepted_drop_is_published_once() {
+		$this->enable_pro();
+
+		Marketplace_Job::run( 'prom', 30, $this->source_with_offers( 10 ) );
+		$held = Marketplace_Job::run( 'prom', 30, $this->source_with_offers( 2 ) );
+		$this->assertTrue( $held['drop'] );
+
+		update_option( Marketplace_Job::accept_drop_option( 'prom' ), time(), false );
+		$this->assertSame( 'done', Marketplace_Job::run( 'prom', 30, $this->source_with_offers( 2 ) )['status'] );
+		$this->assertFalse( get_option( Marketplace_Job::accept_drop_option( 'prom' ), false ), 'One-off' );
+		$this->assertSame( 2, (int) get_option( Marketplace_Job::published_option( 'prom' ) ) );
+	}
+
+	/**
+	 * The working file is not guessable from the feed id.
+	 *
+	 * @return void
+	 */
+	public function test_build_file_name_carries_the_token() {
+		$feed = Marketplace_Registry::get( 'prom' );
+
+		$this->assertStringContainsString( Marketplace_Storage::token( 'prom' ), basename( Marketplace_Storage::build_path( $feed ) ) );
+	}
+
+	/**
+	 * Withdrawal never creates the feeds folder or a token when no feed was built.
+	 *
+	 * @return void
+	 */
+	public function test_withdraw_without_feeds_folder_creates_nothing() {
+		$dir = wp_upload_dir()['basedir'] . '/f2000cs-feeds';
+		foreach ( (array) glob( $dir . '/{,.}*', GLOB_BRACE ) as $file ) {
+			if ( is_file( $file ) ) {
+				unlink( $file );
+			}
+		}
+		if ( is_dir( $dir ) ) {
+			rmdir( $dir );
+		}
+
+		$this->assertFalse( Marketplace_Job::withdraw_stale_feed( 'prom' ) );
+		$this->assertFalse( Marketplace_Job::withdraw_stale_feed( 'no-such-feed' ) );
+		$this->assertDirectoryDoesNotExist( $dir );
+		$this->assertFalse( get_option( 'f2000cs_mp_token_prom', false ), 'No token created' );
+	}
+
+	/**
+	 * Exactly at the limit the feed stays; one second later it goes.
+	 *
+	 * @return void
+	 */
+	public function test_withdraw_age_boundary() {
+		$path = Marketplace_Storage::path( Marketplace_Registry::get( 'prom' ) );
+		file_put_contents( $path, '<yml_catalog/>' );
+
+		touch( $path, time() - Marketplace_Job::STALE_AFTER + 5 );
+		clearstatcache();
+		$this->assertFalse( Marketplace_Job::withdraw_stale_feed( 'prom' ) );
+
+		touch( $path, time() - Marketplace_Job::STALE_AFTER - 1 );
+		clearstatcache();
+		$this->assertTrue( Marketplace_Job::withdraw_stale_feed( 'prom' ) );
+	}
+
+	/**
+	 * A recurring build lost on deactivation is recreated from the saved schedule.
+	 *
+	 * @return void
+	 */
+	public function test_missing_schedule_is_recreated() {
+		Marketplace_Registry::save_settings( 'prom', array( 'schedule' => 'daily' ) );
+		$this->assertFalse( wp_next_scheduled( Marketplace_Job::CRON_HOOK, array( 'prom' ) ) );
+
+		Marketplace_Job::ensure_schedules();
+		$this->assertNotFalse( wp_next_scheduled( Marketplace_Job::CRON_HOOK, array( 'prom' ) ) );
+
+		Marketplace_Registry::save_settings( 'prom', array( 'schedule' => 'off' ) );
+		Marketplace_Job::reschedule( 'prom' );
+		Marketplace_Job::ensure_schedules();
+		$this->assertFalse( wp_next_scheduled( Marketplace_Job::CRON_HOOK, array( 'prom' ) ), 'Off stays off' );
+	}
+
+	/**
+	 * Feeds without the option are not rebuilt after a stock update.
+	 *
+	 * @return void
+	 */
+	public function test_stock_update_skips_feeds_without_option() {
+		$this->enable_pro();
+		Marketplace_Registry::save_settings( 'prom', array( 'after_sync' => '0' ) );
+
+		do_action( 'f2000cs_stock_update_complete' );
+
+		$this->assertFalse( wp_next_scheduled( Marketplace_Job::SYNC_HOOK, array( 'prom' ) ) );
 	}
 
 	// ---------------------------------------------------------------- build job

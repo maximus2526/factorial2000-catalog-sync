@@ -122,6 +122,25 @@ class Marketplace_Text {
 	}
 
 	/**
+	 * Percent-encode what a URL must not carry raw (Cyrillic file names, spaces),
+	 * leaving existing %XX escapes and the URL structure alone.
+	 *
+	 * @param string $url URL.
+	 * @return string
+	 */
+	public static function encode_url( string $url ): string {
+		$out = preg_replace_callback(
+			'/[^!-~]|["<>\^`{|}]/u',
+			static function ( $m ) {
+				return rawurlencode( $m[0] );
+			},
+			$url
+		);
+
+		return is_string( $out ) ? $out : $url;
+	}
+
+	/**
 	 * Category cell "A > B, C" into [['A','B'],['C']].
 	 *
 	 * @param mixed $value Raw cell.

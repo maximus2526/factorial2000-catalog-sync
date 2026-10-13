@@ -307,39 +307,187 @@ function f2000cs_get_settings_url() {
 /**
  * Get the price adjustment settings (type, direction, value) for a supplier slot.
  *
- * @param int $index Supplier slot index (1-5).
+ * No adjustment by default; the Pro build supplies the saved rules through the
+ * `f2000cs_price_adjust_settings` filter.
+ *
+ * @param int $index Supplier slot index.
  * @return array{type: string, direction: string, value: float}
  */
 function f2000cs_get_price_adjust_settings( $index ) {
-	if ( function_exists( 'f2000cs_is_pro' ) && ! f2000cs_is_pro() ) {
-		return array(
-			'type'      => 'markup',
-			'direction' => 'add',
-			'value'     => 0.0,
-		);
+	$defaults = array(
+		'type'      => 'markup',
+		'direction' => 'add',
+		'value'     => 0.0,
+	);
+
+	$settings = apply_filters( 'f2000cs_price_adjust_settings', $defaults, absint( $index ) );
+
+	return is_array( $settings ) ? wp_parse_args( $settings, $defaults ) : $defaults;
+}
+
+/**
+ * Whether a stored checkbox option is on ('1', 'yes' or 'on').
+ *
+ * @param string $option Option name.
+ * @return bool
+ */
+function f2000cs_option_is_on( $option ) {
+	return in_array( get_option( $option, '0' ), array( '1', 'yes', 'on' ), true );
+}
+
+/**
+ * Whether a price rule (markup, margin or fixed amount) is saved for a slot.
+ *
+ * @param int $index Supplier slot 1+.
+ * @return bool
+ */
+function f2000cs_supplier_has_saved_price_rule( $index ) {
+	return (float) get_option( 'f2000cs_price_adjust_value_' . absint( $index ), 0 ) > 0;
+}
+
+/**
+ * Whether «update stock quantity» is saved for a slot (it takes effect only with Pro).
+ *
+ * @param int $index Supplier slot 1+.
+ * @return bool
+ */
+function f2000cs_supplier_has_saved_stock_qty( $index ) {
+	return f2000cs_option_is_on( 'f2000cs_update_stock_qty_' . absint( $index ) );
+}
+
+/**
+ * Whether the supplier's prices must be left alone on this sync.
+ *
+ * True for the «do not update prices» flag, and also when a price rule is saved
+ * but cannot be applied (free build, expired license/trial): without the rule the
+ * raw supplier price would overwrite the store's selling price.
+ *
+ * @param int        $index        Supplier slot 1+.
+ * @param array|null $price_adjust Rule that will be applied (default: resolved for the slot).
+ * @return bool
+ */
+function f2000cs_supplier_skip_price( $index, $price_adjust = null ) {
+	if ( f2000cs_option_is_on( 'f2000cs_skip_price_' . absint( $index ) ) ) {
+		return true;
 	}
 
-	return array(
-		'type'      => get_option( 'f2000cs_price_adjust_type_' . $index, 'markup' ),
-		'direction' => get_option( 'f2000cs_price_adjust_direction_' . $index, 'add' ),
-		'value'     => (float) get_option( 'f2000cs_price_adjust_value_' . $index, '0' ),
+	$price_adjust = null === $price_adjust ? f2000cs_get_price_adjust_settings( $index ) : $price_adjust;
+
+	if ( ! f2000cs_supplier_has_saved_price_rule( $index ) || (float) $price_adjust['value'] > 0 ) {
+		return false;
+	}
+
+	f2000cs_warn_pro_settings_ignored();
+
+	return true;
+}
+
+/**
+ * Whether the slot saved «update stock quantity» but quantities will not be updated
+ * (free build, expired license/trial).
+ *
+ * Writing only the stock status of a product with managed stock would then
+ * contradict its frozen quantity, so the status is left alone too.
+ *
+ * @param int       $index      Supplier slot 1+.
+ * @param bool|null $update_qty Whether quantities are updated (default: resolved for the slot).
+ * @return bool
+ */
+function f2000cs_supplier_qty_frozen( $index, $update_qty = null ) {
+	$update_qty = null === $update_qty ? f2000cs_supplier_updates_stock_qty( $index ) : (bool) $update_qty;
+
+	if ( $update_qty || ! f2000cs_supplier_has_saved_stock_qty( $index ) ) {
+		return false;
+	}
+
+	f2000cs_warn_pro_settings_ignored();
+
+	return true;
+}
+
+/**
+ * Stock updater for one supplier slot, with every per-slot rule applied.
+ *
+ * The single place that decides prices and quantities for a sync, so no entry
+ * point (cron, the update page, background events) can forget a guard.
+ *
+ * @param int         $index      Supplier slot 1+, or 0 for a URL that matches no slot (no rules).
+ * @param string      $xml_url    Feed URL.
+ * @param string|null $sku_prefix SKU prefix (default: the slot's saved one).
+ * @return \F2000CS\XML_Stock_Updater
+ */
+function f2000cs_make_stock_updater( $index, $xml_url, $sku_prefix = null ) {
+	$index      = absint( $index );
+	$sku_prefix = null === $sku_prefix ? (string) get_option( 'f2000cs_sku_prefix_' . $index, '' ) : (string) $sku_prefix;
+
+	if ( $index < 1 ) {
+		return new \F2000CS\XML_Stock_Updater( $xml_url, $sku_prefix );
+	}
+
+	$price_adjust = f2000cs_get_price_adjust_settings( $index );
+	$update_qty   = f2000cs_supplier_updates_stock_qty( $index );
+
+	return new \F2000CS\XML_Stock_Updater(
+		$xml_url,
+		$sku_prefix,
+		f2000cs_supplier_skip_price( $index, $price_adjust ),
+		$price_adjust,
+		$update_qty,
+		f2000cs_supplier_qty_frozen( $index, $update_qty )
 	);
 }
 
 /**
- * Whether quantity updates are enabled for a supplier slot (Pro only; default off).
+ * Tell the admin once a day that saved Pro rules are not applied (log + Telegram).
+ *
+ * @return void
+ */
+function f2000cs_warn_pro_settings_ignored() {
+	if ( get_transient( 'f2000cs_pro_settings_ignored_warned' ) ) {
+		return;
+	}
+
+	set_transient( 'f2000cs_pro_settings_ignored_warned', 1, DAY_IN_SECONDS );
+
+	$msg = 'Збережено Pro-налаштування (націнка або кількість), але Pro-збірка чи ліцензія неактивні. Ціни та залишки товарів із керованою кількістю не оновлюються, щоб не скинути їх до даних постачальника. Встановіть Pro-версію з акаунта Freemius.';
+	f2000cs_log( $msg, 'warning' );
+
+	if ( function_exists( 'f2000cs_send_telegram_notification' ) ) {
+		f2000cs_send_telegram_notification( '⚠️ ' . $msg );
+	}
+}
+
+/**
+ * Whether Pro-only settings are saved that need the Pro build to take effect.
+ *
+ * @return bool
+ */
+function f2000cs_has_saved_pro_config() {
+	if ( f2000cs_option_is_on( 'f2000cs_hide_variable_low_instock' ) ) {
+		return true;
+	}
+
+	$highest = f2000cs_get_highest_saved_supplier_slot();
+
+	for ( $i = 1; $i <= $highest; $i++ ) {
+		if ( f2000cs_supplier_has_saved_price_rule( $i ) || f2000cs_supplier_has_saved_stock_qty( $i ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Whether quantity updates are enabled for a supplier slot (default off).
+ *
+ * The Pro build turns it on per slot through the `f2000cs_supplier_updates_stock_qty` filter.
  *
  * @param int $index Supplier slot 1+.
  * @return bool
  */
 function f2000cs_supplier_updates_stock_qty( $index ) {
-	if ( function_exists( 'f2000cs_is_pro' ) && ! f2000cs_is_pro() ) {
-		return false;
-	}
-
-	$flag = get_option( 'f2000cs_update_stock_qty_' . absint( $index ), '0' );
-
-	return ( '1' === $flag || 'yes' === $flag || 'on' === $flag );
+	return (bool) apply_filters( 'f2000cs_supplier_updates_stock_qty', false, absint( $index ) );
 }
 
 /**
@@ -731,211 +879,15 @@ function f2000cs_get_product_ids_by_skus( array $skus ): array {
 }
 
 /**
- * Get the configured max in-stock variations threshold for variable parent products.
- *
- * @return int
- */
-function f2000cs_get_variable_low_instock_threshold() {
-	$max = absint( get_option( 'f2000cs_variable_low_instock_max', 2 ) );
-
-	return $max;
-}
-
-/**
- * Mark variable parent products as out of stock when they have too few in-stock variations.
- *
- * @return array{updated: int, examples: array<int, array{id: int, title: string, sku: string, instock_count: int}>}
- */
-function f2000cs_apply_variable_low_instock_rule() {
-	if ( function_exists( 'f2000cs_is_pro' ) && ! f2000cs_is_pro() ) {
-		return array(
-			'updated'  => 0,
-			'examples' => array(),
-		);
-	}
-
-	if ( get_option( 'f2000cs_hide_variable_low_instock', '0' ) !== '1' ) {
-		return array(
-			'updated'  => 0,
-			'examples' => array(),
-		);
-	}
-
-	global $wpdb;
-
-	$max_instock = f2000cs_get_variable_low_instock_threshold();
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live aggregate over variations; cache would be stale.
-	$parent_ids = $wpdb->get_col(
-		$wpdb->prepare(
-			"SELECT v.post_parent
-			FROM {$wpdb->posts} v
-			INNER JOIN {$wpdb->postmeta} pm ON v.ID = pm.post_id AND pm.meta_key = '_stock_status'
-			WHERE v.post_type = 'product_variation'
-			  AND v.post_status IN ('publish', 'private')
-			GROUP BY v.post_parent
-			HAVING SUM(pm.meta_value = 'instock') <= %d",
-			$max_instock
-		)
-	);
-
-	if ( empty( $parent_ids ) ) {
-		return array(
-			'updated'  => 0,
-			'examples' => array(),
-		);
-	}
-
-	$updated         = 0;
-	$lookup_sync_ids = array();
-	$transient_ids   = array();
-	$examples        = array();
-
-	foreach ( $parent_ids as $parent_id ) {
-		$parent_id = (int) $parent_id;
-
-		if ( $parent_id <= 0 ) {
-			continue;
-		}
-
-		$changed       = false;
-		$instock_count = 0;
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live variation lookup; cache would be stale.
-		$variation_ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT ID
-				FROM {$wpdb->posts}
-				WHERE post_parent = %d
-				  AND post_type = 'product_variation'
-				  AND post_status IN ('publish', 'private')",
-				$parent_id
-			)
-		);
-
-		foreach ( $variation_ids as $variation_id ) {
-			$variation_id = (int) $variation_id;
-
-			if ( get_post_meta( $variation_id, '_stock_status', true ) === 'instock' ) {
-				++$instock_count;
-			}
-		}
-
-		foreach ( $variation_ids as $variation_id ) {
-			$variation_id = (int) $variation_id;
-
-			if ( get_post_meta( $variation_id, '_stock_status', true ) === 'outofstock' ) {
-				continue;
-			}
-
-			update_post_meta( $variation_id, '_stock_status', 'outofstock' );
-			$lookup_sync_ids[] = $variation_id;
-			$changed           = true;
-		}
-
-		if ( get_post_meta( $parent_id, '_stock_status', true ) !== 'outofstock' ) {
-			update_post_meta( $parent_id, '_stock_status', 'outofstock' );
-			$lookup_sync_ids[] = $parent_id;
-			$changed           = true;
-		}
-
-		if ( $changed ) {
-			$transient_ids[] = $parent_id;
-			++$updated;
-			$examples[] = array(
-				'id'            => $parent_id,
-				'title'         => get_the_title( $parent_id ),
-				'sku'           => (string) get_post_meta( $parent_id, '_sku', true ),
-				'instock_count' => $instock_count,
-			);
-		}
-	}
-
-	f2000cs_bulk_sync_lookup_stock_status( $lookup_sync_ids, 'outofstock' );
-
-	foreach ( array_unique( $transient_ids ) as $product_id ) {
-		wc_delete_product_transients( $product_id );
-	}
-
-	return array(
-		'updated'  => $updated,
-		'examples' => $examples,
-	);
-}
-
-/**
- * Format sample products changed by the low-instock rule for logs and notifications.
- *
- * @param array $examples Product examples from f2000cs_apply_variable_low_instock_rule().
- * @param int   $total    Total number of changed products.
- * @param int   $limit    Maximum examples to include.
- * @return string
- */
-function f2000cs_format_variable_low_instock_examples( array $examples, $total, $limit = 15 ) {
-	if ( empty( $examples ) ) {
-		return '';
-	}
-
-	$lines = array();
-	$shown = array_slice( $examples, 0, $limit );
-
-	foreach ( $shown as $product ) {
-		$sku_part = ! empty( $product['sku'] ) ? ', SKU: ' . $product['sku'] : '';
-		$lines[]  = sprintf(
-			'• %s%s (варіацій в наявності: %d)',
-			$product['title'],
-			$sku_part,
-			$product['instock_count']
-		);
-	}
-
-	$message = implode( "\n", $lines );
-
-	if ( $total > count( $shown ) ) {
-		$message .= "\n... та ще " . ( $total - count( $shown ) ) . ' товарів';
-	}
-
-	return $message;
-}
-
-/**
  * Run post-processing steps after a stock update cycle completes.
  *
  * @return void
  */
 function f2000cs_after_stock_update_complete() {
-	$result  = f2000cs_apply_variable_low_instock_rule();
-	$updated = (int) ( $result['updated'] ?? 0 );
-
-	if ( $updated > 0 ) {
-		$max_instock = f2000cs_get_variable_low_instock_threshold();
-		$examples    = $result['examples'] ?? array();
-		$sample_text = f2000cs_format_variable_low_instock_examples( $examples, $updated );
-
-		$telegram_message = sprintf(
-			'Variable-товарів переведено в «Немає в наявності» (≤ %d варіацій в наявності): %d',
-			$max_instock,
-			$updated
-		);
-
-		if ( $sample_text !== '' ) {
-			$telegram_message .= "\n\nПриклади:\n" . $sample_text;
-		}
-
-		f2000cs_send_telegram_notification( $telegram_message );
-
-		$log_message = sprintf(
-			'Variable low-instock rule applied: threshold=%d, updated=%d',
-			$max_instock,
-			$updated
-		);
-
-		if ( $sample_text !== '' ) {
-			$log_message .= "\nExamples:\n" . $sample_text;
-		}
-
-		f2000cs_log( $log_message, 'info' );
-	}
+	/**
+	 * Fires once a whole stock update cycle (cron or background batch) is finished.
+	 */
+	do_action( 'f2000cs_stock_update_complete' );
 }
 
 /**
@@ -1063,31 +1015,18 @@ add_action(
 	function ( $xml_url, $sku_prefix = '' ) {
 		if ( ! empty( $xml_url ) ) {
 			f2000cs_cleanup_wc_transients();
-			// Try to detect which slot this URL belongs to, to read the skip-price flag and price adjustment.
-			$skip_price_flag = false;
-			$update_qty_flag = false;
-			$price_adjust    = array(
-				'type'      => 'markup',
-				'direction' => 'add',
-				'value'     => 0,
-			);
-			$highest         = function_exists( 'f2000cs_get_highest_saved_supplier_slot' )
-				? f2000cs_get_highest_saved_supplier_slot()
-				: 5;
+			// The slot this URL belongs to decides the price and quantity rules (0: none).
+			$slot    = 0;
+			$highest = f2000cs_get_highest_saved_supplier_slot();
+
 			for ( $i = 1; $i <= $highest; $i++ ) {
-				$cfg_url = get_option( 'f2000cs_url' . ( $i === 1 ? '' : '_' . $i ), '' );
-				if ( $cfg_url === $xml_url ) {
-					$skip_price      = get_option( 'f2000cs_skip_price_' . $i, '0' );
-					$skip_price_flag = ( $skip_price === '1' || $skip_price === 'yes' || $skip_price === 'on' );
-					$price_adjust    = f2000cs_get_price_adjust_settings( $i );
-					$update_qty_flag = function_exists( 'f2000cs_supplier_updates_stock_qty' )
-						? f2000cs_supplier_updates_stock_qty( $i )
-						: false;
+				if ( f2000cs_get_supplier_url( $i ) === $xml_url ) {
+					$slot = $i;
 					break;
 				}
 			}
 
-			$updater = new \F2000CS\XML_Stock_Updater( $xml_url, $sku_prefix, $skip_price_flag, $price_adjust, $update_qty_flag );
+			$updater = f2000cs_make_stock_updater( $slot, $xml_url, $sku_prefix );
 			$updater->update_products_stock_status();
 
 			// Only run post-processing (low-instock rule, Telegram summary) once the whole batch is done.
@@ -1265,112 +1204,3 @@ function f2000cs_delete_uploads_subdir( $dir ) {
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Uninstall cleanup.
 	rmdir( $dir );
 }
-
-/**
- * Sanitize an export filename (basename only, plugin-generated XML names).
- *
- * @param string $filename Raw filename.
- * @return string Sanitized basename or empty string when invalid.
- */
-function f2000cs_sanitize_export_filename( $filename ) {
-	$filename = basename( (string) $filename );
-
-	if ( ! preg_match( '/^(filtered|editor)-xml-[A-Za-z0-9._-]+\.xml$/', $filename ) ) {
-		return '';
-	}
-
-	return $filename;
-}
-
-/**
- * Capability-gated download URL for an export XML (admin-post proxy).
- *
- * The URL carries a server-side token (24h transient) bound to the current
- * user session instead of a nonce, so the link keeps working when WordPress
- * rotates session tokens (nonce-based links then die with «link expired»).
- *
- * @param string $filename Export basename.
- * @return string
- */
-function f2000cs_get_export_download_url( $filename ) {
-	$filename = f2000cs_sanitize_export_filename( $filename );
-	if ( '' === $filename ) {
-		return '';
-	}
-
-	$session = function_exists( 'wp_get_session_token' ) ? wp_get_session_token() : '';
-	$token   = md5( wp_hash( $filename . '|' . get_current_user_id() . '|' . $session . '|' . wp_rand() ) );
-
-	set_transient( 'f2000cs_dl_' . $token, $filename, DAY_IN_SECONDS );
-
-	return admin_url(
-		'admin-post.php?action=f2000cs_download_export&file=' . rawurlencode( $filename ) . '&token=' . $token
-	);
-}
-
-/**
- * Stream a generated export XML to an authorized admin (Pro).
- *
- * @return void
- */
-function f2000cs_handle_export_download() {
-	if ( ! current_user_can( 'manage_options' ) ) {
-		wp_die(
-			esc_html__( 'Недостатньо прав для цієї дії.', 'factorial2000-catalog-sync' ),
-			esc_html__( 'Помилка', 'factorial2000-catalog-sync' ),
-			array( 'response' => 403 )
-		);
-	}
-
-	if ( function_exists( 'f2000cs_is_pro' ) && ! f2000cs_is_pro() ) {
-		wp_die(
-			esc_html__( 'Завантаження вигрузок доступне лише у Pro версії.', 'factorial2000-catalog-sync' ),
-			esc_html__( 'Помилка', 'factorial2000-catalog-sync' ),
-			array( 'response' => 403 )
-		);
-	}
-
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Downloads are gated by a server-side token (see f2000cs_get_export_download_url).
-	$raw_file = isset( $_GET['file'] ) ? sanitize_text_field( wp_unslash( $_GET['file'] ) ) : '';
-	$filename = f2000cs_sanitize_export_filename( $raw_file );
-	if ( '' === $filename ) {
-		wp_die(
-			esc_html__( 'Невірне імʼя файлу.', 'factorial2000-catalog-sync' ),
-			esc_html__( 'Помилка', 'factorial2000-catalog-sync' ),
-			array( 'response' => 400 )
-		);
-	}
-
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Token-gated download.
-	$token = isset( $_GET['token'] ) ? sanitize_key( wp_unslash( $_GET['token'] ) ) : '';
-	if ( '' === $token || get_transient( 'f2000cs_dl_' . $token ) !== $filename ) {
-		wp_die(
-			esc_html__( 'Посилання недійсне або прострочене. Згенеруйте файл ще раз.', 'factorial2000-catalog-sync' ),
-			esc_html__( 'Помилка', 'factorial2000-catalog-sync' ),
-			array( 'response' => 403 )
-		);
-	}
-
-	$path = trailingslashit( f2000cs_ensure_exports_dir() ) . $filename;
-	if ( ! is_file( $path ) ) {
-		wp_die(
-			esc_html__( 'Файл не знайдено.', 'factorial2000-catalog-sync' ),
-			esc_html__( 'Помилка', 'factorial2000-catalog-sync' ),
-			array( 'response' => 404 )
-		);
-	}
-
-	if ( function_exists( 'nocache_headers' ) ) {
-		nocache_headers();
-	}
-
-	header( 'Content-Type: application/xml; charset=utf-8' );
-	header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-	header( 'Content-Length: ' . (string) filesize( $path ) );
-	header( 'X-Content-Type-Options: nosniff' );
-
-	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Binary download stream.
-	readfile( $path );
-	exit;
-}
-add_action( 'admin_post_f2000cs_download_export', 'f2000cs_handle_export_download' );

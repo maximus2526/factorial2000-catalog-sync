@@ -10,25 +10,34 @@
 
 	/**
 	 * Drive the chunked feed build: one AJAX request per slice until the server says it is done.
+	 *
+	 * @param {jQuery} $button Clicked button.
+	 * @param {string} mode    'start' a fresh build, 'resume' the running one, or 'force'
+	 *                         a fresh build that is published even if the feed shrank.
 	 */
-	function run($button, restart) {
+	function run($button, mode) {
 		var feed = $button.data('feed');
 		var $progress = $button.closest('p').find('.f2000cs-mp-progress');
+		var $buttons = $button.closest('p').find('.f2000cs-mp-build');
 
-		$button.prop('disabled', true);
+		$buttons.prop('disabled', true);
 		$progress.text(i18n.running || '');
 
 		$.post(cfg.ajaxUrl, {
 			action: 'f2000cs_marketplace_step',
 			nonce: cfg.nonce,
 			feed: feed,
-			restart: restart ? '1' : '0'
+			restart: mode === 'start' ? '1' : '0',
+			// Follow-up requests must never start a new build: if another process
+			// finished the one we were waiting for, the server reports its result.
+			resume: mode === 'resume' ? '1' : '0',
+			force: mode === 'force' ? '1' : '0'
 		})
 			.done(function (response) {
 				if (!response || !response.success) {
 					var message = response && response.data && response.data.message ? response.data.message : (i18n.failed || '');
 					$progress.text(message);
-					$button.prop('disabled', false);
+					$buttons.prop('disabled', false);
 					return;
 				}
 
@@ -36,14 +45,14 @@
 
 				if (data.status === 'running') {
 					$progress.text((i18n.running || '') + ' ' + (data.exported || 0) + ' ' + (i18n.offers || ''));
-					run($button, false);
+					run($button, 'resume');
 					return;
 				}
 
 				if (data.status === 'locked') {
 					$progress.text(i18n.waiting || '');
 					window.setTimeout(function () {
-						run($button, false);
+						run($button, 'resume');
 					}, 3000);
 					return;
 				}
@@ -57,18 +66,34 @@
 				}
 
 				$progress.text(data.message || (i18n.failed || ''));
-				$button.prop('disabled', false);
+
+				// A shrunken feed was held back: reload to show the «publish anyway» button.
+				if (data.drop) {
+					window.setTimeout(function () {
+						window.location.reload();
+					}, 2500);
+					return;
+				}
+
+				$buttons.prop('disabled', false);
 			})
 			.fail(function () {
 				$progress.text(i18n.failed || '');
-				$button.prop('disabled', false);
+				$buttons.prop('disabled', false);
 			});
 	}
 
 	$(document).on('click', '.f2000cs-mp-build', function () {
 		var $button = $(this);
+		var mode = 'start';
 
-		run($button, String($button.data('resume')) !== '1');
+		if (String($button.data('force')) === '1') {
+			mode = 'force';
+		} else if (String($button.data('resume')) === '1') {
+			mode = 'resume';
+		}
+
+		run($button, mode);
 	});
 
 	// Preset selects: show the free input only for the "custom" choice.

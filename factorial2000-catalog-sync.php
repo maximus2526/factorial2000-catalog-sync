@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Factorial2000 Catalog Sync for Prom.ua
- * Description:       Імпорт та синхронізація товарів WooCommerce з XML (YML/Prom.ua). Оновлення стоку й цін за розкладом, імпорт простих і варіативних товарів з фото/атрибутами/категоріями, оновлення окремих полів (Pro), редактор вигрузок XML (Pro), обробка зображень (Pro), Telegram-сповіщення. Free назавжди + безкоштовний Pro-тріал 14 днів без карти. Підтримка кількох постачальників, SKU-префіксів, конвертації валют. Містить автоматизовані PHPUnit-тести.
+ * Description:       Імпорт і синхронізація товарів WooCommerce з XML постачальників (YML/Prom.ua): оновлення наявності й цін за розкладом, імпорт простих і варіативних товарів з фото, атрибутами й категоріями, SKU-префікси, конвертація валют, Telegram-сповіщення. Pro: кілька постачальників, часті оновлення, коригування цін і кількість, оновлення окремих полів, обробка зображень, редактор вигрузок XML, вигрузка товарів сайту на Prom.ua з автооновленням. Free назавжди + Pro-тріал 14 днів без карти.
  * Version:           0.7.0
  * Requires at least: 5.8
  * Requires PHP:      7.4
@@ -12,21 +12,35 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       factorial2000-catalog-sync
  *
- * @fs_premium_only /includes/class-image-processor.php, /includes/class-xml-editor.php, /includes/class-xml-export-filter.php, /includes/trait-xml-rebuilder.php, /includes/parsers/class-fields-updater.php, /admin/xml-editor.php, /admin/images-settings.php, /admin/page-export.php, /assets/js/admin-xml-editor.js, /includes/marketplace/, /admin/page-marketplaces.php, /assets/js/admin-marketplaces.js
+ * @fs_premium_only /includes/pro-features.php, /admin/pro-settings.php, /includes/class-image-processor.php, /includes/class-xml-editor.php, /includes/class-xml-export-filter.php, /includes/trait-xml-rebuilder.php, /includes/parsers/class-fields-updater.php, /admin/xml-editor.php, /admin/images-settings.php, /admin/page-export.php, /assets/js/admin-xml-editor.js, /includes/marketplace/, /admin/page-marketplaces.php, /assets/js/admin-marketplaces.js
  */
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Freemius free/premium conflict resolution.
- * If another copy already defined the helper, register this file as the premium basename.
+ * If another copy already defined the helper, register this file's basename with it.
+ *
+ * Which build this file belongs to is read from the files on disk (premium-only
+ * files exist only in the Pro build), so it stays correct in the wp.org copy that
+ * is not run through the Freemius processor.
  *
  * @see https://freemius.com/help/documentation/wordpress-sdk/
  */
 if ( function_exists( 'f2000cs_fs' ) ) {
 	$f2000cs_fs = f2000cs_fs();
 	if ( $f2000cs_fs ) {
-		$f2000cs_fs->set_basename( true, __FILE__ );
+		$f2000cs_fs->set_basename( is_file( __DIR__ . '/includes/class-xml-editor.php' ), __FILE__ );
+	}
+
+	/*
+	 * The other build is running, so this file's own activation hook (below) is
+	 * never registered. Freemius deactivates the other build on activation, which
+	 * clears the stock cron through its deactivation hook — schedule it again.
+	 * Registered after set_basename(), so it runs after the Freemius hook.
+	 */
+	if ( function_exists( 'f2000cs_activate' ) ) {
+		register_activation_hook( __FILE__, 'f2000cs_activate' );
 	}
 } else {
 
@@ -51,6 +65,8 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 	 * placeholders from admin/premium-upsell.php instead.
 	 */
 	if ( f2000cs_has_premium_code() ) {
+		require_once F2000CS_PATH . 'includes/pro-features.php';
+		require_once F2000CS_PATH . 'admin/pro-settings.php';
 		require_once F2000CS_PATH . 'includes/parsers/class-fields-updater.php';
 		require_once F2000CS_PATH . 'includes/trait-xml-rebuilder.php';
 		require_once F2000CS_PATH . 'includes/class-xml-export-filter.php';
@@ -94,7 +110,7 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 	}
 
 	register_activation_hook( __FILE__, 'f2000cs_activate' );
-	register_deactivation_hook( __FILE__, array( 'F2000CS\Cron_Job', 'deactivate' ) );
+	register_deactivation_hook( __FILE__, 'f2000cs_deactivate' );
 
 	// Early so cron/front can see migrated SKU prefixes before first admin visit.
 	add_action( 'plugins_loaded', 'f2000cs_maybe_run_migrations', 5 );
@@ -111,6 +127,7 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 		}
 
 		add_action( \F2000CS\Cron_Job::CRON_HOOK, array( 'F2000CS\Cron_Job', 'update_stock' ) );
+		add_action( 'init', array( 'F2000CS\Cron_Job', 'sync_schedule' ) );
 
 		if ( class_exists( 'F2000CS\Frontend_Display' ) ) {
 			\F2000CS\Frontend_Display::init();
@@ -147,7 +164,20 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 
 		f2000cs_maybe_run_migrations();
 
+		// Deactivation cleared the marketplace events; bring back the saved schedules.
+		if ( class_exists( 'F2000CS\Marketplace_Job' ) ) {
+			\F2000CS\Marketplace_Job::ensure_schedules();
+		}
+
 		set_transient( 'f2000cs_activated', true, 60 );
+	}
+
+	/**
+	 * Plugin deactivation hook: stop the stock and marketplace cron events.
+	 */
+	function f2000cs_deactivate() {
+		\F2000CS\Cron_Job::deactivate();
+		f2000cs_clear_marketplace_cron();
 	}
 
 	/**

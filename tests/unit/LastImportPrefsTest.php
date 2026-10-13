@@ -1,6 +1,6 @@
 <?php
 /**
- * Last import URL / SKU prefix memory.
+ * Last import SKU prefix memory (the XML URL is not remembered).
  *
  * @package Factorial2000_Catalog_Sync
  */
@@ -27,53 +27,64 @@ final class F2000CS_Unit_LastImportPrefsTest extends F2000CS_Unit_TestCase {
 	 * @return void
 	 */
 	public function test_get_last_import_prefs_empty(): void {
-		$prefs = f2000cs_get_last_import_prefs();
-
-		$this->assertSame( '', $prefs['xml_url'] );
-		$this->assertSame( '', $prefs['sku_prefix'] );
+		$this->assertSame( array( 'sku_prefix' => '' ), f2000cs_get_last_import_prefs() );
 	}
 
 	/**
-	 * Save and read back a valid URL and prefix.
+	 * Save and read back the prefix; an empty prefix keeps the stored one.
 	 *
 	 * @return void
 	 */
-	public function test_save_last_import_prefs(): void {
-		f2000cs_save_last_import_prefs( 'https://example.com/feed.xml', 'CS_' );
+	public function test_save_last_import_prefix(): void {
+		f2000cs_save_last_import_prefs( 'CS_' );
+		$this->assertSame( 'CS_', f2000cs_get_last_import_prefs()['sku_prefix'] );
 
-		$prefs = f2000cs_get_last_import_prefs();
+		f2000cs_save_last_import_prefs( '' );
+		$this->assertSame( 'CS_', f2000cs_get_last_import_prefs()['sku_prefix'] );
 
-		$this->assertSame( 'https://example.com/feed.xml', $prefs['xml_url'] );
-		$this->assertSame( 'CS_', $prefs['sku_prefix'] );
+		f2000cs_save_last_import_prefs( 'NEW_' );
+		$this->assertSame( 'NEW_', f2000cs_get_last_import_prefs()['sku_prefix'] );
 	}
 
 	/**
-	 * Empty URL on a later save must not wipe a remembered feed.
+	 * The import request never stores the URL, and a URL saved by an older version is dropped.
 	 *
 	 * @return void
 	 */
-	public function test_save_keeps_url_when_new_url_empty(): void {
-		f2000cs_save_last_import_prefs( 'https://example.com/feed.xml', 'CS_' );
-		f2000cs_save_last_import_prefs( '', 'NEW_' );
+	public function test_url_is_not_remembered(): void {
+		update_user_meta(
+			1,
+			F2000CS_LAST_IMPORT_META,
+			array(
+				'xml_url'    => 'https://example.com/old.xml',
+				'sku_prefix' => 'CS_',
+			)
+		);
 
-		$prefs = f2000cs_get_last_import_prefs();
+		$_POST = array(
+			'import_source'  => 'url',
+			'import_xml_url' => 'https://example.com/feed.xml',
+			'sku_prefix'     => 'CS_',
+		);
+		f2000cs_remember_last_import_from_request();
+		$_POST = array();
 
-		$this->assertSame( 'https://example.com/feed.xml', $prefs['xml_url'] );
-		$this->assertSame( 'NEW_', $prefs['sku_prefix'] );
+		$this->assertSame( array( 'sku_prefix' => 'CS_' ), get_user_meta( 1, F2000CS_LAST_IMPORT_META, true ) );
+		$this->assertArrayNotHasKey( 'xml_url', f2000cs_get_last_import_prefs() );
 	}
 
 	/**
-	 * javascript: URLs are rejected.
+	 * The import page renders the URL field empty.
 	 *
 	 * @return void
 	 */
-	public function test_rejects_non_http_url(): void {
-		f2000cs_save_last_import_prefs( 'javascript:alert(1)', 'CS_' );
+	public function test_import_page_url_field_is_empty(): void {
+		f2000cs_save_last_import_prefs( 'CS_' );
 
-		$prefs = f2000cs_get_last_import_prefs();
+		$html = $this->capture( 'f2000cs_import_page' );
 
-		$this->assertSame( '', $prefs['xml_url'] );
-		$this->assertSame( 'CS_', $prefs['sku_prefix'] );
+		$this->assertMatchesRegularExpression( '/id="import_xml_url"[^>]*value=""/', $html );
+		$this->assertStringContainsString( 'value="CS_"', $html, 'The SKU prefix is still prefilled' );
 	}
 
 	/**
@@ -82,14 +93,12 @@ final class F2000CS_Unit_LastImportPrefsTest extends F2000CS_Unit_TestCase {
 	 * @return void
 	 */
 	public function test_uninstall_deletes_last_import_meta(): void {
-		f2000cs_save_last_import_prefs( 'https://example.com/feed.xml', 'CS_' );
-		$this->assertNotEmpty( f2000cs_get_last_import_prefs()['xml_url'] );
+		f2000cs_save_last_import_prefs( 'CS_' );
+		$this->assertSame( 'CS_', f2000cs_get_last_import_prefs()['sku_prefix'] );
 
 		require_once dirname( __DIR__, 2 ) . '/includes/uninstall-cleanup.php';
 		f2000cs_uninstall_cleanup();
 
-		$prefs = f2000cs_get_last_import_prefs();
-		$this->assertSame( '', $prefs['xml_url'] );
-		$this->assertSame( '', $prefs['sku_prefix'] );
+		$this->assertSame( '', f2000cs_get_last_import_prefs()['sku_prefix'] );
 	}
 }

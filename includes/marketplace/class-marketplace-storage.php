@@ -24,8 +24,7 @@ class Marketplace_Storage {
 	 * @return string Absolute path without trailing slash.
 	 */
 	public static function dir(): string {
-		$upload = wp_upload_dir();
-		$dir    = untrailingslashit( (string) $upload['basedir'] ) . '/f2000cs-feeds';
+		$dir = self::base_dir();
 
 		if ( ! is_dir( $dir ) ) {
 			wp_mkdir_p( $dir );
@@ -39,6 +38,17 @@ class Marketplace_Storage {
 		}
 
 		return $dir;
+	}
+
+	/**
+	 * Directory under uploads, without creating it.
+	 *
+	 * @return string Absolute path without trailing slash.
+	 */
+	public static function base_dir(): string {
+		$upload = wp_upload_dir();
+
+		return untrailingslashit( (string) $upload['basedir'] ) . '/f2000cs-feeds';
 	}
 
 	/**
@@ -98,7 +108,8 @@ class Marketplace_Storage {
 	 * @return string
 	 */
 	public static function build_path( Marketplace_Feed $feed ): string {
-		return self::dir() . '/.' . $feed->id() . '-build.tmp';
+		// Lives in the public folder, so the name carries the secret token too.
+		return self::dir() . '/.' . $feed->id() . '-' . self::token( $feed->id() ) . '-build.tmp';
 	}
 
 	/**

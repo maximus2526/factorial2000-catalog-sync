@@ -90,6 +90,13 @@ final class F2000CS_Test_State {
 	public static $menu_pages    = array();
 	public static $submenu_pages = array();
 	public static $registered_settings = array();
+
+	/**
+	 * register_setting() args by option name (sanitize callbacks).
+	 *
+	 * @var array<string, array>
+	 */
+	public static $setting_args = array();
 	public static $settings_sections   = array();
 	public static $settings_fields     = array();
 	public static $enqueued_styles     = array();
@@ -189,6 +196,7 @@ final class F2000CS_Test_State {
 		self::$menu_pages         = array();
 		self::$submenu_pages      = array();
 		self::$registered_settings = array();
+		self::$setting_args        = array();
 		self::$settings_sections   = array();
 		self::$settings_fields     = array();
 		self::$enqueued_styles     = array();
@@ -668,12 +676,49 @@ if ( ! function_exists( 'wp_schedule_event' ) ) {
 	 */
 	function wp_schedule_event( $timestamp, $recurrence, $hook, $args = array() ) {
 		F2000CS_Test_State::$cron_events[] = array(
-			'time' => $timestamp,
-			'hook' => $hook,
-			'args' => $args,
+			'time'     => $timestamp,
+			'hook'     => $hook,
+			'args'     => $args,
+			'schedule' => $recurrence,
 		);
 
 		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_get_schedule' ) ) {
+	/**
+	 * @param string $hook Hook name.
+	 * @param array  $args Args.
+	 * @return string|false
+	 */
+	function wp_get_schedule( $hook, $args = array() ) {
+		foreach ( F2000CS_Test_State::$cron_events as $event ) {
+			if ( $event['hook'] === $hook && $args === $event['args'] ) {
+				return $event['schedule'] ?? false;
+			}
+		}
+
+		return false;
+	}
+}
+
+if ( ! function_exists( 'wp_unschedule_hook' ) ) {
+	/**
+	 * @param string $hook Hook name.
+	 * @return int Number of removed events.
+	 */
+	function wp_unschedule_hook( $hook ) {
+		$cleared = 0;
+
+		foreach ( F2000CS_Test_State::$cron_events as $key => $event ) {
+			if ( $event['hook'] === $hook ) {
+				unset( F2000CS_Test_State::$cron_events[ $key ] );
+				++$cleared;
+			}
+		}
+
+		return $cleared;
 	}
 }
 
@@ -1821,6 +1866,7 @@ if ( ! function_exists( 'add_submenu_page' ) ) {
 if ( ! function_exists( 'register_setting' ) ) {
 	function register_setting( $group, $name, $args = array() ) {
 		F2000CS_Test_State::$registered_settings[ $group ][] = $name;
+		F2000CS_Test_State::$setting_args[ $name ]           = (array) $args;
 	}
 }
 
@@ -2158,5 +2204,37 @@ if ( ! function_exists( 'get_woocommerce_currency' ) ) {
 	 */
 	function get_woocommerce_currency() {
 		return 'UAH';
+	}
+}
+
+if ( ! function_exists( 'strip_shortcodes' ) ) {
+	/**
+	 * Core-like stub: removes the registered shortcodes only ("gallery" and "caption" here).
+	 *
+	 * @param string $content Content.
+	 * @return string
+	 */
+	function strip_shortcodes( $content ) {
+		return (string) preg_replace( '/\[(gallery|caption)\b[^\]]*\](?:.*?\[\/\1\])?/su', '', (string) $content );
+	}
+}
+
+if ( ! function_exists( 'wpautop' ) ) {
+	/**
+	 * Simplified core wpautop(): blank lines split paragraphs, single newlines become <br />.
+	 *
+	 * @param string $text Text.
+	 * @return string
+	 */
+	function wpautop( $text ) {
+		$out = '';
+
+		foreach ( preg_split( '/\R\s*\R/u', trim( (string) $text ) ) as $paragraph ) {
+			if ( '' !== trim( $paragraph ) ) {
+				$out .= '<p>' . preg_replace( '/\R/u', "<br />\n", trim( $paragraph ) ) . "</p>\n";
+			}
+		}
+
+		return $out;
 	}
 }

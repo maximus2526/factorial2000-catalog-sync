@@ -118,6 +118,71 @@ final class F2000CS_Unit_ImportProductsModesTest extends F2000CS_Unit_TestCase {
 		$this->assertSame( array( 'S1', 'S2', 'L1' ), $parser->simple_skus );
 	}
 
+	/**
+	 * Catalog with out-of-stock offers for the «in stock only» tests.
+	 *
+	 * @return string Path to the fixture.
+	 */
+	private function stock_fixture(): string {
+		$xml = '<?xml version="1.0"?>
+			<yml_catalog><shop><offers>
+				<offer id="S1" available="true"><name>In stock</name><price>10</price></offer>
+				<offer id="S2" available="false"><name>Out of stock</name><price>20</price></offer>
+				<offer id="S3"><name>No flag, zero qty</name><price>25</price><quantity>0</quantity></offer>
+				<offer id="L1" available="false" group_id="LONE"><name>Lone out</name><price>30</price></offer>
+				<offer id="V1" available="true" group_id="G1"><name>Var M</name><price>40</price><param name="Розмір">M</param></offer>
+				<offer id="V2" available="false" group_id="G1"><name>Var L</name><price>45</price><param name="Розмір">L</param></offer>
+				<offer id="V3" available="true" group_id="G1"><name>Var XL</name><price>45</price><param name="Розмір">XL</param></offer>
+				<offer id="W1" available="false" group_id="G2"><name>Gone A</name><price>50</price><param name="Колір">Чорний</param></offer>
+				<offer id="W2" available="false" group_id="G2"><name>Gone B</name><price>55</price><param name="Колір">Білий</param></offer>
+				<offer id="K1" available="true" group_id="G3"><name>One left A</name><price>60</price><param name="Колір">Чорний</param></offer>
+				<offer id="K2" available="false" group_id="G3"><name>One left B</name><price>60</price><param name="Колір">Білий</param></offer>
+			</offers></shop></yml_catalog>';
+
+		$path = tempnam( sys_get_temp_dir(), 'f2000cs_stock_' );
+		file_put_contents( $path, $xml );
+
+		return $path;
+	}
+
+	public function test_in_stock_only_skips_out_of_stock_simples(): void {
+		$path = $this->stock_fixture();
+		set_transient( 'f2000cs_import_variations_temp', '0', HOUR_IN_SECONDS );
+
+		$parser = new F2000CS_ImportSpyParser( $path, false, 'P_', false, false, true );
+		$result = $parser->import_products( 0, 100 );
+		unlink( $path );
+
+		$this->assertSame( array( 'S1' ), $parser->simple_skus, 'Out-of-stock simples and lone offers are skipped' );
+		$this->assertSame( 1, $result['total'], 'Total counts only what will be imported, so resume offsets stay right' );
+		$this->assertTrue( $result['finished'] );
+	}
+
+	public function test_in_stock_only_keeps_only_in_stock_variations(): void {
+		$path = $this->stock_fixture();
+		set_transient( 'f2000cs_import_variations_temp', '1', HOUR_IN_SECONDS );
+
+		$parser = new F2000CS_ImportSpyParser( $path, false, 'P_', false, false, true );
+		$result = $parser->import_products( 0, 100 );
+		unlink( $path );
+
+		$this->assertSame( array( 'G1', 'G3' ), $parser->variable_groups, 'A group with nothing in stock is skipped' );
+		$this->assertSame( array( 'V1', 'V3' ), $parser->variation_skus['G1'] );
+		$this->assertSame( array( 'K1' ), $parser->variation_skus['G3'], 'A group with one size left stays a variable product' );
+		$this->assertSame( 2, $result['total'] );
+	}
+
+	public function test_without_the_option_out_of_stock_offers_are_imported(): void {
+		$path = $this->stock_fixture();
+		set_transient( 'f2000cs_import_variations_temp', '0', HOUR_IN_SECONDS );
+
+		$parser = new F2000CS_ImportSpyParser( $path, false, 'P_' );
+		$parser->import_products( 0, 100 );
+		unlink( $path );
+
+		$this->assertSame( array( 'S1', 'S2', 'S3', 'L1' ), $parser->simple_skus );
+	}
+
 	public function test_variable_mode_chunking_uses_group_count_as_total(): void {
 		$parser = $this->parser( true );
 

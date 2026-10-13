@@ -28,7 +28,50 @@ class Marketplace_Job {
 	const PAGE_SIZE  = 20;
 	const CRON_HOOK  = 'f2000cs_marketplace_build';
 	const CONT_HOOK  = 'f2000cs_marketplace_continue';
+	const SYNC_HOOK  = 'f2000cs_marketplace_after_sync';
 	const MAX_REPORT = 50;
+
+	/**
+	 * A new feed with fewer offers than this share of the last published one is
+	 * not published: a broken supplier feed must not wipe the catalog on the
+	 * marketplace. The admin can publish it anyway (accept_drop_option()).
+	 */
+	const MIN_RATIO = 0.5;
+
+	/**
+	 * How long «the shrink is expected» stays valid for the next build.
+	 */
+	const ACCEPT_DROP_TTL = 3600;
+
+	/**
+	 * Format of the stored build state. A state of another format (left by an
+	 * older version mid-build, e.g. with a row offset instead of an id cursor)
+	 * is restarted instead of being continued.
+	 */
+	const STATE_VERSION = 2;
+
+	/**
+	 * A running build older than this is treated as dead and may be restarted.
+	 */
+	const STATE_MAX_AGE = 21600;
+
+	/**
+	 * Without Pro the feed is no longer rebuilt; after this many seconds the
+	 * published file is withdrawn so the marketplace stops importing frozen
+	 * prices and stock. The schedule stays, so a renewed license resumes it.
+	 */
+	const STALE_AFTER = 259200;
+
+	/**
+	 * Name of a per-feed option: f2000cs_mp_<what>_<feed id>.
+	 *
+	 * @param string $what Kind of option.
+	 * @param string $id   Feed id.
+	 * @return string
+	 */
+	private static function option_key( string $what, string $id ): string {
+		return 'f2000cs_mp_' . $what . '_' . preg_replace( '/[^a-z0-9_]/', '', strtolower( $id ) );
+	}
 
 	/**
 	 * Option holding the running build.
@@ -37,7 +80,7 @@ class Marketplace_Job {
 	 * @return string
 	 */
 	public static function state_option( string $id ): string {
-		return 'f2000cs_mp_state_' . preg_replace( '/[^a-z0-9_]/', '', strtolower( $id ) );
+		return self::option_key( 'state', $id );
 	}
 
 	/**
@@ -47,7 +90,37 @@ class Marketplace_Job {
 	 * @return string
 	 */
 	public static function result_option( string $id ): string {
-		return 'f2000cs_mp_result_' . preg_replace( '/[^a-z0-9_]/', '', strtolower( $id ) );
+		return self::option_key( 'result', $id );
+	}
+
+	/**
+	 * Option holding the offer count of the last published feed.
+	 *
+	 * @param string $id Feed id.
+	 * @return string
+	 */
+	public static function published_option( string $id ): string {
+		return self::option_key( 'published', $id );
+	}
+
+	/**
+	 * Option allowing the next build to be published even if it shrank a lot.
+	 *
+	 * @param string $id Feed id.
+	 * @return string
+	 */
+	public static function accept_drop_option( string $id ): string {
+		return self::option_key( 'accept_drop', $id );
+	}
+
+	/**
+	 * Option flagging that data changed while a build was running.
+	 *
+	 * @param string $id Feed id.
+	 * @return string
+	 */
+	public static function dirty_option( string $id ): string {
+		return self::option_key( 'dirty', $id );
 	}
 
 	/**
@@ -83,24 +156,30 @@ class Marketplace_Job {
 	public static function start( Marketplace_Feed $feed ): array {
 		$tmp = Marketplace_Storage::build_path( $feed );
 
-		if ( file_exists( $tmp ) ) {
-			wp_delete_file( $tmp );
+		// Also the guessable working file of 0.7.0 builds before the token was added.
+		foreach ( array( $tmp, Marketplace_Storage::dir() . '/.' . $feed->id() . '-build.tmp' ) as $old ) {
+			if ( file_exists( $old ) ) {
+				wp_delete_file( $old );
+			}
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Working file of the build, created empty.
 		file_put_contents( $tmp, '' );
 
 		$state = array(
+			'version'  => self::STATE_VERSION,
 			'phase'    => 0,
 			'offset'   => 0,
 			'tree'     => ( new Marketplace_Category_Tree() )->to_array(),
 			'exported' => 0,
 			'skipped'  => 0,
 			'excluded' => array(),
+			'reasons'  => array(),
 			'started'  => time(),
 		);
 
 		update_option( self::state_option( $feed->id() ), $state, false );
+		delete_option( self::dirty_option( $feed->id() ) );
 
 		return $state;
 	}
@@ -112,9 +191,12 @@ class Marketplace_Job {
 	 * @param int                          $budget  Seconds this call may spend.
 	 * @param Marketplace_Unit_Source|null $source  Unit source (WooCommerce by default).
 	 * @param bool                         $restart Start from scratch.
+	 * @param bool                         $resume_only Only continue a running build: when none is
+	 *                                                  left (another process finished it), report the
+	 *                                                  last result instead of starting a new one.
 	 * @return array<string,mixed> Progress: status (running|done|error|locked), counters, message.
 	 */
-	public static function step( string $id, int $budget = 15, $source = null, bool $restart = false ): array {
+	public static function step( string $id, int $budget = 15, $source = null, bool $restart = false, bool $resume_only = false ): array {
 		$feed = Marketplace_Registry::get( $id );
 
 		if ( ! $feed ) {
@@ -124,23 +206,31 @@ class Marketplace_Job {
 			);
 		}
 
-		$lock = 'f2000cs_mp_lock_' . $id;
-
-		if ( get_transient( $lock ) ) {
+		if ( ! self::acquire_lock( $id ) ) {
 			return array(
 				'status'  => 'locked',
 				'message' => __( 'Вигрузка вже формується.', 'factorial2000-catalog-sync' ),
 			) + self::progress( self::state( $id ) );
 		}
 
-		set_transient( $lock, 1, self::LOCK_TTL );
-
 		try {
 			$settings = Marketplace_Registry::settings( $id );
-			$source   = $source ? $source : new Marketplace_WC_Source( $settings );
 			$state    = self::state( $id );
 
-			if ( $restart || ! $state ) {
+			if ( $resume_only && ! $restart && ! $state ) {
+				self::release_lock( $id );
+
+				$last = self::last_result( $id );
+
+				return $last ? $last : array(
+					'status'  => 'error',
+					'message' => __( 'Генерацію не знайдено — запустіть її ще раз.', 'factorial2000-catalog-sync' ),
+				);
+			}
+
+			$source = $source ? $source : new Marketplace_WC_Source( $settings );
+
+			if ( $restart || ! $state || self::STATE_VERSION !== (int) ( $state['version'] ?? 0 ) ) {
 				$state = self::start( $feed );
 			}
 
@@ -155,6 +245,7 @@ class Marketplace_Job {
 
 			$deadline = microtime( true ) + max( 1, $budget );
 			$done     = false;
+			$touched  = time();
 
 			while ( microtime( true ) < $deadline ) {
 				$phase = $phases[ (int) $state['phase'] ] ?? null;
@@ -162,6 +253,12 @@ class Marketplace_Job {
 				if ( null === $phase ) {
 					$done = true;
 					break;
+				}
+
+				// A long step must not let the lock expire under a running build.
+				if ( time() - $touched > self::LOCK_TTL / 3 ) {
+					self::touch_lock( $id );
+					$touched = time();
 				}
 
 				$page = $source->fetch( $phase, (int) $state['offset'], self::PAGE_SIZE );
@@ -175,6 +272,7 @@ class Marketplace_Job {
 
 					$state['exported'] += (int) $res['exported'];
 					$state['skipped']  += (int) $res['skipped'];
+					$state['reasons']   = Marketplace_Feed::merge_reasons( (array) $state['reasons'], (array) ( $res['reasons'] ?? array() ) );
 
 					foreach ( $res['excluded'] as $sku ) {
 						if ( count( $state['excluded'] ) < self::MAX_REPORT ) {
@@ -183,7 +281,9 @@ class Marketplace_Job {
 					}
 				}
 
-				$state['offset'] += (int) $page['consumed'];
+				// A cursor (last id seen), not a row offset: it survives products
+				// appearing or disappearing between steps.
+				$state['offset'] = (int) $page['next'];
 
 				if ( ! empty( $page['done'] ) ) {
 					++$state['phase'];
@@ -198,17 +298,23 @@ class Marketplace_Job {
 			if ( $done ) {
 				$result = self::finalize( $feed, $settings, $tree, $state );
 				delete_option( self::state_option( $id ) );
-				delete_transient( $lock );
+				self::release_lock( $id );
+
+				// Data changed while this build ran: queue one more, it starts fresh.
+				if ( get_option( self::dirty_option( $id ) ) && ! wp_next_scheduled( self::SYNC_HOOK, array( $id ) ) ) {
+					wp_schedule_single_event( time() + 15, self::SYNC_HOOK, array( $id ) );
+				}
 
 				return $result;
 			}
 
 			update_option( self::state_option( $id ), $state, false );
-			delete_transient( $lock );
+			self::release_lock( $id );
 
 			return array( 'status' => 'running' ) + self::progress( $state );
 		} catch ( \Throwable $e ) {
-			delete_transient( $lock );
+			self::release_lock( $id );
+			delete_option( self::accept_drop_option( $id ) );
 
 			$result = array(
 				'status'   => 'error',
@@ -242,6 +348,150 @@ class Marketplace_Job {
 		} while ( 'running' === $result['status'] && time() < $deadline );
 
 		return $result;
+	}
+
+	// ------------------------------------------------------------------
+	// Lock
+	// ------------------------------------------------------------------
+
+	/**
+	 * Name of the lock row.
+	 *
+	 * @param string $id Feed id.
+	 * @return string
+	 */
+	private static function lock_name( string $id ): string {
+		return self::option_key( 'lock', $id );
+	}
+
+	/**
+	 * Lock values held by this request (feed id => value), so it only ever
+	 * extends or releases its own lock, never one taken over by another request.
+	 *
+	 * @var array<string,string>
+	 */
+	private static $held_locks = array();
+
+	/**
+	 * Whether the lock can live in its own options row (a real database).
+	 *
+	 * An INSERT IGNORE is atomic, unlike get_transient() + set_transient(), which
+	 * two requests can both pass at once. Without a real wpdb (unit tests) the
+	 * transient is used.
+	 *
+	 * @return bool
+	 */
+	private static function db_lock(): bool {
+		global $wpdb;
+
+		return class_exists( '\wpdb' ) && $wpdb instanceof \wpdb;
+	}
+
+	/**
+	 * Take the build lock; a lock older than LOCK_TTL is taken over.
+	 *
+	 * @param string $id Feed id.
+	 * @return bool Whether this request now holds the lock.
+	 */
+	private static function acquire_lock( string $id ): bool {
+		$name = self::lock_name( $id );
+
+		if ( ! self::db_lock() ) {
+			if ( get_transient( $name ) ) {
+				return false;
+			}
+
+			set_transient( $name, 1, self::LOCK_TTL );
+
+			return true;
+		}
+
+		global $wpdb;
+
+		$value = self::new_lock_value();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic lock; must bypass the options cache.
+		$taken = (bool) $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'no')", $name, $value ) );
+
+		if ( ! $taken ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- See above.
+			$current = (string) $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $name ) );
+
+			if ( '' !== $current && time() - (int) $current <= self::LOCK_TTL ) {
+				return false;
+			}
+
+			// A dead request left the lock behind: take it over, but only if nobody else did meanwhile.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- See above.
+			$taken = (bool) $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s", $value, $name, $current ) );
+		}
+
+		if ( $taken ) {
+			self::$held_locks[ $id ] = $value;
+		}
+
+		return $taken;
+	}
+
+	/**
+	 * Lock value: the time it was taken or extended (read back as an int) plus a token of this request.
+	 *
+	 * @return string
+	 */
+	private static function new_lock_value(): string {
+		return time() . ':' . wp_generate_password( 12, false, false );
+	}
+
+	/**
+	 * Extend the lock while the build is still working.
+	 *
+	 * @param string $id Feed id.
+	 * @return void
+	 */
+	private static function touch_lock( string $id ): void {
+		$name = self::lock_name( $id );
+
+		if ( ! self::db_lock() ) {
+			set_transient( $name, 1, self::LOCK_TTL );
+
+			return;
+		}
+
+		global $wpdb;
+
+		$held  = self::$held_locks[ $id ] ?? '';
+		$value = self::new_lock_value();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- See acquire_lock().
+		if ( '' !== $held && $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s", $value, $name, $held ) ) ) {
+			self::$held_locks[ $id ] = $value;
+		}
+	}
+
+	/**
+	 * Release the lock.
+	 *
+	 * @param string $id Feed id.
+	 * @return void
+	 */
+	private static function release_lock( string $id ): void {
+		$name = self::lock_name( $id );
+
+		if ( ! self::db_lock() ) {
+			delete_transient( $name );
+
+			return;
+		}
+
+		global $wpdb;
+
+		$held = self::$held_locks[ $id ] ?? '';
+		unset( self::$held_locks[ $id ] );
+
+		if ( '' !== $held ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- See acquire_lock().
+			$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s", $name, $held ) );
+		}
 	}
 
 	/**
@@ -280,13 +530,40 @@ class Marketplace_Job {
 			'skipped'    => (int) $state['skipped'],
 			'categories' => $tree->count(),
 			'excluded'   => array_values( (array) $state['excluded'] ),
+			'reasons'    => (array) ( $state['reasons'] ?? array() ),
 		);
+
+		// The admin's «the shrink is expected» covers this one build only, and only shortly after the click.
+		$accepted_at = (int) get_option( self::accept_drop_option( $id ), 0 );
+		$accepted    = $accepted_at > 0 && time() - $accepted_at <= self::ACCEPT_DROP_TTL;
+		delete_option( self::accept_drop_option( $id ) );
 
 		if ( $result['exported'] < 1 ) {
 			$result['status']  = 'error';
 			$result['message'] = __( 'У вигрузці немає жодного товару — попередній файл залишено без змін. Перевірте, що є опубліковані товари з ціною, фото та категорією.', 'factorial2000-catalog-sync' );
 			wp_delete_file( $tmp );
 			update_option( self::result_option( $id ), $result, false );
+
+			return $result;
+		}
+
+		$previous = (int) get_option( self::published_option( $id ), 0 );
+
+		if ( ! $accepted && $previous > 0 && $result['exported'] < $previous * self::MIN_RATIO ) {
+			$result['status']  = 'error';
+			$result['drop']    = true;
+			$result['message'] = sprintf(
+				/* translators: 1: new offer count, 2: previous offer count */
+				__( 'У новій вигрузці лише %1$d товарів проти %2$d у попередній — схоже на збій даних. Файл не оновлено, Prom бачить попередню версію. Якщо скорочення очікуване, натисніть «Скорочення очікуване — опублікувати».', 'factorial2000-catalog-sync' ),
+				$result['exported'],
+				$previous
+			);
+			wp_delete_file( $tmp );
+			update_option( self::result_option( $id ), $result, false );
+
+			if ( function_exists( 'f2000cs_log' ) ) {
+				f2000cs_log( 'Marketplace feed "' . $id . '": ' . $result['message'], 'warning' );
+			}
 
 			return $result;
 		}
@@ -320,6 +597,8 @@ class Marketplace_Job {
 			copy( $part, $final );
 			wp_delete_file( $part );
 		}
+
+		update_option( self::published_option( $id ), (int) $result['exported'], false );
 
 		$result['status'] = 'done';
 		$result['size']   = is_file( $final ) ? (int) filesize( $final ) : 0;
@@ -385,6 +664,22 @@ class Marketplace_Job {
 	}
 
 	/**
+	 * Recreate missing recurring events (e.g. after the plugin was deactivated
+	 * and activated again, which clears them).
+	 *
+	 * @return void
+	 */
+	public static function ensure_schedules(): void {
+		foreach ( array_keys( Marketplace_Registry::all() ) as $id ) {
+			$id = (string) $id;
+
+			if ( 'off' !== Marketplace_Registry::settings( $id )['schedule'] && ! wp_next_scheduled( self::CRON_HOOK, array( $id ) ) ) {
+				self::reschedule( $id );
+			}
+		}
+	}
+
+	/**
 	 * WP-Cron callback: build and, when unfinished, continue shortly.
 	 *
 	 * @param string $id Feed id.
@@ -413,7 +708,25 @@ class Marketplace_Job {
 	 */
 	private static function cron_run( string $id, bool $restart ): void {
 		if ( ! function_exists( 'f2000cs_is_pro' ) || ! f2000cs_is_pro() ) {
+			self::withdraw_stale_feed( $id );
 			return;
+		}
+
+		// A build is in progress: restarting would reset its progress, and with a
+		// sync more frequent than a build it would never finish. Flag it instead;
+		// a fresh build is queued when this one is done.
+		if ( $restart ) {
+			$running = self::state( $id );
+
+			if ( $running && time() - (int) ( $running['started'] ?? 0 ) < self::STATE_MAX_AGE ) {
+				update_option( self::dirty_option( $id ), time(), false );
+
+				if ( ! wp_next_scheduled( self::CONT_HOOK, array( $id ) ) ) {
+					wp_schedule_single_event( time() + 30, self::CONT_HOOK, array( $id ) );
+				}
+
+				return;
+			}
 		}
 
 		if ( function_exists( 'set_time_limit' ) ) {
@@ -422,11 +735,97 @@ class Marketplace_Job {
 
 		$result = self::run( $id, 120, null, $restart );
 
+		// Another build holds the lock: a requested fresh build must not be lost
+		// (it may carry the prices of a stock sync that finished after that build began).
+		if ( 'locked' === $result['status'] ) {
+			if ( $restart && ! wp_next_scheduled( self::SYNC_HOOK, array( $id ) ) ) {
+				wp_schedule_single_event( time() + 60, self::SYNC_HOOK, array( $id ) );
+			}
+
+			return;
+		}
+
 		if ( 'running' === $result['status'] && ! wp_next_scheduled( self::CONT_HOOK, array( $id ) ) ) {
 			wp_schedule_single_event( time() + 30, self::CONT_HOOK, array( $id ) );
 		}
+	}
+
+	/**
+	 * After a stock update cycle, queue a rebuild of every feed that asks for it.
+	 *
+	 * The build runs in its own WP-Cron event shortly after, so the stock sync is
+	 * not slowed down by it; the marketplace keeps reading the previous file
+	 * until the new one is published. Without Pro nothing is rebuilt, and an
+	 * outdated feed is withdrawn here too (a feed without a schedule has no
+	 * cron event of its own that would do it).
+	 *
+	 * @return void
+	 */
+	public static function queue_after_stock_update(): void {
+		if ( ! function_exists( 'f2000cs_is_pro' ) || ! f2000cs_is_pro() ) {
+			foreach ( array_keys( Marketplace_Registry::all() ) as $id ) {
+				self::withdraw_stale_feed( (string) $id );
+			}
+
+			return;
+		}
+
+		foreach ( array_keys( Marketplace_Registry::all() ) as $id ) {
+			$id = (string) $id;
+
+			if ( empty( Marketplace_Registry::settings( $id )['after_sync'] ) ) {
+				continue;
+			}
+
+			if ( ! wp_next_scheduled( self::SYNC_HOOK, array( $id ) ) ) {
+				wp_schedule_single_event( time() + 15, self::SYNC_HOOK, array( $id ) );
+			}
+		}
+	}
+
+	/**
+	 * Delete the published feed once it is older than STALE_AFTER.
+	 *
+	 * @param string $id Feed id.
+	 * @return bool Whether the file was deleted.
+	 */
+	public static function withdraw_stale_feed( string $id ): bool {
+		$feed = Marketplace_Registry::get( $id );
+
+		// No feed was ever built: do not create the folder or the file token.
+		if ( ! $feed || ! is_dir( Marketplace_Storage::base_dir() ) ) {
+			return false;
+		}
+
+		$path = Marketplace_Storage::path( $feed );
+
+		if ( ! is_file( $path ) || time() - (int) filemtime( $path ) <= self::STALE_AFTER ) {
+			return false;
+		}
+
+		wp_delete_file( $path );
+
+		if ( function_exists( 'f2000cs_log' ) ) {
+			f2000cs_log( sprintf( 'Marketplace feed "%s" withdrawn: Pro is not active and the file was no longer updated.', $id ), 'warning' );
+		}
+
+		return true;
 	}
 }
 
 add_action( Marketplace_Job::CRON_HOOK, array( Marketplace_Job::class, 'cron_build' ) );
 add_action( Marketplace_Job::CONT_HOOK, array( Marketplace_Job::class, 'cron_continue' ) );
+add_action( Marketplace_Job::SYNC_HOOK, array( Marketplace_Job::class, 'cron_build' ) );
+add_action( 'f2000cs_stock_update_complete', array( Marketplace_Job::class, 'queue_after_stock_update' ) );
+add_action(
+	'admin_init',
+	static function () {
+		// Only on the plugin's own screens; activation restores the events as well.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only screen check.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+
+		if ( 0 === strpos( $page, 'f2000cs' ) ) {
+			Marketplace_Job::ensure_schedules();
+		}
+	}
+);

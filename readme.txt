@@ -9,28 +9,29 @@ Stable tag: 0.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Import Prom.ua/YML into WooCommerce: sync stock/prices, import products with images, edit XML feeds. Free forever + 14-day Pro trial.
+Import Prom.ua/YML feeds into WooCommerce, sync stock and prices, export your products to Prom.ua. Free forever + 14-day Pro trial.
 
 == Description ==
 
 This plugin connects your WooCommerce store with supplier XML feeds for automatic catalog synchronization.
 
-**Standout feature:** The XML Editor (Pro) lets you visually build a custom Prom.ua export — pick categories and products, apply price/stock filters, and generate a ready-to-upload XML in seconds.
+**Standout features (Pro):** the Marketplaces page publishes your WooCommerce catalog as a Prom.ua YML feed at a permanent URL and can rebuild it after every stock sync, so Prom always gets current prices and stock. The XML Editor lets you visually build a custom Prom.ua export — pick categories and products, apply price/stock filters, and generate a ready-to-upload XML in seconds.
 
 **Key features:**
 
-* Free forever plan + **14-day Pro trial with no credit card** (full Pro features during the trial)
+* Free forever plan + **14-day Pro trial with no credit card** (full Pro features during the trial in the Pro version, which Freemius offers to install when the trial starts)
 * Import simple and variable products from XML — names, descriptions, images (picture), attributes (param), categories, weight, barcode, dimensions
-* Automatic stock status and price sync via WP-Cron with configurable intervals (every 5/10/15/30 minutes, hourly, 8/6/4 times daily, twice daily, daily)
-* Multiple supplier slots with individual SKU prefixes, price adjustments (margin/markup/fixed, Pro), skip-price and quantity-update options
+* Automatic stock status and price sync via WP-Cron: daily in Free (plus 3 manual runs a day); in Pro every 5/10/15/30 minutes, hourly, 8/6/4 times daily, twice daily or daily, with no manual-run limit
+* Supplier slots with individual SKU prefixes and a skip-price option (Free: 1 supplier; Pro: multiple suppliers, price adjustments — margin/markup/fixed — and stock quantity updates)
 * Telegram notifications with sync reports
-* XML export: filter to keep only new products, or use the visual XML editor to build a custom feed by category/product (Pro) — **key differentiator** for marketplace sellers
+* XML export (Pro): filter to keep only new products, or use the visual XML editor to build a custom feed by category/product — **key differentiator** for marketplace sellers
+* Marketplaces (Pro): export WooCommerce products to Prom.ua as a YML feed (variations, brands, Prom categories); rebuilt on a schedule and/or right after each stock sync
 * Fields updater (Pro): update selected fields (name, description, images, attributes, categories, tags, vendorCode) on already-imported products
 * Image processing (Pro): convert PNG/JPG/WebP/AVIF to WebP, AVIF or JPG on import (GIF and BMP unchanged); optimize, resize
 * Currency conversion via XML currencies/currencyId
 * Built-in documentation page with sticky sidebar navigation
-* Clean uninstall removes plugin settings, transients, and cron jobs
-* Automated test suite: 200+ PHPUnit unit tests (offline stubs, no WordPress/WooCommerce required to run) covering XML parse/import modes, stock sync, fields update, export filter/editor, licensing, and admin AJAX security gates
+* Clean uninstall removes plugin settings, transients, cron jobs, generated exports and marketplace feeds
+* Automated test suite: 300+ PHPUnit unit tests (offline stubs, no WordPress/WooCommerce required to run) covering XML parse/import modes, stock sync, fields update, export filter/editor, marketplace feeds, licensing, and admin AJAX security gates
 
 **Requirements:**
 
@@ -63,11 +64,15 @@ The plugin supports YML format used by Prom.ua and many Ukrainian suppliers. Bot
 
 = Can I connect multiple suppliers? =
 
-Yes. The plugin supports multiple supplier slots, each with its own XML URL, SKU prefix, price adjustment rules, and options to skip price updates or sync stock quantities. Pro and the free 14-day trial (no credit card) unlock additional slots and more frequent cron intervals.
+Yes, in Pro. Each supplier slot has its own XML URL, SKU prefix and an option to skip price updates; Pro adds price adjustment rules and stock quantity updates per slot. The Free plan syncs one supplier (slots saved earlier, e.g. during a trial, stay editable). Pro and the free 14-day trial (no credit card) also unlock more frequent cron intervals.
 
 = Is there a free Pro trial? =
 
-Yes. You can start a **14-day Pro trial without entering a credit card**. During the trial you get the same features as Pro. After it ends, the Free plan limits apply again unless you upgrade.
+Yes. You can start a **14-day Pro trial without entering a credit card**. Pro features live in the Pro version of the plugin: install it from your Freemius account (or the prompt shown after the trial starts) and during the trial you get the same features as Pro. After it ends, the Free plan limits apply again unless you upgrade.
+
+= Can I export my WooCommerce products to Prom.ua? =
+
+Yes, in Pro: open **Синхронізація каталогу → Маркетплейси**, set up the Prom.ua feed and give Prom the feed URL shown on the page (Prom → import from a link). The feed contains published products with a price, a photo and a category (drafts can be included with an option); out-of-stock products are listed with `available="false"`. It is built in the background and can be refreshed on a schedule and/or after every stock sync («Після оновлення наявності»). The feed URL contains a secret token; anyone who knows it can read your product data, the same as Prom does.
 
 = What happens to products missing from the XML feed? =
 
@@ -76,6 +81,10 @@ During scheduled stock updates, if a SKU prefix is configured, the plugin detect
 = Does it work on shared hosting? =
 
 Yes. The plugin uses XMLReader streaming for efficient parsing and supports both background (WP-Cron) and synchronous update modes. For large catalogs, use the background mode. The import processes products one at a time via AJAX, which works well on most shared hosts for catalogs up to a few thousand products.
+
+= In which language are the plugin screens and documentation? =
+
+The plugin interface and the built-in documentation page are in Ukrainian.
 
 = Where can I report bugs or request features? =
 
@@ -102,18 +111,52 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 3. Variable product group analysis with attribute selection.
 4. XML export filter for creating a clean feed with new products only.
 
+== Upgrade Notice ==
+
+= 0.7.0 =
+Pro features moved to a separate Pro build. If you use a Pro license, price markup, stock quantity updates or the marketplace feed, install the Pro version from your Freemius account before updating. The Free version does not apply the markup, so it leaves prices unchanged.
+
 == Changelog ==
 
 = 0.7.0 =
-* Added (Pro): «Marketplaces» page — export your WooCommerce products to Prom.ua as a YML feed (simple and variable products, Prom variations rules, categories, brands, supplier code, portal category rules). The feed is built in chunks (works for large catalogs), published atomically at a private URL, refreshed by WP-Cron on a schedule or with `wp f2000cs marketplace build prom`. The module is built so Rozetka and Hotline feeds can be added next.
-* Improved (Pro): Marketplaces settings are now mostly one-click presets with a «Custom…» option (shop name, currency, photos per product, brand, supplier code); brand names are mapped with a suggest-as-you-type table and store categories are mapped to Prom categories in a searchable table instead of text fields.
-* Added: products that the stock sync set to Draft because they disappeared from the feed are published again automatically when the feed lists them (products drafted manually are never touched). Already-drafted products are no longer re-reported on every run.
-* Security: supplier attribute names and server messages are no longer rendered as HTML in the import analysis screen.
-* Fixed: import session keys are lowercase (consistent with how they are read); uninstall also removes the plugin's session transients.
-* Changed: the Pro modules (image conversion, fields updater, XML export filter and XML editor) are now shipped only in the Pro build. The free version on WordPress.org no longer contains any Pro code and shows a short upgrade placeholder where these features live.
-* Added: if a Pro license or trial is active but the free build is installed, the plugin shows a notice with a link to the Freemius account where the Pro version can be downloaded.
-* Improved: a build simulation (free vs Pro) now runs in CI to make sure premium code can never leak into the free build.
-* Improved: Ukrainian translation of the Freemius screens (opt-in, license activation, account, trial, updates, deactivation form, plugin details) — about 440 more strings; a test now checks that every translated key still exists in the bundled SDK.
+**Important:** Pro features are now shipped only in the Pro version of the plugin. If you have a Pro license or an active trial and update from WordPress.org, you get the Free version and the Pro features stop working until you install the Pro version from your Freemius account. The plugin shows a notice with the link.
+
+New:
+* Import option «Імпортувати тільки товари в наявності» (import in-stock products only): out-of-stock offers are skipped, a variable product gets only its in-stock variations, and a group with nothing in stock is skipped.
+* (Pro) «Marketplaces» page: publish your WooCommerce products to Prom.ua as a feed at a permanent private link. Simple and variable products, brands and Prom categories are supported, and large catalogs work too. The feed is refreshed on a schedule or from the command line: `wp f2000cs marketplace build prom`.
+* (Pro) Option «Після оновлення наявності» (after stock update): after every stock and price sync the Prom feed is rebuilt in the background and published at the same link, so Prom always gets current prices and stock.
+* Products that the stock sync set to Draft because they disappeared from the supplier feed are published again when they return to the feed. Products you drafted yourself are never touched, and drafted products are no longer reported on every run.
+* A notice with a link to the Freemius account when a Pro license or trial is active but the Free version is installed.
+
+Improved:
+* (Pro) Marketplaces settings are mostly one-click presets. Brand names and store-to-Prom category mapping use searchable tables instead of text fields.
+* Ukrainian translation of the Freemius screens (about 440 more strings).
+* The Import page no longer remembers the last XML URL: the URL field starts empty (the SKU prefix is still remembered).
+* (Pro) The Prom feed page shows why products were left out (no price, picture, category …) with example SKUs.
+* (Pro) Product descriptions sent to Prom lose shortcodes and block editor comments; line breaks of classic descriptions are kept as paragraphs. Picture URLs with Cyrillic file names are encoded.
+* (Pro) «Unpublished products» now also exports draft variations and no longer exports private products.
+
+Fixed:
+* After switching from Free to Pro the scheduled stock sync stopped until the next manual run. The schedule is now restored on activation and follows the real interval when a trial starts or ends.
+* A marketplace feed is no longer left frozen when Pro is not active: the published file is withdrawn once it is more than 3 days old. Deactivation stops marketplace schedules; uninstall removes marketplace settings, feed files and temporary import data.
+* `wp f2000cs marketplace build` now requires an active Pro license or trial.
+* Without the Pro version (or with an expired license / trial) a saved price markup no longer resets prices to the supplier's: prices are left unchanged. Stock statuses of products with managed quantity are left alone too, when quantities were updated before.
+* Switching between Free and Pro no longer starts a full stock sync right away, and saving the settings on the Free version no longer overwrites the saved update interval.
+* The «Pro version missing» notice is shown on every admin screen and also when Pro settings are saved without a license.
+* (Pro) A Prom feed that suddenly has less than half the products of the last published one is held back (a broken supplier feed can no longer empty the catalog on Prom); a button publishes it when the shrink is expected.
+* (Pro) A stock sync during a long feed build no longer restarts it; one more build runs when it finishes. Products drafted during a build are no longer skipped, and two builds can no longer run at once.
+* (Pro) Prom category rules match the start of the category path: «Одяг» no longer catches «Дитячий одяг».
+* (Pro) A variation without a size is no longer given a guessed size unless only one size is left for it.
+* Products that 0.6.x set to Draft are not published again automatically: only products drafted by 0.7.0 or later are.
+* A trial started on the Free version no longer shows a «full Pro access» countdown; it explains that the Pro version has to be installed.
+* Activating Free and Pro versions together no longer mixes up which copy is premium.
+
+Security:
+* Attribute names and server messages from a supplier feed are shown as plain text on the import analysis screen.
+
+For developers:
+* A free-vs-Pro build simulation now runs in CI so that Pro code can never leak into the Free build.
+* Import session keys are lowercase, consistent with how they are read.
 
 = 0.6.14 =
 * Added: Pro option on the Import page — «Import stock quantity from XML». Reads `<quantity>`, `<stock_quantity>` or `<qty_stock>` (decimal values such as `1.000` are supported) and enables stock management for simple products and variations. Off by default.

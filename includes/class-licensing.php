@@ -148,12 +148,12 @@ function f2000cs_fs_init() {
 add_action( 'plugins_loaded', 'f2000cs_fs_init', 1 );
 
 /**
- * Restore license-key activation UI on Freemius free builds.
+ * Restore license-key activation UI on the Freemius free build.
  *
- * Freemius free zips omit has_premium_version; the SDK then defaults it to
- * has_paid_plans (true) and skips Activate License / AJAX handlers. Pro in this
- * plugin is unlocked by license/trial in the same codebase, so free sites still
- * need a key field without going through checkout.
+ * With has_premium_version the SDK only offers Activate License / its AJAX
+ * handlers in the premium build. A buyer who still runs the free build needs
+ * the key field too: after activation Freemius offers to download and install
+ * the Pro build, which is where the Pro modules live.
  *
  * @return void
  */
@@ -279,8 +279,8 @@ function f2000cs_is_pro() {
 /**
  * Notice for sites with an active license/trial that still run the free build.
  *
- * The Pro modules (image conversion, fields updater, XML editor) ship only in
- * the Pro build, so a license alone does not enable them on the wp.org version.
+ * All Pro features ship only in the Pro build, so a license or trial alone does
+ * not enable anything on the wp.org version.
  *
  * @return void
  */
@@ -289,12 +289,15 @@ function f2000cs_premium_build_missing_notice() {
 		return;
 	}
 
-	if ( ! f2000cs_is_paying() && ! f2000cs_is_fs_trial() ) {
+	// The plugin's own screens, plus the Dashboard and Plugins list where an update lands.
+	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+	$id     = $screen ? (string) $screen->id : '';
+
+	if ( false === strpos( $id, 'f2000cs-' ) && ! in_array( $id, array( 'dashboard', 'plugins' ), true ) ) {
 		return;
 	}
 
-	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-	if ( ! $screen || false === strpos( (string) $screen->id, 'f2000cs-' ) ) {
+	if ( ! f2000cs_is_paying() && ! f2000cs_is_fs_trial() && ! f2000cs_has_saved_pro_config() ) {
 		return;
 	}
 
@@ -304,7 +307,7 @@ function f2000cs_premium_build_missing_notice() {
 	<div class="notice notice-warning">
 		<p>
 			<strong>Factorial2000 Catalog Sync:</strong>
-			<?php esc_html_e( 'Ліцензія Pro активна, але встановлена безкоштовна версія плагіна — Pro-функції (конвертація зображень, оновлення полів, редактор вигрузок) є лише в Pro-збірці. Завантажте та встановіть Pro-версію зі сторінки акаунта Freemius.', 'factorial2000-catalog-sync' ); ?>
+			<?php esc_html_e( 'Ліцензія, тріал або збережені Pro-налаштування (націнка, кількість) є, але встановлена безкоштовна версія плагіна. Ціни та кількість не оновлюються, поки не встановлено Pro. Pro-функції (кілька постачальників, часті оновлення, коригування цін і кількість, маркетплейси, редактор вигрузок, оновлення полів, обробка зображень) працюють лише в Pro-збірці. Завантажте та встановіть Pro-версію зі сторінки акаунта Freemius.', 'factorial2000-catalog-sync' ); ?>
 			<?php if ( '' !== $url ) : ?>
 				<a href="<?php echo esc_url( $url ); ?>"><?php esc_html_e( 'Відкрити акаунт', 'factorial2000-catalog-sync' ); ?></a>
 			<?php endif; ?>
@@ -581,7 +584,7 @@ function f2000cs_get_free_update_limit_message() {
 }
 
 /**
- * Effective cron interval (Free is always forced to daily).
+ * Effective cron interval: daily unless the Pro build allows the saved one.
  *
  * @param string|null $interval Stored interval.
  * @return string
@@ -591,13 +594,13 @@ function f2000cs_get_effective_update_interval( $interval = null ) {
 		$interval = get_option( 'f2000cs_update_interval', 'hourly' );
 	}
 
-	if ( ! f2000cs_is_pro() ) {
-		return 'daily';
-	}
-
-	$allowed = array( '5_minute', '10_minute', '15_minute', '30_minute', 'hourly', '8_times_daily', '6_times_daily', '4_times_daily', 'twicedaily', 'daily' );
-
-	return in_array( $interval, $allowed, true ) ? $interval : 'hourly';
+	/**
+	 * Filter the cron interval actually used for the stock update.
+	 *
+	 * @param string $effective Interval to use (daily by default).
+	 * @param string $interval  Interval saved in the settings.
+	 */
+	return (string) apply_filters( 'f2000cs_effective_update_interval', 'daily', (string) $interval );
 }
 
 /**
@@ -619,11 +622,10 @@ function f2000cs_admin_body_class( $classes ) {
 add_filter( 'admin_body_class', 'f2000cs_admin_body_class' );
 
 /**
- * Block saving Pro-only options on the free plan.
+ * Block adding new supplier slots on the free plan.
  *
  * Extra supplier slots that already have saved data stay editable (grandfathered).
- * New data on empty slots is blocked without Pro. Price adjust / variable-low remain Pro-only.
- * Trial unlocks the same features as Pro (see f2000cs_is_pro()).
+ * New data on empty slots needs Pro (or an active trial, see f2000cs_is_pro()).
  *
  * @return void
  */
@@ -666,20 +668,6 @@ function f2000cs_register_pro_option_guards() {
 			2
 		);
 	}
-
-	for ( $i = 1; $i <= $max; $i++ ) {
-		add_filter( 'pre_update_option_f2000cs_price_adjust_type_' . $i, 'f2000cs_block_pro_option_update', 10, 2 );
-		add_filter( 'pre_update_option_f2000cs_price_adjust_direction_' . $i, 'f2000cs_block_pro_option_update', 10, 2 );
-		add_filter( 'pre_update_option_f2000cs_price_adjust_value_' . $i, 'f2000cs_block_pro_option_update', 10, 2 );
-		add_filter( 'pre_update_option_f2000cs_update_stock_qty_' . $i, 'f2000cs_block_pro_option_update', 10, 2 );
-	}
-
-	add_filter( 'pre_update_option_f2000cs_hide_variable_low_instock', 'f2000cs_block_pro_option_update', 10, 2 );
-	add_filter( 'pre_update_option_f2000cs_variable_low_instock_max', 'f2000cs_block_pro_option_update', 10, 2 );
-	add_filter( 'pre_update_option_f2000cs_img_png_convert', 'f2000cs_block_pro_option_update', 10, 2 );
-	add_filter( 'pre_update_option_f2000cs_img_optimize', 'f2000cs_block_pro_option_update', 10, 2 );
-	add_filter( 'pre_update_option_f2000cs_img_quality', 'f2000cs_block_pro_option_update', 10, 2 );
-	add_filter( 'pre_update_option_f2000cs_img_max_dimension', 'f2000cs_block_pro_option_update', 10, 2 );
 }
 add_action( 'admin_init', 'f2000cs_register_pro_option_guards', 1 );
 
@@ -693,14 +681,6 @@ function f2000cs_register_missing_post_preservers() {
 		'f2000cs_url',
 		'f2000cs_sku_prefix_1',
 		'f2000cs_skip_price_1',
-		'f2000cs_update_stock_qty_1',
-		'f2000cs_price_adjust_type_1',
-		'f2000cs_price_adjust_direction_1',
-		'f2000cs_price_adjust_value_1',
-		'f2000cs_img_png_convert',
-		'f2000cs_img_optimize',
-		'f2000cs_img_quality',
-		'f2000cs_img_max_dimension',
 	);
 
 	$max = function_exists( 'f2000cs_get_supplier_option_register_max' )
@@ -711,10 +691,6 @@ function f2000cs_register_missing_post_preservers() {
 		$keys[] = 'f2000cs_url_' . $i;
 		$keys[] = 'f2000cs_sku_prefix_' . $i;
 		$keys[] = 'f2000cs_skip_price_' . $i;
-		$keys[] = 'f2000cs_update_stock_qty_' . $i;
-		$keys[] = 'f2000cs_price_adjust_type_' . $i;
-		$keys[] = 'f2000cs_price_adjust_direction_' . $i;
-		$keys[] = 'f2000cs_price_adjust_value_' . $i;
 	}
 
 	foreach ( $keys as $key ) {
@@ -779,19 +755,6 @@ function f2000cs_guard_extra_supplier_option( $value, $old_value, $index, $kind 
 }
 
 /**
- * Keep the previous option value when the feature is Pro-only.
- *
- * Also preserves the old value when options.php passes null (field absent from POST).
- *
- * @param mixed $value     New value.
- * @param mixed $old_value Old value.
- * @return mixed
- */
-function f2000cs_block_pro_option_update( $value, $old_value ) {
-	return $old_value;
-}
-
-/**
  * Render trial countdown banner on the main settings page.
  *
  * @return void
@@ -802,6 +765,13 @@ function f2000cs_render_trial_countdown() {
 	}
 
 	$ends = f2000cs_get_trial_ends_at();
+
+	// A trial on the free build unlocks nothing until the Pro build is installed;
+	// f2000cs_premium_build_missing_notice() says so instead of a countdown.
+	if ( $ends > time() && ! f2000cs_has_premium_code() ) {
+		return;
+	}
+
 	if ( $ends <= time() ) {
 		if ( ! f2000cs_is_pro() ) {
 			echo '<div class="notice notice-info f2000cs-pro-notice"><p>';
