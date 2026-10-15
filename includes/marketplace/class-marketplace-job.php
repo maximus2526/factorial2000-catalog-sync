@@ -594,8 +594,16 @@ class Marketplace_Job {
 
 		if ( ! @rename( $part, $final ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Falls back to copy below.
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- Windows cannot rename over an open file.
-			copy( $part, $final );
+			$copied = copy( $part, $final );
 			wp_delete_file( $part );
+
+			if ( ! $copied ) {
+				$result['status']  = 'error';
+				$result['message'] = __( 'Не вдалося опублікувати файл вигрузки — попередній файл залишено без змін.', 'factorial2000-catalog-sync' );
+				update_option( self::result_option( $id ), $result, false );
+
+				return $result;
+			}
 		}
 
 		update_option( self::published_option( $id ), (int) $result['exported'], false );
