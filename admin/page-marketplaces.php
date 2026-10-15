@@ -139,13 +139,13 @@ function f2000cs_marketplace_render_category_map( string $key, array $field, $va
 	} else {
 		?>
 		<p><input type="search" class="regular-text f2000cs-mp-cat-filter" placeholder="<?php esc_attr_e( 'Пошук категорії…', 'factorial2000-catalog-sync' ); ?>"></p>
-		<div style="max-height:360px;overflow:auto;max-width:720px;border:1px solid #c3c4c7">
+		<div style="max-height:420px;overflow:auto;max-width:960px;border:1px solid #c3c4c7">
 			<table class="widefat striped f2000cs-mp-cat-table">
 				<thead>
 					<tr>
 						<th><?php esc_html_e( 'Категорія магазину', 'factorial2000-catalog-sync' ); ?></th>
 						<th style="width:70px"><?php esc_html_e( 'Товарів', 'factorial2000-catalog-sync' ); ?></th>
-						<th style="width:170px"><?php esc_html_e( 'Номер категорії Prom', 'factorial2000-catalog-sync' ); ?></th>
+						<th style="width:50%"><?php esc_html_e( 'Категорія Prom', 'factorial2000-catalog-sync' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -153,7 +153,18 @@ function f2000cs_marketplace_render_category_map( string $key, array $field, $va
 						<tr data-name="<?php echo esc_attr( function_exists( 'mb_strtolower' ) ? mb_strtolower( $cat['path'], 'UTF-8' ) : strtolower( $cat['path'] ) ); ?>">
 							<td style="padding-left:<?php echo (int) ( 10 + 16 * $cat['depth'] ); ?>px"><?php echo esc_html( basename( str_replace( ' > ', '/', $cat['path'] ) ) ); ?></td>
 							<td><?php echo (int) $cat['count']; ?></td>
-							<td><input type="text" inputmode="numeric" pattern="[0-9]*" class="small-text" name="mp_map[<?php echo esc_attr( $key ); ?>][<?php echo (int) $cat['id']; ?>]" value="<?php echo esc_attr( $split['by_id'][ $cat['id'] ] ?? '' ); ?>" placeholder="—"></td>
+							<td>
+								<?php
+								f2000cs_prom_category_input(
+									'mp_map[' . $key . '][' . (int) $cat['id'] . ']',
+									(string) ( $split['by_id'][ $cat['id'] ] ?? '' ),
+									array(
+										'class'       => 'f2000cs-mp-cat-input',
+										'placeholder' => '—',
+									)
+								);
+								?>
+							</td>
 						</tr>
 					<?php endforeach; ?>
 				</tbody>
@@ -192,6 +203,8 @@ function f2000cs_marketplace_render_field( string $key, array $field, $value ): 
 				f2000cs_marketplace_render_pairs( $key, $field, $value );
 			} elseif ( 'category_map' === $type ) {
 				f2000cs_marketplace_render_category_map( $key, $field, $value );
+			} elseif ( 'prom_category' === $type ) {
+				f2000cs_prom_category_input( 'mp[' . $key . ']', (string) $value, array( 'id' => $id ) );
 			} elseif ( 'checkbox' === $type ) {
 				?>
 				<input type="hidden" name="mp[<?php echo esc_attr( $key ); ?>]" value="0">
@@ -641,7 +654,8 @@ function f2000cs_marketplace_enqueue( $hook ) {
 		'.f2000cs-marketplaces .form-table td table{margin:0}'
 		. '.f2000cs-marketplaces .form-table td table th,.f2000cs-marketplaces .form-table td table td{width:auto;padding:8px 10px;vertical-align:middle;line-height:1.4}'
 		. '.f2000cs-marketplaces .form-table td table input[type=text]{width:100%;max-width:none}'
-		. '.f2000cs-marketplaces .form-table td .f2000cs-mp-cat-table input[type=text]{width:120px}'
+		. '.f2000cs-marketplaces .form-table td .f2000cs-mp-cat-table input[type=text]{width:140px}'
+		. '.f2000cs-marketplaces .f2000cs-mp-cat-table .f2000cs-prom-cat-wrap{display:block}'
 		. '.f2000cs-marketplaces .f2000cs-mp-pairs,.f2000cs-marketplaces .f2000cs-mp-cat-table{table-layout:auto}'
 		. '.f2000cs-marketplaces .f2000cs-mp-custom{margin-left:6px;vertical-align:middle}'
 		. '.f2000cs-marketplaces .f2000cs-mp-custom[hidden]{display:none}'

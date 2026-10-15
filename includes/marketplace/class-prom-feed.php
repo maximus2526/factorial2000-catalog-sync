@@ -210,16 +210,16 @@ class Prom_Feed extends Marketplace_Feed {
 			),
 			'default_portal_category_id'   => array(
 				'group'       => 'categories',
-				'type'        => 'text',
+				'type'        => 'prom_category',
 				'label'       => __( 'Категорія Prom за замовчуванням', 'factorial2000-catalog-sync' ),
-				'description' => __( 'Номер категорії порталу Prom (portal_category_id) для всіх товарів, у яких немає свого правила нижче. Можна залишити порожнім.', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Категорія маркетплейсу Prom (portal_category_id) для всіх товарів, у яких немає свого правила нижче чи поля «Категорія Prom» у картці товару. Почніть вводити назву — номер підставиться сам. Можна залишити порожнім.', 'factorial2000-catalog-sync' ),
 				'default'     => '',
 			),
 			'portal_category_rules'        => array(
 				'group'       => 'categories',
 				'type'        => 'category_map',
 				'label'       => __( 'Категорії магазину → категорії Prom', 'factorial2000-catalog-sync' ),
-				'description' => __( 'Вкажіть номер категорії Prom навпроти категорії магазину. Правило для батьківської категорії діє й на вкладені, якщо в них немає власного.', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Навпроти категорії магазину почніть вводити назву категорії Prom і виберіть її зі списку — номер підставиться сам. Правило для батьківської категорії діє й на вкладені, якщо в них немає власного. Поле «Категорія Prom» у картці товару важливіше за ці правила.', 'factorial2000-catalog-sync' ),
 				'default'     => '',
 			),
 			'mpn_meta_key'                 => array(
@@ -586,6 +586,31 @@ class Prom_Feed extends Marketplace_Feed {
 		return Marketplace_Text::clean( $settings['default_portal_category_id'] ?? '' );
 	}
 
+	/**
+	 * Portal category of an offer: the product's own «Категорія Prom» field (a variation
+	 * takes its parent's), else the category rules and the default.
+	 *
+	 * Prom gives the offer-level <portal_category_id> priority over the group's portal_id,
+	 * so a product-level choice always wins.
+	 *
+	 * @param array<string,string>           $row        Row.
+	 * @param array<string,string>|null      $parent_row Parent row.
+	 * @param array<int, array<int, string>> $paths      Category paths of the offer.
+	 * @param array<string,mixed>            $settings   Settings.
+	 * @return string
+	 */
+	public static function portal_category_for_row( array $row, $parent_row, array $paths, array $settings ): string {
+		foreach ( array( $row, $parent_row ) as $source ) {
+			$own = is_array( $source ) ? Prom_Categories::sanitize_id( $source[ Marketplace_WC_Source::PROM_CATEGORY_COLUMN ] ?? '' ) : '';
+
+			if ( '' !== $own ) {
+				return $own;
+			}
+		}
+
+		return Prom_Categories::sanitize_id( self::portal_category_for_paths( $paths, $settings ) );
+	}
+
 	// ------------------------------------------------------------------
 	// Offers
 	// ------------------------------------------------------------------
@@ -701,7 +726,7 @@ class Prom_Feed extends Marketplace_Feed {
 		$xml .= $ind2 . '<currencyId>' . Marketplace_Text::xml_text( Marketplace_Form::resolve( $settings['currency'] ?? 'UAH' ) ) . "</currencyId>\n";
 		$xml .= $ind2 . '<categoryId>' . (int) $category_id . "</categoryId>\n";
 
-		$portal = self::portal_category_for_paths( $category_paths, $settings );
+		$portal = self::portal_category_for_row( $row, $parent_row, $category_paths, $settings );
 
 		if ( '' !== $portal ) {
 			$xml .= $ind2 . '<portal_category_id>' . Marketplace_Text::xml_text( $portal ) . "</portal_category_id>\n";

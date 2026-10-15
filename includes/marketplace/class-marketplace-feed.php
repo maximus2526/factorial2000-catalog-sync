@@ -209,6 +209,10 @@ abstract class Marketplace_Feed {
 					$out[ $key ] = in_array( (string) $value, $allowed, true ) ? (string) $value : (string) $default;
 					break;
 
+				case 'prom_category':
+					$out[ $key ] = null === $value ? (string) $default : Prom_Categories::sanitize_id( $value );
+					break;
+
 				case 'url':
 					$out[ $key ] = null === $value ? (string) $default : esc_url_raw( trim( (string) $value ) );
 					break;

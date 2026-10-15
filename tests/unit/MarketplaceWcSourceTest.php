@@ -335,4 +335,34 @@ final class F2000CS_Unit_MarketplaceWcSourceTest extends F2000CS_Unit_TestCase {
 		$this->assertSame( 'PARENT-CODE', $row['Meta: mpn'], 'Variation falls back to the parent supplier code' );
 		$this->assertSame( '', $row['Categories'], 'Variations carry no categories of their own' );
 	}
+
+	/**
+	 * The «Категорія Prom» meta of a product reaches the row; variations leave it to the parent.
+	 *
+	 * @return void
+	 */
+	public function test_prom_category_column() {
+		$source  = new Marketplace_WC_Source( array() );
+		$product = new F2000CS_Fake_Product( array( 'meta' => array( Marketplace_WC_Source::PROM_CATEGORY_META => '31302' ) ) );
+
+		$this->assertSame( '31302', $source->row( $product )[ Marketplace_WC_Source::PROM_CATEGORY_COLUMN ] );
+		$this->assertSame( '', $source->row( new F2000CS_Fake_Product( array() ) )[ Marketplace_WC_Source::PROM_CATEGORY_COLUMN ] );
+
+		$parent    = new F2000CS_Fake_Product(
+			array(
+				'id'   => 20,
+				'type' => 'variable',
+				'meta' => array( Marketplace_WC_Source::PROM_CATEGORY_META => '31302' ),
+			)
+		);
+		$variation = new F2000CS_Fake_Product(
+			array(
+				'id'   => 21,
+				'type' => 'variation',
+				'meta' => array( Marketplace_WC_Source::PROM_CATEGORY_META => '29' ),
+			)
+		);
+
+		$this->assertSame( '', $source->row( $variation, $parent, $source->row( $parent ) )[ Marketplace_WC_Source::PROM_CATEGORY_COLUMN ] );
+	}
 }

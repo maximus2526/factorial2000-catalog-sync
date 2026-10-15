@@ -1973,7 +1973,8 @@ if ( ! function_exists( 'current_user_can' ) ) {
 	 * @return bool
 	 */
 	function current_user_can( $cap ) {
-		if ( 'manage_options' === $cap ) {
+		// An administrator: the product capabilities follow the same switch.
+		if ( in_array( $cap, array( 'manage_options', 'edit_post', 'edit_products' ), true ) ) {
 			return (bool) F2000CS_Test_State::$can_manage_options;
 		}
 

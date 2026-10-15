@@ -123,6 +123,7 @@ Pro features moved to a separate Pro build. If you use a Pro license, stock quan
 
 New:
 * Price adjustment per supplier (markup / margin / fixed amount) is now free.
+* (Pro) Prom categories are picked by name: the Prom category list is built in, so the store-to-Prom table, the default category and the new «Prom.ua» box in the product editor search it and fill in the id. A category chosen on the product wins over the category rules (Prom ranks the offer's portal_category_id first); variations use their product's.
 * Import option «Імпортувати тільки товари в наявності» (import in-stock products only): out-of-stock offers are skipped, a variable product gets only its in-stock variations, and a group with nothing in stock is skipped.
 * (Pro) «Marketplaces» page: publish your WooCommerce products to Prom.ua as a feed at a permanent private link. Simple and variable products, brands and Prom categories are supported, and large catalogs work too. The feed is refreshed on a schedule or from the command line: `wp f2000cs marketplace build prom`.
 * (Pro) Option «Після оновлення наявності» (after stock update): after every stock and price sync the Prom feed is rebuilt in the background and published at the same link, so Prom always gets current prices and stock.

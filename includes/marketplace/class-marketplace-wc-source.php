@@ -20,6 +20,16 @@ defined( 'ABSPATH' ) || exit;
 class Marketplace_WC_Source implements Marketplace_Unit_Source {
 
 	/**
+	 * Product meta holding the Prom portal category chosen in the product editor.
+	 */
+	const PROM_CATEGORY_META = '_f2000cs_prom_category_id';
+
+	/**
+	 * Row column carrying that meta to the feed.
+	 */
+	const PROM_CATEGORY_COLUMN = 'Meta: prom_category_id';
+
+	/**
 	 * Feed settings (include_unpublished, mpn_meta_key).
 	 *
 	 * @var array<string,mixed>
@@ -223,6 +233,9 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 			'Brands'                  => $is_variation ? '' : $this->brands( $product ),
 			'Meta: mpn'               => $this->mpn( $product, $is_variation ? $parent_product : null ),
 		);
+
+		// Set on the product, not on variations: the feed falls back to the parent row.
+		$row[ self::PROM_CATEGORY_COLUMN ] = $is_variation ? '' : (string) $product->get_meta( self::PROM_CATEGORY_META, true );
 
 		$attributes = $is_variation ? $this->variation_attributes( $product, $parent_product ) : $this->product_attributes( $product );
 		$i          = 0;
