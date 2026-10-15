@@ -83,6 +83,13 @@ class XML_Stock_Updater {
 	private $keep_managed_status = false;
 
 	/**
+	 * Why the last parsed feed failed validation (empty when it is fine).
+	 *
+	 * @var string
+	 */
+	private $feed_error = '';
+
+	/**
 	 * Currency rates parsed from XML <currencies> section.
 	 *
 	 * @var array<string,float>
@@ -208,8 +215,15 @@ class XML_Stock_Updater {
 			// Process XML in chunks to extract stock and price data
 			$updates = $this->extract_data_from_xml();
 
-			if ( empty( $updates ) ) {
-				$this->send_telegram_message( 'No product data found in XML or XML could not be parsed' );
+			if ( empty( $updates ) && '' === $this->feed_error ) {
+				$this->feed_error = 'у вигрузці немає жодної пропозиції (offer)';
+			}
+
+			// An invalid feed (unreachable, broken XML, no offers): nothing in it can be trusted,
+			// so every product of this supplier is taken off sale until a valid feed comes back.
+			if ( '' !== $this->feed_error ) {
+				$this->send_telegram_message( 'XML не пройшов перевірку: ' . $this->feed_error );
+				$this->mark_all_out_of_stock();
 				return;
 			}
 
@@ -330,8 +344,11 @@ class XML_Stock_Updater {
 	 * @return array Array of [sku => ['stock_status' => status, 'price' => price, 'old_price' => old_price]]
 	 */
 	private function extract_data_from_xml() {
-		$updates = array();
-		$reader  = null;
+		$updates          = array();
+		$reader           = null;
+		$this->feed_error = '';
+		$previous_errors  = libxml_use_internal_errors( true );
+		libxml_clear_errors();
 
 		try {
 			$reader = new XMLReader();
@@ -422,9 +439,21 @@ class XML_Stock_Updater {
 					gc_collect_cycles();
 				}
 			}
+
+			// A truncated or malformed document ends read() early with a fatal libxml error.
+			foreach ( libxml_get_errors() as $error ) {
+				if ( LIBXML_ERR_FATAL === $error->level ) {
+					throw new Exception( 'некоректний XML: ' . trim( $error->message ) );
+				}
+			}
 		} catch ( Exception $e ) {
+			$this->feed_error = $e->getMessage();
 			$this->send_telegram_message( 'XML parsing error: ' . $e->getMessage() );
+			$updates = array();
 		} finally {
+			libxml_clear_errors();
+			libxml_use_internal_errors( $previous_errors );
+
 			if ( $reader !== null ) {
 				$reader->close();
 			}
@@ -920,6 +949,63 @@ class XML_Stock_Updater {
 		$missing_products = $this->get_missing_products_details( $missing_skus );
 
 		$this->send_missing_products_report( $missing_products, count( $missing_skus ) );
+	}
+
+	/**
+	 * Put every product and variation of this supplier (by SKU prefix) out of stock.
+	 *
+	 * Used when the feed failed validation. The next valid feed restores the
+	 * statuses, since the regular update sets them from the XML. Without a SKU
+	 * prefix nothing is touched: it would hit the whole shop.
+	 *
+	 * @return int Number of products and variations set out of stock.
+	 */
+	private function mark_all_out_of_stock() {
+		global $wpdb;
+
+		if ( empty( $this->sku_prefix ) ) {
+			$this->send_telegram_message( 'SKU-префікс не задано — товари не змінювалися.' );
+			return 0;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live list needed during sync; cache would be stale.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT p.ID AS id, p.post_type AS type, p.post_parent AS parent
+				FROM {$wpdb->posts} p
+				INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+				WHERE p.post_type IN ('product', 'product_variation')
+				AND p.post_status IN ('publish', 'draft', 'private')
+				AND pm.meta_key = '_sku'
+				AND pm.meta_value LIKE %s",
+				$wpdb->esc_like( $this->sku_prefix ) . '%'
+			)
+		);
+
+		$count = 0;
+
+		foreach ( (array) $rows as $row ) {
+			f2000cs_update_stock_status( (int) $row->id, 'outofstock' );
+			wc_delete_product_transients( (int) $row->id );
+			++$count;
+		}
+
+		// Variable parents without their own prefixed SKU follow their variations.
+		$parents = array();
+
+		foreach ( (array) $rows as $row ) {
+			if ( 'product_variation' === $row->type && (int) $row->parent > 0 ) {
+				$parents[ (int) $row->parent ] = true;
+			}
+		}
+
+		foreach ( array_keys( $parents ) as $parent_id ) {
+			$this->sync_parent_stock_status( $parent_id );
+		}
+
+		$this->send_telegram_message( "🔻 Вигрузка некоректна: {$count} товарів/варіацій переведено в 'Немає в наявності'" );
+
+		return $count;
 	}
 
 	/**

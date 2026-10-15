@@ -217,7 +217,7 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 			$texts[] = $post['args']['body']['text'];
 		}
 
-		$this->assertStringContainsString( 'No product data found in XML or XML could not be parsed', implode( "\n", $texts ) );
+		$this->assertStringContainsString( 'XML не пройшов перевірку', implode( "\n", $texts ) );
 	}
 
 	/**
@@ -366,5 +366,112 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 		$this->assertStringContainsString( 'Всього відсутніх товарів: 1', $all );
 
 		unlink( $tmp );
+	}
+
+	/**
+	 * Run an update against feed contents and return the Telegram text.
+	 *
+	 * @param string $xml    Feed contents.
+	 * @param string $prefix SKU prefix.
+	 * @param array  $rows   Rows the "products with this prefix" query returns.
+	 * @return string All Telegram messages.
+	 */
+	private function run_with_feed( string $xml, string $prefix, array $rows ): string {
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs_' );
+		file_put_contents( $tmp, $xml );
+
+		update_option( 'f2000cs_telegram_token_id', '123:abc' );
+		update_option( 'f2000cs_telegram_user_ids', '111' );
+		$GLOBALS['wpdb']->results_queue = array( $rows );
+
+		( new XML_Stock_Updater( $tmp, $prefix ) )->update_products_stock_status();
+		unlink( $tmp );
+
+		$texts = array();
+		foreach ( F2000CS_Test_State::$http_posts as $post ) {
+			$texts[] = $post['args']['body']['text'];
+		}
+
+		return implode( "\n", $texts );
+	}
+
+	/**
+	 * Rows as the DB query returns them.
+	 *
+	 * @return array<int,object>
+	 */
+	private function supplier_rows(): array {
+		return array(
+			(object) array( 'id' => 11, 'type' => 'product', 'parent' => 0 ),
+			(object) array( 'id' => 12, 'type' => 'product_variation', 'parent' => 11 ),
+		);
+	}
+
+	/**
+	 * A truncated feed takes the supplier's products out of stock.
+	 *
+	 * @return void
+	 */
+	public function test_truncated_feed_sets_everything_out_of_stock() {
+		update_post_meta( 11, '_stock_status', 'instock' );
+		update_post_meta( 12, '_stock_status', 'instock' );
+
+		$all = $this->run_with_feed(
+			'<?xml version="1.0"?><yml_catalog><shop><offers><offer id="1" available="true"><price>10</price></offer><offer id="2" avail',
+			'SUP_',
+			$this->supplier_rows()
+		);
+
+		$this->assertStringContainsString( 'XML не пройшов перевірку', $all );
+		$this->assertSame( 'outofstock', get_post_meta( 11, '_stock_status', true ) );
+		$this->assertSame( 'outofstock', get_post_meta( 12, '_stock_status', true ) );
+		$this->assertStringNotContainsString( 'Found', $all, 'No updates are applied from a broken feed' );
+	}
+
+	/**
+	 * A well-formed feed without offers is invalid as well.
+	 *
+	 * @return void
+	 */
+	public function test_feed_without_offers_sets_everything_out_of_stock() {
+		update_post_meta( 11, '_stock_status', 'instock' );
+
+		$all = $this->run_with_feed( '<?xml version="1.0"?><yml_catalog><shop><offers></offers></shop></yml_catalog>', 'SUP_', $this->supplier_rows() );
+
+		$this->assertStringContainsString( 'немає жодної пропозиції', $all );
+		$this->assertSame( 'outofstock', get_post_meta( 11, '_stock_status', true ) );
+	}
+
+	/**
+	 * Without a SKU prefix the whole shop would be affected: nothing is changed.
+	 *
+	 * @return void
+	 */
+	public function test_invalid_feed_without_prefix_changes_nothing() {
+		update_post_meta( 11, '_stock_status', 'instock' );
+
+		$all = $this->run_with_feed( '<yml_catalog><shop>', '', $this->supplier_rows() );
+
+		$this->assertStringContainsString( 'SKU-префікс не задано', $all );
+		$this->assertSame( 'instock', get_post_meta( 11, '_stock_status', true ) );
+	}
+
+	/**
+	 * A valid feed never triggers the out-of-stock path.
+	 *
+	 * @return void
+	 */
+	public function test_valid_feed_keeps_statuses() {
+		update_post_meta( 11, '_stock_status', 'instock' );
+
+		$all = $this->run_with_feed(
+			'<?xml version="1.0"?><yml_catalog><shop><offers><offer id="1" available="true"><price>10</price></offer></offers></shop></yml_catalog>',
+			'SUP_',
+			array()
+		);
+
+		$this->assertStringContainsString( 'Found 1 products to process', $all );
+		$this->assertStringNotContainsString( 'не пройшов перевірку', $all );
+		$this->assertSame( 'instock', get_post_meta( 11, '_stock_status', true ) );
 	}
 }
