@@ -58,6 +58,7 @@ const EXCLUDE_LIST = [
 	'README.md',
 	'SKILL.md',
 	'TASKS.md',
+	'tasks',
 ];
 
 /**
