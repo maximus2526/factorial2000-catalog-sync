@@ -786,7 +786,7 @@ function f2000cs_marketplace_enqueue( $hook ) {
 		'f2000cs-admin-marketplaces',
 		F2000CS_URL . 'assets/js/admin-marketplaces.js',
 		array( 'jquery', 'selectWoo' ),
-		F2000CS_VERSION,
+		f2000cs_asset_version( 'assets/js/admin-marketplaces.js' ),
 		true
 	);
 

@@ -1,7 +1,7 @@
 (function ($) {
 	'use strict';
 
-	if (typeof f2000csPromCategory === 'undefined' || !$.fn.selectWoo) {
+	if (typeof f2000csPromCategory === 'undefined') {
 		return;
 	}
 
@@ -84,11 +84,31 @@
 		});
 	}
 
-	function init() {
+	/**
+	 * Enhance every picker once selectWoo is there. Optimizers that defer or reorder
+	 * scripts can run this file before the library, so wait for it instead of giving up.
+	 *
+	 * @param {number} attempt Retry counter.
+	 */
+	function init(attempt) {
+		if (!$.fn.selectWoo) {
+			if (attempt < 100) {
+				window.setTimeout(function () {
+					init(attempt + 1);
+				}, 100);
+			}
+			return;
+		}
+
 		$('select.f2000cs-prom-cat').each(function () {
 			enhance($(this));
 		});
 	}
 
-	$(init);
+	$(function () {
+		init(0);
+	});
+	$(window).on('load', function () {
+		init(100);
+	});
 })(jQuery);

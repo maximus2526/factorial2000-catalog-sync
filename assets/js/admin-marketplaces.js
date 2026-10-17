@@ -136,7 +136,16 @@
 		});
 	}
 
-	enhanceTags($(document));
+	// The library can arrive after this file when scripts are deferred or reordered: wait for it.
+	(function waitForSelectWoo(attempt) {
+		if ($.fn.selectWoo) {
+			enhanceTags($(document));
+		} else if (attempt < 100) {
+			window.setTimeout(function () {
+				waitForSelectWoo(attempt + 1);
+			}, 100);
+		}
+	})(0);
 
 	// "left = right" repeaters.
 	$(document).on('click', '.f2000cs-mp-row-add', function () {

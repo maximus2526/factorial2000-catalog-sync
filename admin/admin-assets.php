@@ -3,6 +3,21 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Version string of a bundled asset: plugin version plus the file's modification time.
+ *
+ * A fixed version would keep serving a stale copy from browser, CDN or page caches
+ * whenever a file changes without a version bump.
+ *
+ * @param string $relative Path inside the plugin, e.g. assets/js/admin-import.js.
+ * @return string
+ */
+function f2000cs_asset_version( $relative ) {
+	$mtime = @filemtime( dirname( __DIR__ ) . '/' . $relative ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Missing file just means no suffix.
+
+	return $mtime ? F2000CS_VERSION . '.' . $mtime : F2000CS_VERSION;
+}
+
+/**
  * Check whether current admin screen belongs to this plugin.
  */
 function f2000cs_is_plugin_admin_screen() {
@@ -111,14 +126,14 @@ function f2000cs_enqueue_admin_assets( $_hook_suffix ) {
 		'f2000cs-admin-settings',
 		F2000CS_URL . 'assets/css/admin-settings.css',
 		array(),
-		F2000CS_VERSION
+		f2000cs_asset_version( 'assets/css/admin-settings.css' )
 	);
 
 	wp_enqueue_script(
 		'f2000cs-admin-settings',
 		F2000CS_URL . 'assets/js/admin-settings.js',
 		array(),
-		F2000CS_VERSION,
+		f2000cs_asset_version( 'assets/js/admin-settings.js' ),
 		true
 	);
 
@@ -136,14 +151,14 @@ function f2000cs_enqueue_admin_assets( $_hook_suffix ) {
 		'f2000cs-admin-support',
 		F2000CS_URL . 'assets/css/admin-support.css',
 		array(),
-		F2000CS_VERSION
+		f2000cs_asset_version( 'assets/css/admin-support.css' )
 	);
 
 	wp_enqueue_script(
 		'f2000cs-admin-support',
 		F2000CS_URL . 'assets/js/admin-support.js',
 		array(),
-		F2000CS_VERSION,
+		f2000cs_asset_version( 'assets/js/admin-support.js' ),
 		true
 	);
 
@@ -161,7 +176,7 @@ function f2000cs_enqueue_admin_assets( $_hook_suffix ) {
 			'f2000cs-admin-import',
 			F2000CS_URL . 'assets/js/admin-import.js',
 			array( 'jquery' ),
-			F2000CS_VERSION,
+			f2000cs_asset_version( 'assets/js/admin-import.js' ),
 			true
 		);
 
@@ -179,7 +194,7 @@ function f2000cs_enqueue_admin_assets( $_hook_suffix ) {
 			'f2000cs-admin-xml-editor',
 			F2000CS_URL . 'assets/js/admin-xml-editor.js',
 			array( 'jquery' ),
-			F2000CS_VERSION,
+			f2000cs_asset_version( 'assets/js/admin-xml-editor.js' ),
 			true
 		);
 

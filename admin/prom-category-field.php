@@ -172,7 +172,7 @@ function f2000cs_prom_category_enqueue( $hook ) {
 		'f2000cs-admin-prom-category',
 		F2000CS_URL . 'assets/js/admin-prom-category.js',
 		array( 'jquery', 'selectWoo' ),
-		F2000CS_VERSION,
+		f2000cs_asset_version( 'assets/js/admin-prom-category.js' ),
 		true
 	);
 
