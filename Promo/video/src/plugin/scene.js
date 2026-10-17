@@ -79,7 +79,7 @@ function introAct(stage) {
   const range = ACTS.intro;
   const root = el('div', 'act', null, stage);
   const flow = el('div', 'flow', null, root);
-  const chipDefs = [['XML', 'XML постачальника'], ['W', 'WooCommerce'], ['P', 'Prom.ua']];
+  const chipDefs = [['XML', 'Фід постачальника'], ['W', 'WooCommerce'], ['P', 'Prom.ua']];
   const chips = [];
   const arrows = [];
   chipDefs.forEach(([ic, label], i) => {

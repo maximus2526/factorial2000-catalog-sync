@@ -31,8 +31,8 @@ h2 em { font-style: normal; color: var(--teal); }
 .win img { position: absolute; left: 0; top: 0; width: 100%; display: block; }
 .glare { position: absolute; top: 0; bottom: 0; left: 0; z-index: 3; width: 55%; background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.3) 50%, transparent 70%); }
 .chip { display: inline-flex; align-items: center; gap: 14px; font: 700 34px var(--sans); padding: 18px 30px; border-radius: 20px; background: rgba(255,255,255,.1); border: 1.5px solid rgba(255,255,255,.28); white-space: nowrap; }
-.chip b { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; font-size: 26px; background: linear-gradient(135deg, var(--blue), var(--blue2)); }
-.flow { position: absolute; left: 0; right: 0; top: 420px; display: flex; justify-content: center; align-items: center; }
+.chip b { width: 62px; height: 46px; border-radius: 12px; display: grid; place-items: center; font-size: 26px; letter-spacing: -.02em; background: linear-gradient(135deg, var(--blue), var(--blue2)); }
+.flow { position: absolute; left: 0; right: 0; top: 480px; display: flex; justify-content: center; align-items: center; }
 .arrow { position: relative; width: 150px; height: 6px; margin: 0 22px; background: rgba(255,255,255,.14); border-radius: 3px; }
 .arrow .fill { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, var(--blue), var(--teal)); border-radius: 3px; }
 .arrow .pk { position: absolute; top: -7px; width: 20px; height: 20px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 22px var(--teal); }

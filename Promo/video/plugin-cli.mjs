@@ -5,26 +5,30 @@
 //   node plugin-cli.mjs video [--blur 4]     frames → work/plugin/video.mp4
 //   node plugin-cli.mjs mux                  → out/factorial2000-catalog-sync.mp4
 //   node plugin-cli.mjs all
+// Add --reels for the vertical 1080x1920 cut (out/factorial2000-catalog-sync-reels.mp4).
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { parseArgs } from 'node:util';
-import { FPS, WIDTH, HEIGHT, DURATION } from './src/plugin/timeline.js';
+const REELS = process.argv.includes('--reels');
+const TL = await import(REELS ? './src/plugin/timeline-v.js' : './src/plugin/timeline.js');
+const { FPS, WIDTH, HEIGHT, DURATION } = TL;
 import { renderVideo, renderStills } from './src/render/video.js';
 import { run } from './src/render/ffmpeg.js';
 import { ROOT } from './src/render/browser.js';
-import { synthesize, toWav } from './src/plugin/synth.js';
+const { synthesize, toWav } = await import(REELS ? './src/plugin/synth-v.js' : './src/plugin/synth.js');
 
 const { positionals, values: o } = parseArgs({
   allowPositionals: true,
-  options: { t: { type: 'string', default: '1.5,3.5,6,9,13,19,26,34,41' }, blur: { type: 'string', default: '4' }, crf: { type: 'string', default: '14' }, preset: { type: 'string', default: 'slow' }, workers: { type: 'string' } },
+  strict: false,
+  options: { reels: { type: 'boolean' }, t: { type: 'string', default: '1.5,3.5,6,9,13,19,26,34,41' }, blur: { type: 'string', default: '4' }, crf: { type: 'string', default: '14' }, preset: { type: 'string', default: 'slow' }, workers: { type: 'string' } },
 });
 const cmd = positionals[0] || 'all';
-const WORK = path.join(ROOT, 'work', 'plugin');
+const WORK = path.join(ROOT, 'work', REELS ? 'plugin-reels' : 'plugin');
 const VIDEO = path.join(WORK, 'video.mp4');
 const AUDIO = path.join(WORK, 'audio.wav');
-const OUT = path.join(ROOT, 'out', 'factorial2000-catalog-sync.mp4');
-const ENTRY = '/src/plugin/index.html';
+const OUT = path.join(ROOT, 'out', REELS ? 'factorial2000-catalog-sync-reels.mp4' : 'factorial2000-catalog-sync.mp4');
+const ENTRY = REELS ? '/src/plugin/index-v.html' : '/src/plugin/index.html';
 await mkdir(WORK, { recursive: true });
 
 const bar = (done, total, secs) => process.stdout.write(`\r  ${done}/${total} frames · ${(done / secs).toFixed(1)} fps`);

@@ -8,6 +8,7 @@ Everything here is excluded from release builds (`Promo` is in `EXCLUDE_LIST` in
 | `images/` | The previous assets copied from `Documents/Factorial2000/catalog-sync/svn/assets` (for comparison) |
 | `shots-raw/` | Raw 2× admin captures (git-ignored) |
 | `tools/` | `capture-screenshots.mjs` (Playwright, logs in to a local dev site) and `make-assets.mjs` (icon + banner) |
+| `youtube/` | Channel icon (800×800), channel banner (2560×1440) and video thumbnail (1280×720) |
 | `video/` | The promo video, built on [promo-video-generator](https://github.com/maximus2526/promo-video-generator) |
 
 ## Regenerate images
@@ -29,6 +30,8 @@ cd Promo/video
 node plugin-cli.mjs stills --t 3,9,18      # review frames
 node plugin-cli.mjs all                     # audio → frames → out/factorial2000-catalog-sync.mp4
 ```
+
+Add `--reels` to any command for the vertical 1080×1920 cut (32 s, `out/factorial2000-catalog-sync-reels.mp4`).
 
 The storyboard (44 s, 120 BPM): intro → import (Free) → stock & price sync (Free + Pro) → Free vs Pro board → Prom.ua marketplaces (Pro) → XML editor / images / fields updater (Pro) → end card.
 Timing lives in `video/src/plugin/timeline.js`, visuals in `scene.js`, sound in `synth.js`.
