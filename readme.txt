@@ -1,7 +1,7 @@
 === Factorial2000 Catalog Sync for Prom.ua ===
 Contributors: factorial2000
 Donate link: https://send.monobank.ua/jar/8CiFBAfJKK
-Tags: woocommerce, import, xml, stock, prom
+Tags: woocommerce, prom-ua, xml-import, stock-sync, marketplace
 Requires at least: 5.8
 Tested up to: 7.0.4
 Requires PHP: 7.4
@@ -9,35 +9,61 @@ Stable tag: 0.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Import Prom.ua/YML feeds into WooCommerce, sync stock and prices, export your products to Prom.ua. Free forever + 14-day Pro trial.
+Sync WooCommerce with supplier XML/YML feeds: import products, update stock and prices on a schedule. Pro publishes your catalog to Prom.ua.
 
 == Description ==
 
-This plugin connects your WooCommerce store with supplier XML feeds for automatic catalog synchronization.
+**Factorial2000 Catalog Sync** connects a WooCommerce store to the product feeds of its suppliers and to marketplaces. It is built for Ukrainian online stores, dropshippers and sellers who work with Prom.ua and YML/XML price lists. The admin screens and the built-in documentation are in Ukrainian.
 
-**Standout features (Pro):** the Marketplaces page publishes your WooCommerce catalog as a Prom.ua YML feed at a permanent URL and can rebuild it after every stock sync, so Prom always gets current prices and stock. The XML Editor lets you visually build a custom Prom.ua export — pick categories and products, apply price/stock filters, and generate a ready-to-upload XML in seconds.
+It does three jobs:
 
-**Key features:**
+1. **Import products from a supplier feed.** Give it an XML/YML link (a Prom.ua export, a supplier price list, OneBox and similar) and it creates WooCommerce products: simple and variable products with names, descriptions, pictures, attributes, categories, weight, barcode and dimensions.
+2. **Keep stock and prices in sync.** A scheduled job (WP-Cron) reads the feed again and updates availability and prices, so the shop does not sell what the supplier no longer has. A Telegram report tells you what changed.
+3. **Publish your catalog to a marketplace (Pro).** Today that is **Prom.ua**: the plugin builds a Prom-compatible YML feed from your WooCommerce products at a permanent private link, and Prom imports it from that link. The Marketplaces page is built so that other marketplaces (for example Rozetka and Hotline) can be added later; they are planned and are not available yet.
 
-* Free forever plan + **14-day Pro trial with no credit card** (full Pro features during the trial in the Pro version, which Freemius offers to install when the trial starts)
-* Import simple and variable products from XML — names, descriptions, images (picture), attributes (param), categories, weight, barcode, dimensions
-* Automatic stock status and price sync via WP-Cron: daily in Free (plus 3 manual runs a day); in Pro every 5/10/15/30 minutes, hourly, 8/6/4 times daily, twice daily or daily, with no manual-run limit
-* Supplier slots with individual SKU prefixes and a skip-price option (Free: 1 supplier; Pro: multiple suppliers and stock quantity updates). Price adjustments — margin/markup/fixed — are available for every supplier on all plans
-* Telegram notifications with sync reports
-* XML export (Pro): filter to keep only new products, or use the visual XML editor to build a custom feed by category/product — **key differentiator** for marketplace sellers
-* Marketplaces (Pro): export WooCommerce products to Prom.ua as a YML feed (variations, brands, Prom categories); rebuilt on a schedule and/or right after each stock sync
-* Fields updater (Pro): update selected fields (name, description, images, attributes, categories, tags, vendorCode) on already-imported products
-* Image processing (Pro): convert PNG/JPG/WebP/AVIF to WebP, AVIF or JPG on import (GIF and BMP unchanged); optimize, resize
-* Currency conversion via XML currencies/currencyId
-* Built-in documentation page with sticky sidebar navigation
-* Clean uninstall removes plugin settings, transients, cron jobs, generated exports and marketplace feeds
-* Automated test suite: 300+ PHPUnit unit tests (offline stubs, no WordPress/WooCommerce required to run) covering XML parse/import modes, stock sync, fields update, export filter/editor, marketplace feeds, licensing, and admin AJAX security gates
+= What you get for free =
 
-**Requirements:**
+Everything below is in the plugin you download from WordPress.org, with no time limit:
 
-* WordPress 5.8 or higher
-* WooCommerce 3.0 or higher
-* PHP 7.4 or higher with XML, SimpleXML, and cURL extensions
+* Import simple and variable products from XML/YML (`<offer>`, `group_id`, `<param>`, `<picture>`, categories, weight, barcode, dimensions)
+* Option to import only products that are in stock
+* Automatic stock status and price updates for one supplier, once a day, plus 3 manual runs a day
+* SKU prefix per supplier, so the plugin only touches its own products
+* Price adjustment per supplier: markup, margin or a fixed amount
+* Currency conversion from the feed's `<currencies>` / `currencyId`
+* Products that disappear from the supplier feed are drafted (variations are set out of stock); they come back when the supplier lists them again. A broken or empty feed is never trusted: it sets that supplier's products out of stock instead of publishing wrong data
+* Telegram notifications with import and sync reports
+* Built-in documentation, clean uninstall
+
+= What Pro adds =
+
+Pro is a separate build of the same plugin that you install from your Freemius account. It does not unlock anything inside the plugin from WordPress.org; the Pro code is simply not part of it.
+
+* **Marketplaces: Prom.ua feed.** Publishes your WooCommerce products to Prom.ua as a YML feed at a permanent link. Simple and variable products, brands, pictures and Prom categories are supported, and catalogs of 10,000+ offers are built in the background. Rebuild on a schedule, from the command line (`wp f2000cs marketplace build prom`), or **right after every stock sync**, so Prom always gets current prices and stock
+* **Prom categories picked by name.** The Prom category list is built in: search it in a Select2 field when you map your store categories, set a default category, or choose a category for one product
+* **A report on what was left out and why** (no price, no picture, no category, duplicate variations), with example SKUs; protection against publishing a feed that suddenly shrank
+* **Several suppliers** with their own XML links, SKU prefixes and settings
+* **Stock quantity updates** and more frequent syncs: every 5, 10, 15 or 30 minutes, hourly, or several times a day, without the manual-run limit
+* **XML editor and export filter:** build a custom Prom.ua export by category or product, with price and stock filters
+* **Fields updater:** update chosen fields (name, description, pictures, attributes, categories, tags, vendor code) on products that are already imported
+* **Image processing:** convert and resize pictures to WebP, AVIF or JPG on import
+
+You can start a **14-day Pro trial without a credit card** from the plugin (Freemius account). When the trial ends, the Free features keep working.
+
+= Who it is for =
+
+* Stores that take their catalog from one or several suppliers and want stock and prices to update by themselves
+* Sellers who list the same WooCommerce products on Prom.ua and need a clean, correct feed instead of maintaining Prom by hand
+* Agencies that set up product synchronization for several shops
+
+= How it works in short =
+
+1. Add the supplier XML link and a SKU prefix on **Синхронізація каталогу → Оновлення XML**.
+2. Run the first import on **Імпорт XML**.
+3. Choose how often stock and prices update.
+4. (Pro) Open **Маркетплейси**, pick a Prom.ua preset, map your categories, and give Prom the feed link.
+
+**Requirements:** WordPress 5.8+, WooCommerce 3.0+, PHP 7.4+ with the XML, SimpleXML and cURL extensions.
 
 **Video setup guide:** [YouTube tutorial](https://www.youtube.com/watch?v=tdrMy7cAWEk)
 
@@ -49,42 +75,56 @@ This plugin connects your WooCommerce store with supplier XML feeds for automati
 4. Open **Синхронізація каталогу → Оновлення XML** in the admin menu.
 5. Add your supplier XML URL, SKU prefix (e.g. `SUP_`), and choose the update interval.
 6. Go to **Імпорт XML** for the initial product import from your XML file.
-7. Optionally configure Telegram notifications and cron interval on the **Оновлення XML** page.
+7. Optionally configure Telegram notifications on the **Оновлення XML** page.
 8. Refer to the **Документація** tab for full usage details.
+
+To use Pro features (Prom.ua feed, several suppliers, XML editor, image processing), install the Pro build from your Freemius account; the plugin shows the link when you start a trial or buy a license.
 
 == Frequently Asked Questions ==
 
-= Does this plugin require WooCommerce? =
+= How do I sync supplier stock and prices with WooCommerce? =
 
-Yes. This plugin is built specifically for WooCommerce product import and synchronization.
+Add the supplier's XML/YML link and a SKU prefix on the **Оновлення XML** page and choose an update interval. The plugin reads the feed on schedule and updates stock status and prices of the products that carry that prefix. The Free plan updates one supplier once a day; Pro supports several suppliers and intervals from every 5 minutes.
 
-= Which XML format is supported? =
+= How do I import products from a Prom.ua or YML feed into WooCommerce? =
 
-The plugin supports YML format used by Prom.ua and many Ukrainian suppliers. Both simple `<offer>` and variable products (with `group_id`) are supported. See the built-in Documentation page for the full field reference.
-
-= Can I connect multiple suppliers? =
-
-Yes, in Pro. Each supplier slot has its own XML URL, SKU prefix and an option to skip price updates; Price adjustment rules (margin, markup, fixed amount) work on every plan; Pro adds stock quantity updates per slot. The Free plan syncs one supplier (slots saved earlier, e.g. during a trial, stay editable). Pro and the free 14-day trial (no credit card) also unlock more frequent cron intervals.
-
-= Is there a free Pro trial? =
-
-Yes. You can start a **14-day Pro trial without entering a credit card**. Pro features live in the Pro version of the plugin: install it from your Freemius account (or the prompt shown after the trial starts) and during the trial you get the same features as Pro. After it ends, the Free plan limits apply again unless you upgrade.
+Open **Імпорт XML**, paste the feed link (or choose a file), analyze it, and run the import. Simple products and variable products (offers grouped by `group_id`) are supported, with images, attributes and categories.
 
 = Can I export my WooCommerce products to Prom.ua? =
 
-Yes, in Pro: open **Синхронізація каталогу → Маркетплейси**, set up the Prom.ua feed and give Prom the feed URL shown on the page (Prom → import from a link). The feed contains published products with a price, a photo and a category (drafts can be included with an option); out-of-stock products are listed with `available="false"`. It is built in the background and can be refreshed on a schedule and/or after every stock sync («Після оновлення наявності»). The feed URL contains a secret token; anyone who knows it can read your product data, the same as Prom does.
+Yes, in Pro. Open **Синхронізація каталогу → Маркетплейси**, set up the Prom.ua feed and give Prom the feed URL shown on the page (Prom → import from a link). The feed contains published products with a price, a picture and a category; out-of-stock products are listed with `available="false"`. It is built in the background and can be refreshed on a schedule and/or after every stock sync. The feed URL contains a secret token; anyone who knows it can read your product data, the same as Prom does.
 
-= What happens to products missing from the XML feed? =
+= Which marketplaces are supported? =
 
-During scheduled stock updates, if a SKU prefix is configured, the plugin detects products in WooCommerce with that prefix that are no longer present in the XML. Simple products are moved to "Draft". Variations are marked "Out of stock" (variable parent products are not drafted). If no SKU prefix is set, this check is skipped. Ensure your XML feed always contains the full catalog — a truncated feed can hide many simple products.
+Prom.ua (Pro). The Marketplaces page is designed to hold more marketplaces; Rozetka and Hotline are planned and not available yet.
+
+= What is free and what is paid? =
+
+The plugin on WordPress.org is fully working and has no locked features: import, one-supplier scheduled sync, price adjustment, currency conversion, Telegram reports. Pro is a separate build with the marketplace feed, several suppliers, quantity updates, the XML editor, the fields updater and image processing. See "What you get for free" and "What Pro adds" above.
+
+= Is there a free Pro trial? =
+
+Yes: 14 days, no credit card. Install the Pro build from your Freemius account when the trial starts. After it ends, the Free plugin keeps working with its normal limits.
+
+= Does this plugin require WooCommerce? =
+
+Yes. It is built for WooCommerce product import and synchronization.
+
+= Which XML format is supported? =
+
+YML as used by Prom.ua and many Ukrainian suppliers, including simple `<offer>` and variable products with `group_id`. See the built-in documentation for the field reference.
+
+= What happens to products missing from the supplier feed? =
+
+If a SKU prefix is configured, products with that prefix that are no longer in the feed are handled: simple products go to Draft, variations are set out of stock. Products you drafted yourself are not touched. If the feed is broken or empty, the plugin does not trust it and sets that supplier's products out of stock until a valid feed returns. Without a SKU prefix nothing is changed. Make sure your feed always contains the full catalog.
 
 = Does it work on shared hosting? =
 
-Yes. The plugin uses XMLReader streaming for efficient parsing and supports both background (WP-Cron) and synchronous update modes. For large catalogs, use the background mode. The import processes products one at a time via AJAX, which works well on most shared hosts for catalogs up to a few thousand products.
+Yes. It reads feeds with a streaming XML parser and supports background (WP-Cron) and synchronous modes. For large catalogs use the background mode.
 
 = In which language are the plugin screens and documentation? =
 
-The plugin interface and the built-in documentation page are in Ukrainian.
+Ukrainian.
 
 = Where can I report bugs or request features? =
 
@@ -92,17 +132,23 @@ Please use the support tab on WordPress.org.
 
 == External services ==
 
-This plugin connects to external services. Both are optional and are only used when you configure them.
+This plugin connects to external services. All of them are optional and are used only when you configure them or opt in.
 
 **Supplier XML feeds (e.g. Prom.ua)**
 
-When you enter an XML feed URL in the settings, the plugin downloads that file during the initial import and during scheduled stock/price updates. Only a request to the URL you provide is made and no personal data is sent. The feed itself is provided by your supplier (for example Prom.ua); please refer to that provider's own terms and privacy policy.
+When you enter an XML feed URL in the settings, the plugin downloads that file during the initial import and during scheduled stock/price updates. Only a request to the URL you provide is made and no personal data is sent. The feed is provided by your supplier (for example Prom.ua); please refer to that provider's own terms and privacy policy.
 
 **Telegram Bot API**
 
 If you enter a Telegram bot token and one or more chat IDs in the settings, the plugin sends notification messages to the Telegram Bot API (https://api.telegram.org) after an import or a stock/price update completes. The data sent includes your bot token, the target chat ID(s) and the text of the sync report (for example counts of updated or missing products). Requests are made only when Telegram notifications are configured and an update runs.
 
-This service is provided by Telegram. By enabling notifications you agree to Telegram's Terms of Service (https://telegram.org/tos) and Privacy Policy (https://telegram.org/privacy).
+This service is provided by Telegram. Terms of Service: https://telegram.org/tos. Privacy Policy: https://telegram.org/privacy.
+
+**Freemius (licensing, trial and optional usage data)**
+
+The plugin includes the Freemius SDK, which provides the Pro trial, license activation and the account area. Nothing is sent until you opt in or start a trial or purchase from the plugin screens. After you opt in, the SDK sends the data Freemius describes: your site URL, WordPress/PHP and plugin versions, and the admin name and email address, so that your account, trial and license can be managed. You can skip the opt-in and keep using the Free features.
+
+This service is provided by Freemius. Terms of Service: https://freemius.com/terms/. Privacy Policy: https://freemius.com/privacy/.
 
 == Screenshots ==
 
@@ -114,7 +160,7 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 == Upgrade Notice ==
 
 = 0.7.0 =
-Pro features moved to a separate Pro build. If you use a Pro license, stock quantity updates or the marketplace feed, install the Pro version from your Freemius account before updating. Price markup now works in the Free version too.
+Pro features moved to a separate Pro build. If you use a Pro license, stock quantity updates or the marketplace feed, install the Pro version from your Freemius account before updating. Price adjustment now works in the Free version too.
 
 == Changelog ==
 
