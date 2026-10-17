@@ -138,6 +138,7 @@ Improved:
 * (Pro) The Prom feed follows Prom's import rules: the article (vendorCode) is cut to 25 allowed characters, the product code is sent as <gtin> (Prom reads <barcode> as an article), a name without letters is skipped, and the page warns about an unsupported currency and a file over 180 MB. It also explains that Prom takes prices and stock every 4 hours.
 * (Pro) Product descriptions sent to Prom lose shortcodes and block editor comments; line breaks of classic descriptions are kept as paragraphs. Picture URLs with Cyrillic file names are encoded.
 * (Pro) «Unpublished products» now also exports draft variations and no longer exports private products.
+* A broken supplier feed no longer leaves stale stock on the site: if the XML is torn (fatal parse error) or has no offers, every product and variation with that supplier's SKU prefix is set out of stock until a valid feed returns, and the Telegram message says why the feed failed. Without a SKU prefix nothing is touched, so the whole shop can never be hit.
 * Long import and sync runs no longer flush the whole object cache — only the transients cache group is cleared — so the import session cache and other caches survive a run. Plugin temp files older than two hours are removed by a daily cron event and by an hourly admin sweep.
 * With the Factorial2000 Translator active and both Russian and Ukrainian enabled, the Prom feed sends the Russian text in <name>/<description> and the Ukrainian one in <name_ua>/<description_ua> (a missing Russian translation falls back to the site language); language tags never leak into the feed.
 
@@ -149,6 +150,7 @@ Fixed:
 * Switching between Free and Pro no longer starts a full stock sync right away, and saving the settings on the Free version no longer overwrites the saved update interval.
 * The «Pro version missing» notice is shown on every admin screen and also when Pro settings are saved without a license.
 * (Pro) A Prom feed that suddenly has less than half the products of the last published one is held back (a broken supplier feed can no longer empty the catalog on Prom); a button publishes it when the shrink is expected.
+* (Pro) If the built Prom feed cannot replace the published file, the job now reports an error instead of «done», and the previous feed stays at the same link.
 * (Pro) A stock sync during a long feed build no longer restarts it; one more build runs when it finishes. Products drafted during a build are no longer skipped, and two builds can no longer run at once.
 * (Pro) Prom category rules match the start of the category path: «Одяг» no longer catches «Дитячий одяг».
 * (Pro) A variation without a size is no longer given a guessed size unless only one size is left for it.
