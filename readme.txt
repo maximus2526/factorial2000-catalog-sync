@@ -9,11 +9,15 @@ Stable tag: 0.7.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Sync WooCommerce with supplier XML/YML feeds: import products, update stock and prices on a schedule. Pro publishes your catalog to Prom.ua.
+Import Prom.ua / YML feeds into WooCommerce and auto-update stock and prices from supplier XML. Pro: Prom.ua feed.
 
 == Description ==
 
 **Factorial2000 Catalog Sync** connects a WooCommerce store to the product feeds of its suppliers and to marketplaces. It is built for Ukrainian online stores, dropshippers and sellers who work with Prom.ua and YML/XML price lists. The admin screens and the built-in documentation are in Ukrainian.
+
+**Українською:** Factorial2000 Catalog Sync — плагін для WooCommerce: імпорт товарів з Prom.ua (XML/YML) та прайсів постачальників, автоматичне оновлення цін і залишків за розкладом, націнка, звіти в Telegram. У Pro — фід для Prom.ua, кілька постачальників і оновлення від кожних 5 хвилин. Безкоштовно назавжди, Pro можна спробувати 14 днів без картки.
+
+https://www.youtube.com/watch?v=y7zDSvTM2XU
 
 It does three jobs:
 
@@ -82,6 +86,18 @@ To use Pro features (Prom.ua feed, several suppliers, XML editor, image processi
 
 == Frequently Asked Questions ==
 
+= Як імпортувати товари з Prom.ua в WooCommerce безкоштовно? =
+
+Встановіть плагін, відкрийте «Синхронізація каталогу → Імпорт XML», вставте посилання на XML/YML-вигрузку Prom.ua або постачальника і вкажіть SKU-префікс. Плагін створить прості та варіативні товари з фото, атрибутами й категоріями. Імпорт безкоштовний.
+
+= Як автоматично оновлювати ціни та залишки з XML постачальника? =
+
+На сторінці «Оновлення XML» додайте посилання на фід і оберіть інтервал. У безкоштовній версії оновлення йде щодня, у Pro — від кожних 5 хвилин. Можна задати націнку, маржу або фіксовану суму та отримувати звіти в Telegram.
+
+= How is it different from general-purpose importers? =
+
+It is built for one job: YML/Prom.ua feeds in WooCommerce. Scheduled stock and price sync and price adjustment are free, and the Pro build adds a ready Prom.ua feed. General-purpose importers let you map any file format yourself; this plugin has no custom field mapper and reads standard YML tags.
+
 = How do I sync supplier stock and prices with WooCommerce? =
 
 Add the supplier's XML/YML link and a SKU prefix on the **Оновлення XML** page and choose an update interval. The plugin reads the feed on schedule and updates stock status and prices of the products that carry that prefix. The Free plan updates one supplier once a day; Pro supports several suppliers and intervals from every 5 minutes.
@@ -118,9 +134,21 @@ YML as used by Prom.ua and many Ukrainian suppliers, including simple `<offer>` 
 
 If a SKU prefix is configured, products with that prefix that are no longer in the feed are handled: simple products go to Draft, variations are set out of stock. Products you drafted yourself are not touched. If the feed is broken or empty, the plugin does not trust it and sets that supplier's products out of stock until a valid feed returns. Without a SKU prefix nothing is changed. Make sure your feed always contains the full catalog.
 
-= Does it work on shared hosting? =
+= Does it work on shared hosting and with big catalogs? =
 
-Yes. It reads feeds with a streaming XML parser and supports background (WP-Cron) and synchronous modes. For large catalogs use the background mode.
+Yes. Feeds are read with a streaming XML parser, so a large file does not have to fit in memory. The stock and price sync works in batches of 100 products and stops before the PHP time limit; the import runs in small portions, so one request never has to process the whole catalog. Scheduled runs use WP-Cron. For large catalogs, or if your site has little traffic, add a real server cron that calls `wp-cron.php` (the built-in documentation has a ready line) and use the background mode.
+
+= Why is the first import with pictures slow? =
+
+WordPress has to download every picture from the supplier and create its thumbnail sizes, so the first import of a catalog with many photos takes time on any hosting. It runs in portions and can be repeated: products that already exist are skipped, so you can continue where it stopped. Later stock and price syncs do not download pictures.
+
+= Do I have to map the feed fields myself? =
+
+No, and there is no custom field mapper: the plugin reads the standard YML tags used by Prom.ua and most Ukrainian suppliers (see the field reference in the built-in documentation). If a supplier uses another structure, ask for their Prom.ua/YML export.
+
+= What happens if I rename or move categories in WooCommerce? =
+
+Stock and price sync never changes names, descriptions, pictures or categories of existing products. When you import new products, categories are matched by name and parent, so a category you renamed may be created again under the feed's original name. Rename it in the feed or reassign the products after the import. In Pro, the fields updater can refresh categories of imported products.
 
 = In which language are the plugin screens and documentation? =
 
