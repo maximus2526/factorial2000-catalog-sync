@@ -1,0 +1,19 @@
+{
+  "name": "promo-video-generator",
+  "version": "1.0.0",
+  "description": "Prompt + store URLs → 60 fps motion-graphics promo video (Playwright, HTML/CSS, FFmpeg, synthesized audio)",
+  "scripts": {
+    "render": "node cli.js all",
+    "video": "node cli.js video",
+    "audio": "node cli.js audio",
+    "mux": "node cli.js mux",
+    "stills": "node cli.js stills",
+    "preview": "node cli.js preview",
+    "new": "node cli.js new"
+  },
+  "type": "module",
+  "devDependencies": {
+    "playwright": "^1.49.1"
+  },
+  "private": true
+}

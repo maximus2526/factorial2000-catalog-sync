@@ -1,0 +1,41 @@
+{
+  "name": "leafline",
+  "prompt": "Зроби сайт у повному обсязі, а на виході — дизайн з цього сайту",
+  "sites": [
+    { "url": "https://neighborlyparcel.s6-tastewp.com/", "label": "Leafline" },
+    { "url": "https://failscissors.s3-tastewp.com/", "label": "Fail Scissors" }
+  ],
+  "brand": {
+    "name": "Woodmart",
+    "watermark": "WOODMART",
+    "tabSuffix": "Woodmart"
+  },
+  "terminal": {
+    "cwd": "~/stores/leafline",
+    "reply": "Зніму дизайн сайту й зберу магазин на Woodmart через MCP.",
+    "calls": [
+      { "tool": "mcp-adapter-discover-abilities", "result": "Found <b>90</b> abilities" },
+      { "tool": "mcp-adapter-execute-ability", "ability": "woodmart/create-header", "result": "Header created · sticky · mega menu" },
+      { "tool": "mcp-adapter-execute-ability", "ability": "woodmart/elementor-create-content", "result": "Home page created · 9 sections" }
+    ],
+    "server": "woodmart",
+    "todos": ["Зняти дизайн сайту", "Хедер і мега-меню", "Головна сторінка", "Товари та Quick View"],
+    "spinner": "Building…"
+  },
+  "features": ["AJAX Quick Shop", "Mega Menu", "AJAX Quick View", "Wishlist & Compare"],
+  "marquee": ["DESIGN SYSTEM", "HEADER BUILDER", "AJAX QUICK SHOP", "QUICK VIEW", "MEGA MENU", "PRODUCT HOVERS"],
+  "headline": {
+    "kicker": "WooCommerce theme",
+    "lines": ["#1 Best Selling", "WooCommerce Theme"],
+    "stars": true
+  },
+  "pins": {
+    "designSystem": { "title": "Woodmart Design System", "text": "Header Builder, presets & layouts" },
+    "pageLoad": { "value": "0.2s", "title": "Page Load", "text": "Optimized CSS & lazy assets" },
+    "mobile": { "value": "100%", "title": "Mobile Optimized", "text": "Responsive on every breakpoint" }
+  },
+  "pagespeed": { "enabled": true, "scores": [100, 100, 100, 100] },
+  "lockup": { "title": "MCP Woodmart", "tagline": "Your complete WooCommerce store — built by AI." },
+  "audio": { "track": null },
+  "render": { "blur": 4, "crf": 14 }
+}

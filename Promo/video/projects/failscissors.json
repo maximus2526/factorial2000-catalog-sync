@@ -1,0 +1,9 @@
+{
+  "name": "failscissors",
+  "prompt": "Build me a complete store with the design of this site",
+  "sites": [
+    {
+      "url": "https://failscissors.s3-tastewp.com/"
+    }
+  ]
+}
