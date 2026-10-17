@@ -218,7 +218,7 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 			'Type'                    => (string) $product->get_type(),
 			'SKU'                     => (string) $product->get_sku(),
 			'GTIN, UPC, EAN, or ISBN' => $this->gtin( $product ),
-			'Name'                    => (string) $product->get_name(),
+			'Name'                    => self::raw_product_name( $product ),
 			'Published'               => $published ? '1' : '0',
 			'Short description'       => (string) $product->get_short_description( 'edit' ),
 			'Description'             => (string) $product->get_description( 'edit' ),
@@ -251,6 +251,58 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 		}
 
 		return $row;
+	}
+
+	/**
+	 * Product name with the translator's WooCommerce getter filters detached.
+	 *
+	 * A multilingual name must reach a feed exactly as stored: the Factorial2000
+	 * Translator filters the WooCommerce getters to the current language for
+	 * display, which would leave a single language in the rows. Only that
+	 * plugin's callbacks are detached, and they are attached back right after
+	 * the read.
+	 *
+	 * @param \WC_Product $product Product or variation.
+	 * @return string
+	 */
+	public static function raw_product_name( $product ): string {
+		if ( ! class_exists( '\F2000TR\WooCommerce' ) ) {
+			return (string) $product->get_name();
+		}
+
+		$hooks    = array(
+			'woocommerce_product_get_name',
+			'woocommerce_product_variation_get_name',
+			'woocommerce_product_title',
+			'woocommerce_attribute_label',
+			'woocommerce_variation_option_name',
+		);
+		$detached = array();
+
+		foreach ( $hooks as $hook ) {
+			if ( ! isset( $GLOBALS['wp_filter'][ $hook ] ) || empty( $GLOBALS['wp_filter'][ $hook ]->callbacks ) ) {
+				continue;
+			}
+
+			foreach ( $GLOBALS['wp_filter'][ $hook ]->callbacks as $priority => $callbacks ) {
+				foreach ( $callbacks as $callback ) {
+					$fn = isset( $callback['function'] ) ? $callback['function'] : null;
+
+					if ( is_array( $fn ) && is_object( $fn[0] ) && $fn[0] instanceof \F2000TR\WooCommerce && 'translate_text' === $fn[1] ) {
+						remove_filter( $hook, $fn, (int) $priority );
+						$detached[] = array( $hook, $fn, (int) $priority, (int) ( $callback['accepted_args'] ?? 1 ) );
+					}
+				}
+			}
+		}
+
+		try {
+			return (string) $product->get_name();
+		} finally {
+			foreach ( $detached as $entry ) {
+				add_filter( $entry[0], $entry[1], $entry[2], $entry[3] );
+			}
+		}
 	}
 
 	/**

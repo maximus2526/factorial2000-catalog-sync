@@ -138,6 +138,8 @@ Improved:
 * (Pro) The Prom feed follows Prom's import rules: the article (vendorCode) is cut to 25 allowed characters, the product code is sent as <gtin> (Prom reads <barcode> as an article), a name without letters is skipped, and the page warns about an unsupported currency and a file over 180 MB. It also explains that Prom takes prices and stock every 4 hours.
 * (Pro) Product descriptions sent to Prom lose shortcodes and block editor comments; line breaks of classic descriptions are kept as paragraphs. Picture URLs with Cyrillic file names are encoded.
 * (Pro) «Unpublished products» now also exports draft variations and no longer exports private products.
+* Long import and sync runs no longer flush the whole object cache — only the transients cache group is cleared — so the import session cache and other caches survive a run. Plugin temp files older than two hours are removed by a daily cron event and by an hourly admin sweep.
+* With the Factorial2000 Translator active and both Russian and Ukrainian enabled, the Prom feed sends the Russian text in <name>/<description> and the Ukrainian one in <name_ua>/<description_ua> (a missing Russian translation falls back to the site language); language tags never leak into the feed.
 
 Fixed:
 * After switching from Free to Pro the scheduled stock sync stopped until the next manual run. The schedule is now restored on activation and follows the real interval when a trial starts or ends.
@@ -153,6 +155,7 @@ Fixed:
 * Products that 0.6.x set to Draft are not published again automatically: only products drafted by 0.7.0 or later are.
 * A trial started on the Free version no longer shows a «full Pro access» countdown; it explains that the Pro version has to be installed.
 * Activating Free and Pro versions together no longer mixes up which copy is premium.
+* A URL import could leave hundreds of leftover files in the system temp folder: the feed cache lived in a transient that the plugin's own cache cleanup dropped mid-import, so every batch request downloaded the feed into a new temp file. The cached download now uses a deterministic per-session file and is reused while it exists; uninstall removes these files too.
 
 Security:
 * Attribute names and server messages from a supplier feed are shown as plain text on the import analysis screen.

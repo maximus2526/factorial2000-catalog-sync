@@ -34,6 +34,7 @@ if ( ! defined( 'MONTH_IN_SECONDS' ) ) {
 }
 
 require_once __DIR__ . '/includes/wp-stubs.php';
+require_once __DIR__ . '/includes/f2000tr-stubs.php';
 require_once __DIR__ . '/includes/reflection.php';
 require_once __DIR__ . '/includes/BaseTestCase.php';
 

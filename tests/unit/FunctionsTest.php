@@ -295,6 +295,20 @@ final class F2000CS_Unit_FunctionsTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * The transients cleanup flushes only the transients group, never the whole cache.
+	 *
+	 * A global wp_cache_flush() here used to drop the import session cache mid-import.
+	 *
+	 * @return void
+	 */
+	public function test_cleanup_wc_transients_flushes_only_the_transients_group() {
+		f2000cs_cleanup_wc_transients();
+
+		$this->assertSame( 0, F2000CS_Test_State::$cache_flush_calls, 'No global object-cache flush' );
+		$this->assertSame( array( 'transients' ), F2000CS_Test_State::$cache_flushed_groups );
+	}
+
+	/**
 	 * Server resources report reads PHP ini values.
 	 *
 	 * @return void

@@ -280,9 +280,8 @@ class XML_Stock_Updater {
 	 * Clean up resources after processing
 	 */
 	private function cleanup_resources() {
-		if ( function_exists( 'wp_cache_flush' ) ) {
-			wp_cache_flush();
-		}
+		f2000cs_flush_transients_cache();
+		f2000cs_flush_runtime_cache();
 		gc_collect_cycles();
 
 		f2000cs_cleanup_wc_transients();
@@ -630,7 +629,8 @@ class XML_Stock_Updater {
 			}
 
 			if ( $batch_index % 10 === 0 ) {
-				wp_cache_flush();
+				f2000cs_flush_transients_cache();
+				f2000cs_flush_runtime_cache();
 				gc_collect_cycles();
 			}
 		}

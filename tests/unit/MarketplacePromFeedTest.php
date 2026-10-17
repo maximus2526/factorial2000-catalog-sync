@@ -412,6 +412,120 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		$this->assertStringContainsString( '<portal_category_id>999</portal_category_id>', $noVendor['xml'] );
 	}
 
+	// ---------------------------------------------------------------- translator languages
+
+	/**
+	 * Enable the stubbed translator with Russian and Ukrainian.
+	 *
+	 * @return void
+	 */
+	private function enable_ru_uk_translator(): void {
+		F2000CS_Test_State::$f2000tr_languages = array(
+			'uk' => array( 'name' => 'Українська', 'locale' => 'uk_UA' ),
+			'ru' => array( 'name' => 'Русский', 'locale' => 'ru_RU' ),
+		);
+	}
+
+	/**
+	 * With the translator active and ru+uk enabled, the Russian text goes to the
+	 * main Prom fields and the Ukrainian one to the _ua fields.
+	 *
+	 * @return void
+	 */
+	public function test_translator_languages_split_name_and_description() {
+		$this->enable_ru_uk_translator();
+
+		$res = $this->process(
+			array(
+				'kind' => 'simple',
+				'row'  => $this->simple_row(
+					array(
+						'Name'        => '[:uk]Куртка[:ru]Курточка[:]',
+						'Description' => '[:uk]<p>Тепла куртка</p>[:ru]<p>Теплая курточка</p>[:]',
+					)
+				),
+			)
+		);
+
+		$this->assertSame( 1, $res['exported'] );
+		$this->assertStringContainsString( '<name>Курточка</name>', $res['xml'] );
+		$this->assertStringContainsString( '<name_ua>Куртка</name_ua>', $res['xml'] );
+		$this->assertStringContainsString( '&lt;p&gt;Теплая курточка&lt;/p&gt;', $res['xml'] );
+		$this->assertStringContainsString( '&lt;p&gt;Тепла куртка&lt;/p&gt;', $res['xml'] );
+		$this->assertStringNotContainsString( '[:', $res['xml'], 'No language tags leak into the feed' );
+	}
+
+	/**
+	 * A missing Russian translation falls back to the main language for the main fields.
+	 *
+	 * @return void
+	 */
+	public function test_translator_languages_fall_back_when_translation_missing() {
+		$this->enable_ru_uk_translator();
+
+		$res = $this->process(
+			array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Name' => '[:uk]Куртка[:]' ) ) )
+		);
+
+		$this->assertSame( 1, $res['exported'] );
+		$this->assertStringContainsString( '<name>Куртка</name>', $res['xml'] );
+		$this->assertStringContainsString( '<name_ua>Куртка</name_ua>', $res['xml'] );
+	}
+
+	/**
+	 * Without both Russian and Ukrainian the feed does not split the value
+	 * (tags, if any, stay as they are).
+	 *
+	 * @return void
+	 */
+	public function test_translator_languages_other_set_keeps_the_value() {
+		F2000CS_Test_State::$f2000tr_languages = array(
+			'uk' => array( 'name' => 'Українська', 'locale' => 'uk_UA' ),
+			'en' => array( 'name' => 'English', 'locale' => 'en_US' ),
+		);
+
+		$res = $this->process(
+			array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Name' => '[:uk]Куртка[:en]Jacket[:]' ) ) )
+		);
+
+		$this->assertSame( 1, $res['exported'] );
+		$this->assertStringContainsString( '<name>[:uk]Куртка[:en]Jacket[:]</name>', $res['xml'] );
+	}
+
+	/**
+	 * A tagged name without letters is rejected like a plain one: tag letters
+	 * must not satisfy the name check.
+	 *
+	 * @return void
+	 */
+	public function test_translator_tagged_name_without_letters_is_skipped() {
+		$this->enable_ru_uk_translator();
+
+		$res = $this->process(
+			array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Name' => '[:uk]123-456[:ru]123-456[:]' ) ) )
+		);
+
+		$this->assertSame( 0, $res['exported'], 'Tag letters must not pass the name check' );
+		$this->assertSame( 1, $res['skipped'] );
+	}
+
+	/**
+	 * Text outside the language tags (variation suffixes like " - S") survives
+	 * the per-language split.
+	 *
+	 * @return void
+	 */
+	public function test_translator_languages_keep_variation_suffix() {
+		$this->enable_ru_uk_translator();
+
+		$res = $this->process(
+			array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Name' => '[:uk]Рукавички ALPHA[:ru]Рукавицы ALPHA[:] - S' ) ) )
+		);
+
+		$this->assertStringContainsString( '<name>Рукавицы ALPHA - S</name>', $res['xml'] );
+		$this->assertStringContainsString( '<name_ua>Рукавички ALPHA - S</name_ua>', $res['xml'] );
+	}
+
 	// ---------------------------------------------------------------- variable products
 
 	/**

@@ -365,4 +365,54 @@ final class F2000CS_Unit_MarketplaceWcSourceTest extends F2000CS_Unit_TestCase {
 
 		$this->assertSame( '', $source->row( $variation, $parent, $source->row( $parent ) )[ Marketplace_WC_Source::PROM_CATEGORY_COLUMN ] );
 	}
+
+	/**
+	 * The name is read with the translator's getter filters detached: it must
+	 * reach the feed as stored (both languages), and the callbacks come back
+	 * right after the read.
+	 *
+	 * @return void
+	 */
+	public function test_raw_product_name_detaches_the_translator_getter_filter() {
+		$translator = new \F2000TR\WooCommerce();
+		$callback   = array( $translator, 'translate_text' );
+
+		add_filter( 'woocommerce_product_get_name', $callback );
+
+		// The hook structure production scans to find the callbacks to detach.
+		$GLOBALS['wp_filter']['woocommerce_product_get_name'] = (object) array(
+			'callbacks' => array( 10 => array( array( 'function' => $callback ) ) ),
+		);
+
+		$product = new class() {
+			/**
+			 * @return string
+			 */
+			public function get_name() {
+				foreach ( F2000CS_Test_State::$hooks['woocommerce_product_get_name'] ?? array() as $entry ) {
+					if ( is_array( $entry['callback'] ) && 'translate_text' === ( $entry['callback'][1] ?? '' ) ) {
+						return 'TRANSLATED';
+					}
+				}
+
+				return 'RAW';
+			}
+		};
+
+		$name = Marketplace_WC_Source::raw_product_name( $product );
+
+		$restored = false;
+		foreach ( F2000CS_Test_State::$hooks['woocommerce_product_get_name'] ?? array() as $entry ) {
+			if ( $entry['callback'] === $callback ) {
+				$restored = true;
+			}
+		}
+
+		// Clean up before asserting so a failure cannot leak the hook.
+		remove_filter( 'woocommerce_product_get_name', $callback );
+		unset( $GLOBALS['wp_filter']['woocommerce_product_get_name'] );
+
+		$this->assertSame( 'RAW', $name, 'The translator getter filter is detached while the raw name is read' );
+		$this->assertTrue( $restored, 'The translator callback is attached again after the read' );
+	}
 }

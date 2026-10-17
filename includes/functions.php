@@ -651,6 +651,41 @@ function f2000cs_is_configured() {
 }
 
 /**
+ * Flush the transients cache group only.
+ *
+ * The plugin clears its own and WooCommerce's transients during long runs. A global
+ * cache flush would also drop the plugin's other entries — e.g. the URL import
+ * session cache — mid-import, which used to re-download the feed into a new temp
+ * file on every request. On WordPress without group support (before 6.1) the flush
+ * is skipped on purpose: a global flush is exactly what this avoids.
+ *
+ * @return void
+ */
+function f2000cs_flush_transients_cache() {
+	if ( function_exists( 'wp_cache_flush_group' ) ) {
+		wp_cache_flush_group( 'transients' );
+	}
+}
+
+/**
+ * Free the in-process (runtime) object cache only.
+ *
+ * Long stock runs keep every loaded product and its meta in the runtime
+ * cache until the end of the request. The old global object-cache flush
+ * also cleared the persistent layer, which dropped the import session
+ * mid-run; wp_cache_flush_runtime() (WordPress 6.0+) frees the memory
+ * without touching the persistent layer. On older WordPress it is skipped:
+ * a global flush is exactly what this avoids.
+ *
+ * @return void
+ */
+function f2000cs_flush_runtime_cache() {
+	if ( function_exists( 'wp_cache_flush_runtime' ) ) {
+		wp_cache_flush_runtime();
+	}
+}
+
+/**
  * Clean up WooCommerce transients to free memory
  *
  * @param bool $aggressive Whether to perform aggressive cleanup
@@ -685,9 +720,7 @@ function f2000cs_cleanup_wc_transients( $aggressive = false ) {
 		);
 	}
 
-	if ( function_exists( 'wp_cache_flush' ) ) {
-		wp_cache_flush();
-	}
+	f2000cs_flush_transients_cache();
 }
 
 /**

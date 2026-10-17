@@ -9,6 +9,7 @@ File:line references are from the audit and may have shifted.
 - [x] **M** `admin-import.js`: supplier-controlled attribute names and server messages were rendered with `.html()` → now text only (DOM-XSS).
 - [x] **L** Uninstall now also removes `f2000cs_*` transients (import cache, resume checkpoints, download tokens).
 - [x] **H** Products the plugin drafted because they vanished from the feed are published again when the feed lists them (marker meta `_f2000cs_auto_drafted`, filter `f2000cs_republish_returned_products`).
+- [x] **H** Global `wp_cache_flush()` calls are gone: flushes go through `f2000cs_flush_transients_cache()` (`transients` group only) and `f2000cs_flush_runtime_cache()` (in-process memory, WP 6.0+) at the two periodic spots; a source-scan unit test keeps a global flush from coming back.
 
 ## Open
 
@@ -33,7 +34,7 @@ Found while comparing the feed with the Prom seller help (`support.prom.ua`, «�
 - [ ] **Mass-draft guard.** `XML_Stock_Updater::find_missing_products_in_xml()` drafts/zeroes everything absent from the XML with no threshold. Skip the "missing" step (and alert) when the feed looks broken: parse errors (`libxml_get_errors`, stop using `LIBXML_NOERROR` blindly), offer count far below the DB SKU count (e.g. < 50 %), HTTP body suspiciously small.
 - [ ] **Variable parents reported as missing every run.** Parent SKU is `prefix + group_id` but only offer ids are compared. Add `group_id` values (prefixed) to the XML SKU set; stop re-reporting products that are already drafted.
 - [ ] **No sync lock.** Add a transient/option mutex around `update_products_stock_status()` (cron + manual run + 5/10-minute intervals overlap). The "time limit approaching → continue next run" branch does not resume; store an offset or process in cron-chained batches.
-- [ ] **`wp_cache_flush()` in cron** (`class-stock-updater.php`, `functions.php` `f2000cs_cleanup_wc_transients`) flushes the whole site cache with Redis/Memcached. Replace with targeted `wc_delete_product_transients()` / cache group invalidation; drop the `LIKE '%…%'` scan of `wp_options`.
+- [ ] **M** `f2000cs_cleanup_wc_transients()` still deletes WooCommerce transients with leading-wildcard `LIKE '%…%'` scans of `wp_options`; replace with targeted `wc_delete_product_transients()` (the cache flush itself is already targeted — see Done).
 
 ### H — Import scalability
 - [ ] `XML_Parser::import_products()` re-reads and re-extracts the whole feed for every product (limit 1). Index offers once (byte offsets or a temp SQLite/JSON index per session) or process a chunk of N products per request.

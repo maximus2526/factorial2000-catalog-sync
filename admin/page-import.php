@@ -368,9 +368,23 @@ function f2000cs_remember_last_import_from_request(): void {
 }
 
 /**
+ * Deterministic temp path of the XML file cached for an import session.
+ *
+ * Unlike a one-shot wp_tempnam() name, the path can be rebuilt on every request,
+ * so the cached download survives losing the transient that used to point at it.
+ *
+ * @param string $session Import session key.
+ * @return string
+ */
+function f2000cs_import_xml_temp_path( string $session ): string {
+	return get_temp_dir() . 'f2000cs_import_' . sanitize_key( $session ) . '.tmp';
+}
+
+/**
  * Resolve local XML path for import/analyze from uploaded file or remote URL.
  *
- * For URL source the downloaded file is cached in a transient for chunked import.
+ * For URL source the downloaded file is cached in a deterministic per-session
+ * temp file for chunked import.
  *
  * @return array{path:string,session:string,managed:bool}|WP_Error
  */
@@ -382,16 +396,31 @@ function f2000cs_resolve_import_xml_source() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified by every caller before this runs.
 		$session = isset( $_POST['import_session'] ) ? sanitize_key( wp_unslash( $_POST['import_session'] ) ) : '';
 
-		if ( $session ) {
-			$cached = get_transient( 'f2000cs_import_xml_' . $session );
-			if ( is_string( $cached ) && $cached && file_exists( $cached ) ) {
-				f2000cs_remember_last_import_from_request();
-				return array(
-					'path'    => $cached,
-					'session' => $session,
-					'managed' => true,
-				);
-			}
+		if ( '' === $session ) {
+			// Lowercase: the session names the file below and sanitize_key() lowercases
+			// the key on every later request, so a mixed-case name would not match on
+			// case-sensitive filesystems.
+			$session = strtolower( wp_generate_password( 16, false, false ) );
+		}
+
+		// A deterministic per-session file, not a transient-registered wp_tempnam() name:
+		// the plugin's own transients cleanup can drop the transient mid-import, and
+		// file_exists() then still finds the download instead of fetching the feed
+		// again in every batch request (which left one orphaned temp file per request).
+		$temp_file = f2000cs_import_xml_temp_path( $session );
+
+		if ( file_exists( $temp_file ) ) {
+			// An actively resumed session keeps a fresh mtime, so the stale-file
+			// sweep (2 hours) never removes a file that is still in use.
+			@touch( $temp_file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_touch -- Best-effort mtime refresh of a temp-dir file; WP_Filesystem would require initializing credentials for this.
+
+			f2000cs_remember_last_import_from_request();
+
+			return array(
+				'path'    => $temp_file,
+				'session' => $session,
+				'managed' => true,
+			);
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified by every caller before this runs.
@@ -435,15 +464,16 @@ function f2000cs_resolve_import_xml_source() {
 			);
 		}
 
-		$temp_file = wp_tempnam( 'f2000cs_import_' );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Temp file is consumed by XMLReader; WP_Filesystem cannot write to a wp_tempnam() path outside the uploads dir.
-		if ( ! $temp_file || false === file_put_contents( $temp_file, $body ) ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- The file is consumed by XMLReader; WP_Filesystem cannot write to a path outside the uploads dir.
+		if ( false === file_put_contents( $temp_file, $body ) ) {
+			// A partial write must never be picked up as a cached download.
+			if ( file_exists( $temp_file ) ) {
+				wp_delete_file( $temp_file );
+			}
+
 			return new WP_Error( 'temp_failed', __( 'Не вдалося зберегти тимчасовий XML файл.', 'factorial2000-catalog-sync' ) );
 		}
 
-		// Lowercase: sanitize_key() lowercases the key on every later request, so a mixed-case
-		// key would not match the transient (case-sensitive with a persistent object cache).
-		$session = $session ? $session : strtolower( wp_generate_password( 16, false, false ) );
 		set_transient( 'f2000cs_import_xml_' . $session, $temp_file, HOUR_IN_SECONDS );
 
 		f2000cs_remember_last_import_from_request();
@@ -488,8 +518,17 @@ function f2000cs_cleanup_import_xml_session( $session ) {
 	delete_transient( 'f2000cs_import_xml_' . $session );
 	delete_transient( 'f2000cs_import_resume_' . $session );
 
+	// The transient may already be gone; the deterministic path still names the file.
+	$paths = array( f2000cs_import_xml_temp_path( $session ) );
+
 	if ( is_string( $cached ) && $cached && file_exists( $cached ) ) {
-		wp_delete_file( $cached );
+		$paths[] = $cached;
+	}
+
+	foreach ( array_unique( $paths ) as $path ) {
+		if ( file_exists( $path ) ) {
+			wp_delete_file( $path );
+		}
 	}
 }
 
@@ -558,6 +597,12 @@ function f2000cs_get_pending_import(): ?array {
 		$temp_file = get_transient( 'f2000cs_import_xml_' . $session );
 
 		if ( ! is_string( $temp_file ) || ! $temp_file || ! file_exists( $temp_file ) ) {
+			// The transient cache may have been dropped mid-import by the plugin's own
+			// cleanup; the deterministic per-session file takes over as the reference.
+			$temp_file = f2000cs_import_xml_temp_path( $session );
+		}
+
+		if ( ! file_exists( $temp_file ) ) {
 			delete_transient( 'f2000cs_import_resume_' . $session );
 			continue;
 		}

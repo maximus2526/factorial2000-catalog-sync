@@ -366,6 +366,23 @@ class Fields_Updater extends XML_Parser {
 	 * @return bool Whether the tags changed.
 	 */
 	private function update_tags( int $product_id, SimpleXMLElement $offer ): bool {
+		$by_lang = array_filter(
+			array(
+				'ru' => isset( $offer->keywords ) ? trim( (string) $offer->keywords ) : '',
+				'uk' => isset( $offer->keywords_ua ) ? trim( (string) $offer->keywords_ua ) : '',
+			)
+		);
+
+		if ( ! empty( $by_lang ) ) {
+			/**
+			 * Prom.ua keywords of an imported offer, by language (e.g. for a multilingual plugin).
+			 *
+			 * @param int   $product_id Product ID.
+			 * @param array $by_lang    Language code => comma-separated keywords.
+			 */
+			do_action( 'f2000cs_offer_keywords', $product_id, $by_lang );
+		}
+
 		if ( ! isset( $offer->keywords ) ) {
 			return false;
 		}

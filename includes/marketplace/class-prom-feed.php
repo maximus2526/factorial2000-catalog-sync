@@ -422,6 +422,25 @@ class Prom_Feed extends Marketplace_Feed {
 	 * @return string
 	 */
 	public static function pick_description_html( array $row, $parent_data, $product_name, array $settings ): string {
+		$raw = self::pick_raw_description( $row, $parent_data );
+
+		if ( '' !== $raw ) {
+			return self::normalize_description_html( $raw );
+		}
+
+		return self::fallback_description_html( $product_name, $settings );
+	}
+
+	/**
+	 * First description with visible text: own, own short, parent's, parent's short.
+	 *
+	 * Returned as stored (may be a translator-tagged string); '' when there is none.
+	 *
+	 * @param array<string,string>      $row         Row.
+	 * @param array<string,string>|null $parent_data Parent row.
+	 * @return string
+	 */
+	public static function pick_raw_description( array $row, $parent_data ): string {
 		$chain = array(
 			array( 'Description', $row ),
 			array( 'Short description', $row ),
@@ -436,16 +455,77 @@ class Prom_Feed extends Marketplace_Feed {
 			$raw = Marketplace_Text::clean( $item[1][ $item[0] ] ?? '' );
 
 			if ( self::html_text_meaningful( $raw ) ) {
-				return self::normalize_description_html( $raw );
+				return $raw;
 			}
 		}
 
+		return '';
+	}
+
+	/**
+	 * Fallback description line: the product name plus the settings snippet.
+	 *
+	 * @param string              $product_name Product name.
+	 * @param array<string,mixed> $settings     Settings.
+	 * @return string
+	 */
+	public static function fallback_description_html( string $product_name, array $settings ): string {
 		$extra = (string) ( $settings['description_fallback_snippet'] ?? '' );
 		$inner = '' !== $extra
 			? Marketplace_Text::html_escape( $product_name ) . '. ' . Marketplace_Text::html_escape( $extra )
 			: Marketplace_Text::html_escape( $product_name );
 
 		return '<p>' . $inner . '</p>';
+	}
+
+	/**
+	 * Split a possibly multilingual field into the Prom main and `_ua` variants.
+	 *
+	 * With the Factorial2000 Translator active and both Russian and Ukrainian
+	 * enabled, the main Prom fields carry the Russian text and the `_ua` fields
+	 * the Ukrainian one; a missing Russian translation falls back to the main
+	 * language (as the translator reads it). Without the translator, or without
+	 * both languages, the value is used as it is for both fields.
+	 *
+	 * @param string $text Field value (may be a translator-tagged string).
+	 * @return array{0:string,1:string} Main and Ukrainian variants.
+	 */
+	public static function split_languages( $text ): array {
+		$text = (string) $text;
+
+		if ( ! class_exists( '\F2000TR\Strings' ) || ! class_exists( '\F2000TR\Languages' ) ) {
+			return array( $text, $text );
+		}
+
+		$languages = \F2000TR\Languages::get_languages();
+
+		if ( ! is_array( $languages ) || ! isset( $languages['ru'], $languages['uk'] ) ) {
+			return array( $text, $text );
+		}
+
+		return array(
+			self::translate_language( $text, 'ru' ),
+			self::translate_language( $text, 'uk' ),
+		);
+	}
+
+	/**
+	 * One language of a possibly tagged field.
+	 *
+	 * The translator's group-wise reader is preferred: it keeps text outside
+	 * the language tags, e.g. variation name suffixes like " - S".
+	 * Strings::translate() is the fallback for translator builds without it.
+	 *
+	 * @param string $text Field value.
+	 * @param string $lang Language code.
+	 * @return string
+	 */
+	private static function translate_language( string $text, string $lang ): string {
+		if ( class_exists( '\F2000TR\WooCommerce' ) && method_exists( '\F2000TR\WooCommerce', 'translate_display' ) ) {
+			return (string) \F2000TR\WooCommerce::translate_display( $text, $lang );
+		}
+
+		return (string) \F2000TR\Strings::translate( $text, $lang );
 	}
 
 	/**
@@ -631,11 +711,13 @@ class Prom_Feed extends Marketplace_Feed {
 	 * @return array{0:?string,1:int}
 	 */
 	public function compose_offer( Marketplace_Category_Tree $tree, array $settings, array $row, $parent_row, string $group_id, $params = null, $price_override = null, $images_fallback_row = null, $available_override = null, $sku_override = null ): array {
-		$name = Marketplace_Text::clean( $row['Name'] ?? '' );
+		$name_raw = Marketplace_Text::clean( $row['Name'] ?? '' );
 
-		if ( '' === $name && $parent_row ) {
-			$name = Marketplace_Text::clean( $parent_row['Name'] ?? '' );
+		if ( '' === $name_raw && $parent_row ) {
+			$name_raw = Marketplace_Text::clean( $parent_row['Name'] ?? '' );
 		}
+
+		list( $name, $name_ua ) = self::split_languages( $name_raw );
 
 		// Prom rejects a name without letters (only digits, dashes or spaces).
 		if ( ! preg_match( '/\p{L}/u', $name ) ) {
@@ -644,7 +726,17 @@ class Prom_Feed extends Marketplace_Feed {
 			return array( null, 1 );
 		}
 
-		$description_html = self::pick_description_html( $row, $parent_row, $name, $settings );
+		$raw_description = self::pick_raw_description( $row, $parent_row );
+
+		if ( '' !== $raw_description ) {
+			list( $description, $description_ua ) = self::split_languages( $raw_description );
+
+			$description    = self::normalize_description_html( $description );
+			$description_ua = self::normalize_description_html( $description_ua );
+		} else {
+			$description    = self::fallback_description_html( $name, $settings );
+			$description_ua = self::fallback_description_html( $name_ua, $settings );
+		}
 
 		if ( null !== $price_override ) {
 			list( $price, $old_price ) = $price_override;
@@ -721,7 +813,7 @@ class Prom_Feed extends Marketplace_Feed {
 
 		$xml  = $ind . '<offer' . $attr . ">\n";
 		$xml .= $ind2 . '<name>' . Marketplace_Text::xml_text( $name ) . "</name>\n";
-		$xml .= $ind2 . '<name_ua>' . Marketplace_Text::xml_text( $name ) . "</name_ua>\n";
+		$xml .= $ind2 . '<name_ua>' . Marketplace_Text::xml_text( $name_ua ) . "</name_ua>\n";
 		$xml .= $ind2 . '<price>' . Marketplace_Text::money( (float) $price ) . "</price>\n";
 		$xml .= $ind2 . '<currencyId>' . Marketplace_Text::xml_text( Marketplace_Form::resolve( $settings['currency'] ?? 'UAH' ) ) . "</currencyId>\n";
 		$xml .= $ind2 . '<categoryId>' . (int) $category_id . "</categoryId>\n";
@@ -732,8 +824,8 @@ class Prom_Feed extends Marketplace_Feed {
 			$xml .= $ind2 . '<portal_category_id>' . Marketplace_Text::xml_text( $portal ) . "</portal_category_id>\n";
 		}
 
-		$xml .= $ind2 . '<description>' . Marketplace_Text::xml_text( $description_html ) . "</description>\n";
-		$xml .= $ind2 . '<description_ua>' . Marketplace_Text::xml_text( $description_html ) . "</description_ua>\n";
+		$xml .= $ind2 . '<description>' . Marketplace_Text::xml_text( $description ) . "</description>\n";
+		$xml .= $ind2 . '<description_ua>' . Marketplace_Text::xml_text( $description_ua ) . "</description_ua>\n";
 
 		$sku = Marketplace_Text::clean( null !== $sku_override ? $sku_override : '' );
 

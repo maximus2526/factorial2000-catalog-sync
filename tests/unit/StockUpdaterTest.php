@@ -474,4 +474,76 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 		$this->assertStringNotContainsString( 'не пройшов перевірку', $all );
 		$this->assertSame( 'instock', get_post_meta( 11, '_stock_status', true ) );
 	}
+
+	/**
+	 * The wp_tempnam() fallback file of a broken feed is removed by the finally block.
+	 *
+	 * @return void
+	 */
+	public function test_broken_feed_leaves_no_temp_file_behind() {
+		$before = (array) glob( get_temp_dir() . 'f2000cs_*' );
+
+		update_option( 'f2000cs_telegram_token_id', '123:abc' );
+		update_option( 'f2000cs_telegram_user_ids', '111' );
+		$GLOBALS['wpdb']->results_queue = array( $this->supplier_rows() );
+
+		// A local path that cannot be opened: XMLReader falls back to the fetch + temp file path.
+		$missing = get_temp_dir() . 'f2000cs_missing-' . uniqid() . '.xml';
+		F2000CS_Test_State::$http_get_responses[ $missing ] = array(
+			'response' => array( 'code' => 200 ),
+			'body'     => '<?xml version="1.0"?><yml_catalog><shop><offers><offer id="1" available="true"><price>10</price></offer><offer id="2" avail',
+		);
+
+		( new XML_Stock_Updater( $missing, 'SUP_' ) )->update_products_stock_status();
+
+		$leftover = array_values( array_diff( (array) glob( get_temp_dir() . 'f2000cs_*' ), $before ) );
+
+		$this->assertSame( array(), $leftover, 'wp_tempnam() fallback files must be deleted in finally' );
+	}
+
+	/**
+	 * Resource cleanup flushes only the transients group, not the whole object cache.
+	 *
+	 * @return void
+	 */
+	public function test_cleanup_resources_flushes_only_the_transients_group() {
+		$updater = new XML_Stock_Updater( 'x.xml', 'SUP_' );
+
+		F2000CS_Test_Reflection::invoke( $updater, 'cleanup_resources' );
+
+		$this->assertSame( 0, F2000CS_Test_State::$cache_flush_calls, 'No global object-cache flush' );
+		$this->assertContains( 'transients', F2000CS_Test_State::$cache_flushed_groups );
+	}
+
+	/**
+	 * Resource cleanup frees the in-process (runtime) object cache so a long
+	 * run does not hold every loaded product in memory until the end.
+	 *
+	 * @return void
+	 */
+	public function test_cleanup_resources_frees_the_runtime_cache() {
+		$updater = new XML_Stock_Updater( 'x.xml', 'SUP_' );
+
+		F2000CS_Test_Reflection::invoke( $updater, 'cleanup_resources' );
+
+		$this->assertSame( 1, F2000CS_Test_State::$cache_runtime_flush_calls, 'cleanup_resources() must free the runtime cache' );
+		$this->assertSame( 0, F2000CS_Test_State::$cache_flush_calls, 'Still no global object-cache flush' );
+	}
+
+	/**
+	 * A stock run frees the runtime cache periodically while batches are
+	 * processed, not only once at the end.
+	 *
+	 * @return void
+	 */
+	public function test_stock_run_frees_the_runtime_cache() {
+		$this->run_with_feed(
+			'<?xml version="1.0"?><yml_catalog><shop><offers><offer id="1" available="true"><price>10</price></offer></offers></shop></yml_catalog>',
+			'SUP_',
+			array()
+		);
+
+		// Once for the first batch (every 10 batches) + once in cleanup_resources().
+		$this->assertSame( 2, F2000CS_Test_State::$cache_runtime_flush_calls );
+	}
 }

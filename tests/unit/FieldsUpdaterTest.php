@@ -10,6 +10,17 @@
 
 use F2000CS\Fields_Updater;
 
+if ( ! function_exists( 'wp_get_object_terms' ) ) {
+	/**
+	 * Stub: no terms in the database.
+	 *
+	 * @return array
+	 */
+	function wp_get_object_terms() {
+		return array();
+	}
+}
+
 /**
  * Fields updater tests.
  */
@@ -144,5 +155,106 @@ final class F2000CS_Unit_FieldsUpdaterTest extends F2000CS_Unit_TestCase {
 		$attributes = F2000CS_Test_Reflection::invoke( $updater, 'extract_attributes', array( $offer ) );
 
 		$this->assertSame( array(), $attributes );
+	}
+
+	/**
+	 * update_tags announces the offer's Prom.ua keywords by language, trimmed.
+	 *
+	 * @return void
+	 */
+	public function test_update_tags_announces_keywords_by_language() {
+		$updater = new Fields_Updater( 'x.xml', 'P_', array( 'tags' ) );
+		$offer   = simplexml_load_string( '<offer id="1"><keywords>  куртка, зима  </keywords><keywords_ua>куртка, зима</keywords_ua></offer>' );
+
+		$seen     = array();
+		$listener = static function ( $product_id, $by_lang ) use ( &$seen ) {
+			$seen[] = array( $product_id, $by_lang );
+		};
+		add_action( 'f2000cs_offer_keywords', $listener, 10, 2 );
+
+		F2000CS_Test_Reflection::invoke( $updater, 'update_tags', array( 42, $offer ) );
+
+		remove_filter( 'f2000cs_offer_keywords', $listener, 10 );
+
+		$this->assertSame(
+			array(
+				array( 42, array( 'ru' => 'куртка, зима', 'uk' => 'куртка, зима' ) ),
+			),
+			$seen
+		);
+	}
+
+	/**
+	 * A language without keywords is left out of the announcement.
+	 *
+	 * @return void
+	 */
+	public function test_update_tags_announces_only_present_languages() {
+		$updater = new Fields_Updater( 'x.xml', 'P_', array( 'tags' ) );
+		$offer   = simplexml_load_string( '<offer id="1"><keywords>a, b</keywords><keywords_ua> </keywords_ua></offer>' );
+
+		$seen     = array();
+		$listener = static function ( $product_id, $by_lang ) use ( &$seen ) {
+			$seen[] = array( $product_id, $by_lang );
+		};
+		add_action( 'f2000cs_offer_keywords', $listener, 10, 2 );
+
+		F2000CS_Test_Reflection::invoke( $updater, 'update_tags', array( 7, $offer ) );
+
+		remove_filter( 'f2000cs_offer_keywords', $listener, 10 );
+
+		$this->assertSame(
+			array(
+				array( 7, array( 'ru' => 'a, b' ) ),
+			),
+			$seen
+		);
+	}
+
+	/**
+	 * An offer without any keywords never announces the action.
+	 *
+	 * @return void
+	 */
+	public function test_update_tags_does_not_announce_empty_keywords() {
+		$updater = new Fields_Updater( 'x.xml', 'P_', array( 'tags' ) );
+		$offer   = simplexml_load_string( '<offer id="1"><keywords> </keywords><keywords_ua></keywords_ua></offer>' );
+
+		$seen     = array();
+		$listener = static function ( $product_id, $by_lang ) use ( &$seen ) {
+			$seen[] = array( $product_id, $by_lang );
+		};
+		add_action( 'f2000cs_offer_keywords', $listener, 10, 2 );
+
+		F2000CS_Test_Reflection::invoke( $updater, 'update_tags', array( 1, $offer ) );
+
+		remove_filter( 'f2000cs_offer_keywords', $listener, 10 );
+
+		$this->assertSame( array(), $seen );
+	}
+
+	/**
+	 * The currencies fallback temp file is removed by the finally block.
+	 *
+	 * @return void
+	 */
+	public function test_load_currencies_leaves_no_temp_file_behind() {
+		$before = (array) glob( get_temp_dir() . 'f2000cs_*' );
+
+		$missing = get_temp_dir() . 'f2000cs_missing-' . uniqid() . '.xml';
+		F2000CS_Test_State::$http_get_responses[ $missing ] = array(
+			'response' => array( 'code' => 200 ),
+			'body'     => '<yml_catalog><shop><currencies><currency id="USD" rate="41.5"/></currencies></shop></yml_catalog>',
+		);
+
+		$updater    = new Fields_Updater( $missing, 'P_', array() );
+		$currencies = F2000CS_Test_Reflection::invoke( $updater, 'load_currencies_from_xml' );
+
+		$this->assertSame( 41.5, $currencies['USD'] ?? null );
+		$this->assertSame(
+			array(),
+			array_values( array_diff( (array) glob( get_temp_dir() . 'f2000cs_*' ), $before ) ),
+			'wp_tempnam() files must be deleted in finally'
+		);
 	}
 }

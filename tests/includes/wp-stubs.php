@@ -41,6 +41,48 @@ final class F2000CS_Test_State {
 	public static $transients = array();
 
 	/**
+	 * Number of global wp_cache_flush() calls.
+	 *
+	 * @var int
+	 */
+	public static $cache_flush_calls = 0;
+
+	/**
+	 * Groups passed to wp_cache_flush_group(), in call order.
+	 *
+	 * @var array<int, string>
+	 */
+	public static $cache_flushed_groups = array();
+
+	/**
+	 * Number of wp_cache_flush_runtime() calls.
+	 *
+	 * @var int
+	 */
+	public static $cache_runtime_flush_calls = 0;
+
+	/**
+	 * Languages enabled in the stubbed Factorial2000 Translator.
+	 *
+	 * @var array<string, array{name:string,locale:string}>
+	 */
+	public static $f2000tr_languages = array();
+
+	/**
+	 * Main language of the stubbed translator.
+	 *
+	 * @var string
+	 */
+	public static $f2000tr_default_language = 'uk';
+
+	/**
+	 * Override for get_temp_dir(); '' uses the system temp dir.
+	 *
+	 * @var string
+	 */
+	public static $temp_dir = '';
+
+	/**
 	 * Cron event store: list of [ 'time', 'hook', 'args' ].
 	 *
 	 * @var array<int, array>
@@ -187,6 +229,12 @@ final class F2000CS_Test_State {
 		self::$user_meta     = array();
 		self::$current_user_id = 0;
 		self::$transients    = array();
+		self::$cache_flush_calls   = 0;
+		self::$cache_flushed_groups = array();
+		self::$cache_runtime_flush_calls = 0;
+		self::$f2000tr_languages = array();
+		self::$f2000tr_default_language = 'uk';
+		self::$temp_dir = '';
 		self::$cron_events   = array();
 		self::$http_get_responses = array();
 		self::$http_post_queue    = array();
@@ -895,7 +943,45 @@ if ( ! function_exists( 'wp_cache_flush' ) ) {
 	 * @return bool
 	 */
 	function wp_cache_flush() {
+		++F2000CS_Test_State::$cache_flush_calls;
+
 		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_cache_flush_group' ) ) {
+	/**
+	 * @param string $group Cache group.
+	 * @return bool
+	 */
+	function wp_cache_flush_group( $group ) {
+		F2000CS_Test_State::$cache_flushed_groups[] = $group;
+
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_cache_flush_runtime' ) ) {
+	/**
+	 * @return bool
+	 */
+	function wp_cache_flush_runtime() {
+		++F2000CS_Test_State::$cache_runtime_flush_calls;
+
+		return true;
+	}
+}
+
+if ( ! function_exists( 'get_temp_dir' ) ) {
+	/**
+	 * @return string Temp dir with a trailing slash.
+	 */
+	function get_temp_dir() {
+		if ( '' !== F2000CS_Test_State::$temp_dir ) {
+			return F2000CS_Test_State::$temp_dir;
+		}
+
+		return rtrim( sys_get_temp_dir(), '/\\' ) . '/';
 	}
 }
 
@@ -905,9 +991,25 @@ if ( ! function_exists( 'wp_tempnam' ) ) {
 	 * @return string
 	 */
 	function wp_tempnam( $filename = '' ) {
-		$dir = sys_get_temp_dir();
+		// Mirrors core naming: <name-without-extension>-<random>.tmp. tempnam()
+		// cannot be used here: on Windows it truncates the prefix to three chars,
+		// so leaked files would not match the plugin's cleanup globs.
+		$dir  = rtrim( sys_get_temp_dir(), '/\\' ) . '/';
+		$base = preg_replace( '|\.[^.]*$|', '', basename( $filename ) );
+		if ( '' === $base ) {
+			$base = uniqid();
+		}
 
-		return tempnam( $dir, 'f2000cs_' );
+		$path = $dir . $base . '-' . substr( str_shuffle( 'abcdefghijklmnopqrstuvwxyz' ), 0, 6 ) . '.tmp';
+
+		$i = 0;
+		while ( file_exists( $path ) ) {
+			$path = $dir . $base . '-' . ( ++$i ) . '.tmp';
+		}
+
+		file_put_contents( $path, '' );
+
+		return $path;
 	}
 }
 

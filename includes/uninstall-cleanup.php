@@ -12,6 +12,7 @@ defined( 'ABSPATH' ) || exit;
 function f2000cs_uninstall_cleanup() {
 	// Clear scheduled events.
 	wp_clear_scheduled_hook( 'f2000cs_update_stock_cron' );
+	wp_clear_scheduled_hook( 'f2000cs_temp_cleanup_cron' );
 
 	// wp_clear_scheduled_hook( 'f2000cs_single_update_event' ) without $args would only
 	// remove events scheduled with an *empty* args array, but our background events are
@@ -104,6 +105,9 @@ function f2000cs_uninstall_cleanup() {
 		f2000cs_uninstall_delete_dir( $basedir . 'f2000cs-editor-sessions' );
 		f2000cs_uninstall_delete_dir( $basedir . 'f2000cs-feeds' );
 	}
+
+	// Import temp files in the system temp dir (any age: the plugin is going away).
+	f2000cs_cleanup_stale_temp_files( 0 );
 }
 
 /**
@@ -174,6 +178,65 @@ function f2000cs_has_marketplace_events() {
 
 	return false;
 }
+
+/**
+ * Delete stale f2000cs temp files from the system temp dir.
+ *
+ * A URL import uses a deterministic per-session file; runs that died before
+ * their session cleanup ran (failed downloads, abandoned imports) leave such
+ * files behind. The daily cron event and the admin sweep call this to keep
+ * the temp dir tidy.
+ *
+ * @param int $max_age Files younger than this (in seconds) are kept. Default 2 hours; pass 0 to remove all.
+ * @return int Number of files removed.
+ */
+function f2000cs_cleanup_stale_temp_files( $max_age = 2 * HOUR_IN_SECONDS ) {
+	$files = glob( get_temp_dir() . 'f2000cs_*.tmp' );
+
+	if ( ! is_array( $files ) ) {
+		return 0;
+	}
+
+	$now     = time();
+	$removed = 0;
+
+	foreach ( $files as $file ) {
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- The file may vanish between glob() and stat(); a missing mtime is skipped.
+		$mtime = @filemtime( $file );
+
+		if ( false === $mtime || ( $now - $mtime ) < $max_age ) {
+			continue;
+		}
+
+		if ( file_exists( $file ) ) { // The file may be gone already if another sweep just ran.
+			wp_delete_file( $file );
+			++$removed;
+		}
+	}
+
+	return $removed;
+}
+
+/**
+ * Run the stale temp-file sweep from the admin, at most once an hour.
+ *
+ * Also makes sure the daily cron event exists: it can be missing on sites that
+ * never ran the admin or after another plugin cleared the cron array.
+ *
+ * @return void
+ */
+function f2000cs_maybe_cleanup_stale_temp_files() {
+	if ( false === get_transient( 'f2000cs_temp_sweep_done' ) ) {
+		set_transient( 'f2000cs_temp_sweep_done', 1, HOUR_IN_SECONDS );
+		f2000cs_cleanup_stale_temp_files();
+	}
+
+	if ( ! wp_next_scheduled( 'f2000cs_temp_cleanup_cron' ) ) {
+		wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'f2000cs_temp_cleanup_cron' );
+	}
+}
+add_action( 'f2000cs_temp_cleanup_cron', 'f2000cs_cleanup_stale_temp_files' );
+add_action( 'admin_init', 'f2000cs_maybe_cleanup_stale_temp_files' );
 
 /**
  * Best-effort recursive delete for plugin-owned upload subdirs.
