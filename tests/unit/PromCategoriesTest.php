@@ -309,10 +309,10 @@ final class F2000CS_Unit_PromCategoriesTest extends F2000CS_Unit_TestCase {
 			}
 		);
 
-		$this->assertStringContainsString( 'class="f2000cs-prom-cat regular-text"', $known );
-		$this->assertStringContainsString( 'value="31302"', $known );
+		$this->assertStringContainsString( '<select name="mp[x]" class="f2000cs-prom-cat"', $known );
+		$this->assertStringContainsString( '<option value="31302" selected data-unknown="0">', $known );
 		$this->assertStringContainsString( 'Жіночі куртки', $known );
-		$this->assertStringNotContainsString( 'f2000cs-prom-cat-unknown', $known );
+		$this->assertStringContainsString( '(#31302)', $known );
 
 		$unknown = $this->capture(
 			static function () {
@@ -320,7 +320,8 @@ final class F2000CS_Unit_PromCategoriesTest extends F2000CS_Unit_TestCase {
 			}
 		);
 
-		$this->assertStringContainsString( 'f2000cs-prom-cat-unknown', $unknown );
+		$this->assertStringContainsString( 'data-unknown="1"', $unknown );
+		$this->assertStringContainsString( '#1', $unknown );
 
 		$empty = $this->capture(
 			static function () {
@@ -328,8 +329,8 @@ final class F2000CS_Unit_PromCategoriesTest extends F2000CS_Unit_TestCase {
 			}
 		);
 
-		$this->assertStringContainsString( 'value=""', $empty );
-		$this->assertStringNotContainsString( 'f2000cs-prom-cat-unknown', $empty );
+		$this->assertStringContainsString( '<option value=""></option>', $empty );
+		$this->assertStringNotContainsString( 'selected', $empty );
 	}
 
 	/**

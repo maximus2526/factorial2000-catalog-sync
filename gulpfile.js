@@ -59,6 +59,7 @@ const EXCLUDE_LIST = [
 	'SKILL.md',
 	'TASKS.md',
 	'tasks',
+	'Promo',
 ];
 
 /**

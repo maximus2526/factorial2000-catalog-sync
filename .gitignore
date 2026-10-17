@@ -7,3 +7,9 @@
 
 # Local-only feed URLs (may contain private hash_tag / tokens).
 /tests/fixtures/feeds/urls.local.php
+
+# Promo tooling: heavy generated files
+/Promo/video/node_modules/
+/Promo/video/work/
+/Promo/video/out/
+/Promo/shots-raw/

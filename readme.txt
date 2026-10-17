@@ -106,10 +106,10 @@ This service is provided by Telegram. By enabling notifications you agree to Tel
 
 == Screenshots ==
 
-1. Stock update settings with XML URLs, cron interval, and Telegram options.
-2. XML import page with simple and variable product modes.
-3. Variable product group analysis with attribute selection.
-4. XML export filter for creating a clean feed with new products only.
+1. Stock update settings: supplier XML URLs, SKU prefix, price adjustment, cron interval and Telegram notifications.
+2. XML import page with simple and variable product modes and image handling options.
+3. Marketplaces (Pro): the Prom.ua feed at a permanent link, rebuilt on a schedule or after every stock sync.
+4. Built-in documentation with sticky sidebar navigation.
 
 == Upgrade Notice ==
 
@@ -134,6 +134,7 @@ Improved:
 * (Pro) Marketplaces settings are mostly one-click presets. Brand names and store-to-Prom category mapping use searchable tables instead of text fields.
 * Ukrainian translation of the Freemius screens (about 440 more strings).
 * The Import page no longer remembers the last XML URL: the URL field starts empty (the SKU prefix is still remembered).
+* (Pro) Prom categories are chosen in a searchable Select2 field (type a name or the start of an id) with a link to Prom's official category list with ids. The brand table lists the shop's brands: fill «Brand in Prom» only where the name differs.
 * (Pro) The Prom feed page shows why products were left out (no price, picture, category …) with example SKUs.
 * (Pro) The Prom feed follows Prom's import rules: the article (vendorCode) is cut to 25 allowed characters, the product code is sent as <gtin> (Prom reads <barcode> as an article), a name without letters is skipped, and the page warns about an unsupported currency and a file over 180 MB. It also explains that Prom takes prices and stock every 4 hours.
 * (Pro) Product descriptions sent to Prom lose shortcodes and block editor comments; line breaks of classic descriptions are kept as paragraphs. Picture URLs with Cyrillic file names are encoded.

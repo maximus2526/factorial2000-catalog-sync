@@ -105,20 +105,68 @@
 		}
 	});
 
+	/**
+	 * Select2 with free input for brand names: pick a suggestion or type a new name.
+	 *
+	 * @param {jQuery} $scope Container.
+	 */
+	function enhanceTags($scope) {
+		if (!$.fn.selectWoo) {
+			return;
+		}
+
+		$scope.find('select.f2000cs-mp-tags').each(function () {
+			var $select = $(this);
+
+			if ($select.data('select2')) {
+				return;
+			}
+
+			$select.selectWoo({
+				width: '100%',
+				tags: true,
+				allowClear: true,
+				placeholder: $select.data('placeholder') || '',
+				createTag: function (params) {
+					var term = $.trim(params.term).replace(/[=\r\n]+/g, ' ');
+
+					return term === '' ? null : { id: term, text: term };
+				}
+			});
+		});
+	}
+
+	enhanceTags($(document));
+
 	// "left = right" repeaters.
 	$(document).on('click', '.f2000cs-mp-row-add', function () {
 		var $table = $('.f2000cs-mp-pairs[data-key="' + $(this).data('target') + '"]');
 		var $body = $table.find('tbody');
 		var $last = $body.find('tr').last();
 		var index = $body.find('tr').length;
+
+		// Clone a row without Select2 on it, then enhance the copy.
+		$last.find('select.f2000cs-mp-tags').each(function () {
+			if ($(this).data('select2')) {
+				$(this).selectWoo('destroy');
+			}
+		});
+
 		var $row = $last.clone();
 
-		$row.find('input').each(function () {
+		$row.find('input, select').each(function () {
 			this.name = this.name.replace(/\[\d+\]\[(l|r)\]$/, '[' + index + '][$1]');
-			this.value = '';
+
+			if (this.tagName === 'SELECT') {
+				$(this).val('');
+			} else {
+				this.value = '';
+			}
 		});
 		$body.append($row);
-		$row.find('input').first().trigger('focus');
+		enhanceTags($last);
+		enhanceTags($row);
+		$row.find('select').first().selectWoo('open');
 	});
 
 	$(document).on('click', '.f2000cs-mp-row-remove', function () {
@@ -128,7 +176,20 @@
 			$(this).closest('tr').remove();
 		} else {
 			$(this).closest('tr').find('input').val('');
+			$(this).closest('tr').find('select').val('').trigger('change');
 		}
+	});
+
+	// Brand table search.
+	$(document).on('input', '.f2000cs-mp-brand-filter', function () {
+		var q = $(this).val().toLowerCase();
+
+		$('.f2000cs-mp-brand-table tbody tr').each(function () {
+			var name = String($(this).data('name') || '');
+
+			// The rows for other brands (no data-name) stay visible: they are being edited.
+			$(this).toggle(name === '' || name.indexOf(q) !== -1);
+		});
 	});
 
 	// Category table search.

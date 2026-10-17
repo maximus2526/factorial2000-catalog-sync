@@ -202,7 +202,7 @@ class Prom_Feed extends Marketplace_Feed {
 				'group'        => 'brand',
 				'type'         => 'pairs',
 				'label'        => __( 'Назви брендів у Prom', 'factorial2000-catalog-sync' ),
-				'description'  => __( 'Якщо бренд на сайті пишеться інакше, ніж у довіднику Prom, вкажіть відповідність. Бренди сайту підказуються при введенні.', 'factorial2000-catalog-sync' ),
+				'description'  => __( 'Потрібно лише якщо ви хочете, щоб бренди в Prom відрізнялись від тих, що на сайті (наприклад «Adidas Originals» → «Adidas»). Інакше залиште порожнім: бренд піде в Prom так, як він названий на сайті.', 'factorial2000-catalog-sync' ),
 				'left_label'   => __( 'Бренд на сайті', 'factorial2000-catalog-sync' ),
 				'right_label'  => __( 'Бренд у Prom', 'factorial2000-catalog-sync' ),
 				'left_suggest' => 'brands',
@@ -219,7 +219,7 @@ class Prom_Feed extends Marketplace_Feed {
 				'group'       => 'categories',
 				'type'        => 'category_map',
 				'label'       => __( 'Категорії магазину → категорії Prom', 'factorial2000-catalog-sync' ),
-				'description' => __( 'Навпроти категорії магазину почніть вводити назву категорії Prom і виберіть її зі списку — номер підставиться сам. Правило для батьківської категорії діє й на вкладені, якщо в них немає власного. Поле «Категорія Prom» у картці товару важливіше за ці правила.', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Навпроти категорії магазину натисніть на поле, почніть вводити назву категорії Prom (або початок її номера) і виберіть її зі списку — номер підставиться сам. Правило для батьківської категорії діє й на вкладені, якщо в них немає власного. Поле «Категорія Prom» у картці товару важливіше за ці правила.', 'factorial2000-catalog-sync' ),
 				'default'     => '',
 			),
 			'mpn_meta_key'                 => array(

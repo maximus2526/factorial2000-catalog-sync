@@ -14,6 +14,7 @@ use F2000CS\Marketplace_Form;
 use F2000CS\Marketplace_Job;
 use F2000CS\Marketplace_Registry;
 use F2000CS\Marketplace_Storage;
+use F2000CS\Marketplace_Text;
 use F2000CS\Prom_Feed;
 
 /**
@@ -80,6 +81,122 @@ function f2000cs_marketplace_render_preset( string $key, array $field, $value ):
 }
 
 /**
+ * Select2 with free input («tags»): pick a suggestion or type a new value.
+ *
+ * @param string            $name        Field name.
+ * @param string            $value       Current value.
+ * @param array<int,string> $options     Suggestions.
+ * @param string            $placeholder Placeholder.
+ * @return void
+ */
+function f2000cs_marketplace_render_tag_select( string $name, string $value, array $options, string $placeholder ): void {
+	if ( '' !== $value ) {
+		$options[] = $value;
+	}
+
+	$options = array_values( array_unique( array_filter( array_map( 'strval', $options ), 'strlen' ) ) );
+	?>
+	<select name="<?php echo esc_attr( $name ); ?>" class="f2000cs-mp-tags" data-placeholder="<?php echo esc_attr( $placeholder ); ?>">
+		<option value=""></option>
+		<?php foreach ( $options as $option ) : ?>
+			<option value="<?php echo esc_attr( $option ); ?>" <?php selected( $value, $option ); ?>><?php echo esc_html( $option ); ?></option>
+		<?php endforeach; ?>
+	</select>
+	<?php
+}
+
+/**
+ * Suggestions for a brand field: brands of the shop plus every name already saved.
+ *
+ * @param array<int, array{0:string,1:string}> $stored Saved rows.
+ * @return array<int,string>
+ */
+function f2000cs_marketplace_brand_suggestions( array $stored ): array {
+	$out = Marketplace_Form::load_brands();
+
+	foreach ( $stored as $row ) {
+		$out[] = $row[0];
+		$out[] = $row[1];
+	}
+
+	return $out;
+}
+
+/**
+ * Brand table: every brand of the shop with an optional «name in Prom» next to it.
+ *
+ * Brands go to Prom as they are on the site, so a row is filled only where the Prom
+ * name differs. Stored aliases for brands the shop does not list (for example a brand
+ * that comes from a product attribute) stay as editable rows, plus one empty row.
+ *
+ * @param string              $key   Field key.
+ * @param array<string,mixed> $field Field schema.
+ * @param mixed               $value Current stored value.
+ * @return void
+ */
+function f2000cs_marketplace_render_brand_pairs( string $key, array $field, $value ): void {
+	$stored = array();
+
+	foreach ( Marketplace_Form::text_to_rows( (string) $value ) as $row ) {
+		$stored[ Marketplace_Text::lower( $row[0] ) ] = $row;
+	}
+
+	$brands = Marketplace_Form::load_brands();
+	$rows   = array();
+
+	foreach ( $brands as $brand ) {
+		$lower  = Marketplace_Text::lower( $brand );
+		$rows[] = array( $brand, isset( $stored[ $lower ] ) ? $stored[ $lower ][1] : '', true );
+		unset( $stored[ $lower ] );
+	}
+
+	foreach ( $stored as $row ) {
+		$rows[] = array( $row[0], $row[1], false );
+	}
+
+	$rows[] = array( '', '', false );
+
+	$suggest = f2000cs_marketplace_brand_suggestions( Marketplace_Form::text_to_rows( (string) $value ) );
+	?>
+	<?php if ( count( $brands ) > 8 ) : ?>
+		<p><input type="search" class="regular-text f2000cs-mp-brand-filter" placeholder="<?php esc_attr_e( 'Пошук бренду…', 'factorial2000-catalog-sync' ); ?>"></p>
+	<?php endif; ?>
+	<div style="max-height:420px;overflow:auto;max-width:720px;border:1px solid #c3c4c7">
+		<table class="widefat striped f2000cs-mp-pairs f2000cs-mp-brand-table" data-key="<?php echo esc_attr( $key ); ?>">
+			<thead>
+				<tr>
+					<th><?php echo esc_html( (string) ( $field['left_label'] ?? '' ) ); ?></th>
+					<th><?php echo esc_html( (string) ( $field['right_label'] ?? '' ) ); ?></th>
+					<th style="width:40px"></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $rows as $i => $row ) : ?>
+					<tr data-name="<?php echo esc_attr( Marketplace_Text::lower( $row[0] ) ); ?>">
+						<td>
+							<?php if ( $row[2] ) : ?>
+								<?php echo esc_html( $row[0] ); ?>
+								<input type="hidden" name="mp_rows[<?php echo esc_attr( $key ); ?>][<?php echo (int) $i; ?>][l]" value="<?php echo esc_attr( $row[0] ); ?>">
+							<?php else : ?>
+								<?php f2000cs_marketplace_render_tag_select( 'mp_rows[' . $key . '][' . (int) $i . '][l]', $row[0], $suggest, __( 'Інший бренд…', 'factorial2000-catalog-sync' ) ); ?>
+							<?php endif; ?>
+						</td>
+						<td><input type="text" class="regular-text" name="mp_rows[<?php echo esc_attr( $key ); ?>][<?php echo (int) $i; ?>][r]" value="<?php echo esc_attr( $row[1] ); ?>" placeholder="<?php echo $row[2] ? esc_attr( $row[0] ) : ''; ?>"></td>
+						<td>
+						<?php
+						if ( ! $row[2] ) :
+							?>
+							<button type="button" class="button-link f2000cs-mp-row-remove" aria-label="<?php esc_attr_e( 'Видалити рядок', 'factorial2000-catalog-sync' ); ?>">✕</button><?php endif; ?></td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+	</div>
+	<p><button type="button" class="button f2000cs-mp-row-add" data-target="<?php echo esc_attr( $key ); ?>"><?php esc_html_e( '+ Додати інший бренд', 'factorial2000-catalog-sync' ); ?></button></p>
+	<?php
+}
+
+/**
  * Repeater of "left → right" rows (stored as left=right lines).
  *
  * @param string              $key   Field key.
@@ -88,17 +205,15 @@ function f2000cs_marketplace_render_preset( string $key, array $field, $value ):
  * @return void
  */
 function f2000cs_marketplace_render_pairs( string $key, array $field, $value ): void {
+	if ( 'brands' === ( $field['left_suggest'] ?? '' ) && Marketplace_Form::load_brands() ) {
+		f2000cs_marketplace_render_brand_pairs( $key, $field, $value );
+		return;
+	}
+
 	$rows   = Marketplace_Form::text_to_rows( (string) $value );
 	$rows[] = array( '', '' );
-	$list   = 'brands' === ( $field['left_suggest'] ?? '' ) ? 'f2000cs-mp-brands' : '';
 
-	if ( $list ) {
-		echo '<datalist id="' . esc_attr( $list ) . '">';
-		foreach ( Marketplace_Form::load_brands() as $brand ) {
-			echo '<option value="' . esc_attr( $brand ) . '">';
-		}
-		echo '</datalist>';
-	}
+	$suggest = f2000cs_marketplace_brand_suggestions( Marketplace_Form::text_to_rows( (string) $value ) );
 	?>
 	<table class="widefat striped f2000cs-mp-pairs" data-key="<?php echo esc_attr( $key ); ?>" style="max-width:720px">
 		<thead>
@@ -111,7 +226,7 @@ function f2000cs_marketplace_render_pairs( string $key, array $field, $value ): 
 		<tbody>
 			<?php foreach ( $rows as $i => $row ) : ?>
 				<tr>
-					<td><input type="text" class="regular-text" name="mp_rows[<?php echo esc_attr( $key ); ?>][<?php echo (int) $i; ?>][l]" value="<?php echo esc_attr( $row[0] ); ?>" <?php echo $list ? 'list="' . esc_attr( $list ) . '"' : ''; ?>></td>
+					<td><?php f2000cs_marketplace_render_tag_select( 'mp_rows[' . $key . '][' . (int) $i . '][l]', $row[0], $suggest, (string) ( $field['left_label'] ?? '' ) ); ?></td>
 					<td><input type="text" class="regular-text" name="mp_rows[<?php echo esc_attr( $key ); ?>][<?php echo (int) $i; ?>][r]" value="<?php echo esc_attr( $row[1] ); ?>"></td>
 					<td><button type="button" class="button-link f2000cs-mp-row-remove" aria-label="<?php esc_attr_e( 'Видалити рядок', 'factorial2000-catalog-sync' ); ?>">✕</button></td>
 				</tr>
@@ -173,6 +288,7 @@ function f2000cs_marketplace_render_category_map( string $key, array $field, $va
 		<?php
 	}
 	?>
+	<p class="description"><?php echo f2000cs_prom_category_reference_link(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in the helper. ?></p>
 	<details style="margin-top:8px">
 		<summary><?php esc_html_e( 'Свої правила (для досвідчених)', 'factorial2000-catalog-sync' ); ?></summary>
 		<textarea name="mp_extra[<?php echo esc_attr( $key ); ?>]" rows="3" class="large-text code" placeholder="кросівки=1234567"><?php echo esc_textarea( $split['extra'] ); ?></textarea>
@@ -205,6 +321,7 @@ function f2000cs_marketplace_render_field( string $key, array $field, $value ): 
 				f2000cs_marketplace_render_category_map( $key, $field, $value );
 			} elseif ( 'prom_category' === $type ) {
 				f2000cs_prom_category_input( 'mp[' . $key . ']', (string) $value, array( 'id' => $id ) );
+				echo '<p class="description">' . f2000cs_prom_category_reference_link() . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in the helper.
 			} elseif ( 'checkbox' === $type ) {
 				?>
 				<input type="hidden" name="mp[<?php echo esc_attr( $key ); ?>]" value="0">
@@ -654,6 +771,7 @@ function f2000cs_marketplace_enqueue( $hook ) {
 		'.f2000cs-marketplaces .form-table td table{margin:0}'
 		. '.f2000cs-marketplaces .form-table td table th,.f2000cs-marketplaces .form-table td table td{width:auto;padding:8px 10px;vertical-align:middle;line-height:1.4}'
 		. '.f2000cs-marketplaces .form-table td table input[type=text]{width:100%;max-width:none}'
+		. '.f2000cs-marketplaces .f2000cs-mp-pairs .select2-container{width:100%!important;min-width:180px}'
 		. '.f2000cs-marketplaces .form-table td .f2000cs-mp-cat-table input[type=text]{width:140px}'
 		. '.f2000cs-marketplaces .f2000cs-mp-cat-table .f2000cs-prom-cat-wrap{display:block}'
 		. '.f2000cs-marketplaces .f2000cs-mp-pairs,.f2000cs-marketplaces .f2000cs-mp-cat-table{table-layout:auto}'
@@ -667,7 +785,7 @@ function f2000cs_marketplace_enqueue( $hook ) {
 	wp_enqueue_script(
 		'f2000cs-admin-marketplaces',
 		F2000CS_URL . 'assets/js/admin-marketplaces.js',
-		array( 'jquery' ),
+		array( 'jquery', 'selectWoo' ),
 		F2000CS_VERSION,
 		true
 	);

@@ -1,6 +1,6 @@
 <?php
 /**
- * «Категорія Prom» picker: search the Prom category list by name, store the id.
+ * «Категорія Prom» picker: a Select2 (selectWoo) that searches the Prom category list by name, stores the id.
  *
  * Used on the Marketplaces page (default category, store category → Prom table)
  * and as the «Prom.ua» box in the product editor, whose value goes to the feed as
@@ -17,12 +17,24 @@ use F2000CS\Marketplace_WC_Source;
 use F2000CS\Prom_Categories;
 
 /**
- * Text input with the id plus the chosen category's path under it.
+ * Link to the official Prom category list (ids) for people who want to look a number up.
  *
- * Typing words searches the Prom list; picking a result puts its id into the
- * input. The value stays a plain number, so it is saved like before.
+ * @return string HTML paragraph.
+ */
+function f2000cs_prom_category_reference_link(): string {
+	return '<a href="' . esc_url( 'https://my.prom.ua/cabinet/export_categories/xls' ) . '" target="_blank" rel="noopener noreferrer">'
+		. esc_html__( 'Довідник категорій Prom з номерами (ID) — XLS', 'factorial2000-catalog-sync' )
+		. '</a>';
+}
+
+/**
+ * Select2 with the chosen Prom category (the id is the value).
  *
- * @param string $name  Input name.
+ * Typing words (or the start of an id) searches the bundled Prom list over AJAX;
+ * the value stays a plain number, so it is saved like before. An id that is not
+ * in the list stays selectable and is flagged, so nothing is lost silently.
+ *
+ * @param string $name  Field name.
  * @param string $value Stored id.
  * @param array  $args  Optional: id, class, placeholder.
  * @return void
@@ -31,19 +43,15 @@ function f2000cs_prom_category_input( string $name, string $value, array $args =
 	$value = Prom_Categories::sanitize_id( $value );
 	$path  = '' !== $value ? Prom_Categories::path( $value ) : '';
 	$id    = (string) ( $args['id'] ?? '' );
-	$class = trim( 'f2000cs-prom-cat ' . (string) ( $args['class'] ?? 'regular-text' ) );
+	$class = trim( 'f2000cs-prom-cat ' . (string) ( $args['class'] ?? '' ) );
 	?>
 	<span class="f2000cs-prom-cat-wrap">
-		<input type="text" autocomplete="off" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $value ); ?>" class="<?php echo esc_attr( $class ); ?>" <?php echo '' !== $id ? 'id="' . esc_attr( $id ) . '"' : ''; ?> placeholder="<?php echo esc_attr( (string) ( $args['placeholder'] ?? __( 'Назва або номер категорії Prom', 'factorial2000-catalog-sync' ) ) ); ?>">
-		<span class="f2000cs-prom-cat-name description<?php echo '' !== $value && '' === $path ? ' f2000cs-prom-cat-unknown' : ''; ?>">
-			<?php
-			if ( '' !== $path ) {
-				echo esc_html( $path );
-			} elseif ( '' !== $value ) {
-				esc_html_e( 'Номера немає в довіднику категорій Prom — перевірте його.', 'factorial2000-catalog-sync' );
-			}
-			?>
-		</span>
+		<select name="<?php echo esc_attr( $name ); ?>" class="<?php echo esc_attr( $class ); ?>" <?php echo '' !== $id ? 'id="' . esc_attr( $id ) . '"' : ''; ?> data-placeholder="<?php echo esc_attr( (string) ( $args['placeholder'] ?? __( 'Назва або номер категорії Prom', 'factorial2000-catalog-sync' ) ) ); ?>">
+			<option value=""></option>
+			<?php if ( '' !== $value ) : ?>
+				<option value="<?php echo esc_attr( $value ); ?>" selected data-unknown="<?php echo '' === $path ? '1' : '0'; ?>"><?php echo esc_html( '' !== $path ? $path . ' (#' . $value . ')' : '#' . $value . ' — ' . __( 'немає в довіднику Prom', 'factorial2000-catalog-sync' ) ); ?></option>
+			<?php endif; ?>
+		</select>
 	</span>
 	<?php
 }
@@ -107,6 +115,7 @@ function f2000cs_prom_category_render_meta_box( $post ) {
 		)
 	);
 	?>
+	<p class="description"><?php echo f2000cs_prom_category_reference_link(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in the helper. ?></p>
 	<p class="description"><?php esc_html_e( 'Категорія маркетплейсу, у якій Prom опублікує цей товар (portal_category_id у вигрузці). Важливіша за правила категорій на сторінці «Маркетплейси»; різновиди беруть її з основного товару. Залиште порожнім, щоб діяли правила.', 'factorial2000-catalog-sync' ); ?></p>
 	<?php
 }
@@ -150,10 +159,19 @@ function f2000cs_prom_category_enqueue( $hook ) {
 		return;
 	}
 
+	// selectWoo ships with WooCommerce; register it ourselves if its assets were not set up yet.
+	if ( ! wp_script_is( 'selectWoo', 'registered' ) && defined( 'WC_PLUGIN_FILE' ) ) {
+		wp_register_script( 'selectWoo', plugins_url( 'assets/js/selectWoo/selectWoo.full.min.js', WC_PLUGIN_FILE ), array( 'jquery' ), '1.0.6', true );
+	}
+
+	if ( wp_style_is( 'woocommerce_admin_styles', 'registered' ) ) {
+		wp_enqueue_style( 'woocommerce_admin_styles' );
+	}
+
 	wp_enqueue_script(
 		'f2000cs-admin-prom-category',
 		F2000CS_URL . 'assets/js/admin-prom-category.js',
-		array( 'jquery' ),
+		array( 'jquery', 'selectWoo' ),
 		F2000CS_VERSION,
 		true
 	);
@@ -165,8 +183,9 @@ function f2000cs_prom_category_enqueue( $hook ) {
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 			'nonce'   => wp_create_nonce( 'f2000cs_prom_category_search' ),
 			'i18n'    => array(
-				'nothing' => __( 'Нічого не знайдено', 'factorial2000-catalog-sync' ),
-				'unknown' => __( 'Номера немає в довіднику категорій Prom — перевірте його.', 'factorial2000-catalog-sync' ),
+				'nothing'   => __( 'Нічого не знайдено', 'factorial2000-catalog-sync' ),
+				'tooShort'  => __( 'Введіть хоча б 2 символи назви або початок номера', 'factorial2000-catalog-sync' ),
+				'searching' => __( 'Шукаю…', 'factorial2000-catalog-sync' ),
 			),
 		)
 	);
@@ -175,14 +194,11 @@ function f2000cs_prom_category_enqueue( $hook ) {
 	wp_enqueue_style( 'f2000cs-admin-prom-category' );
 	wp_add_inline_style(
 		'f2000cs-admin-prom-category',
-		'.f2000cs-prom-cat-wrap{position:relative;display:inline-block;max-width:100%}'
-		. '#f2000cs-prom-category .f2000cs-prom-cat-wrap{display:block}'
-		. '.f2000cs-prom-cat-name{display:block;margin-top:2px;font-size:12px}'
+		'.f2000cs-prom-cat-wrap{display:block;min-width:260px;max-width:100%}'
+		. '#f2000cs-prom-category .f2000cs-prom-cat-wrap{min-width:0}'
+		. '.f2000cs-prom-cat-wrap .select2-container{width:100%!important}'
+		. '.f2000cs-prom-cat-opt small{opacity:.7;margin-left:6px}'
 		. '.f2000cs-prom-cat-unknown{color:#b32d2e}'
-		. '.f2000cs-prom-cat-list{position:fixed;z-index:100000;width:max-content;max-width:min(560px,90vw);max-height:300px;overflow:auto;margin:2px 0 0;padding:0;list-style:none;background:#fff;border:1px solid #8c8f94;box-shadow:0 3px 8px rgba(0,0,0,.15)}'
-		. '.f2000cs-prom-cat-list li{margin:0;padding:6px 8px;cursor:pointer;line-height:1.35;white-space:normal}'
-		. '.f2000cs-prom-cat-list li.is-active,.f2000cs-prom-cat-list li:hover{background:#2271b1;color:#fff}'
-		. '.f2000cs-prom-cat-list li small{opacity:.75;margin-left:6px}'
 	);
 }
-add_action( 'admin_enqueue_scripts', 'f2000cs_prom_category_enqueue' );
+add_action( 'admin_enqueue_scripts', 'f2000cs_prom_category_enqueue', 20 );
