@@ -5,7 +5,7 @@ Tags: woocommerce, prom-ua, xml-import, stock-sync, marketplace
 Requires at least: 5.8
 Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 0.7.0
+Stable tag: 0.7.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -159,10 +159,24 @@ This service is provided by Freemius. Terms of Service: https://freemius.com/ter
 
 == Upgrade Notice ==
 
+= 0.7.1 =
+Large Prom feeds (over 180 MB) are now split into several links automatically, and admin script caching is fixed. Pro users: update the Pro build from your Freemius account.
+
 = 0.7.0 =
 Pro features moved to a separate Pro build. If you use a Pro license, stock quantity updates or the marketplace feed, install the Pro version from your Freemius account before updating. Price adjustment now works in the Free version too.
 
 == Changelog ==
+
+= 0.7.1 =
+New:
+* (Pro) A Prom feed above 180 MB is split into several files of about equal size. The first keeps the existing link, the next ones get a «-2», «-3» suffix, and the Marketplaces page lists every link, to be added to Prom as separate import sources. The variations of one group always stay in one file, and files a smaller build no longer needs are removed. The limits can be changed with the `f2000cs_marketplace_max_file_bytes` and `f2000cs_marketplace_part_bytes` filters.
+
+Fixed:
+* Admin scripts and styles are versioned by the file's modification time, so browser, CDN and page caches no longer serve a stale copy after an update; the Prom category and brand pickers also wait for the Select2 library if a script optimizer loads it late (they stayed plain lists on such sites).
+
+Improved:
+* The built-in documentation describes the category and brand pickers and the split feed.
+* A clearer plugin description, Free vs Pro overview and FAQ in this readme, and a disclosure of the Freemius service.
 
 = 0.7.0 =
 **Important:** Pro features are now shipped only in the Pro version of the plugin. If you have a Pro license or an active trial and update from WordPress.org, you get the Free version and the Pro features stop working until you install the Pro version from your Freemius account. The plugin shows a notice with the link.

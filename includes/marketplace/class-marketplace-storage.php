@@ -19,6 +19,11 @@ defined( 'ABSPATH' ) || exit;
 class Marketplace_Storage {
 
 	/**
+	 * Upper bound of files per feed (a runaway build must not fill the disk with parts).
+	 */
+	const MAX_PARTS = 20;
+
+	/**
 	 * Directory under uploads (created on demand).
 	 *
 	 * @return string Absolute path without trailing slash.
@@ -90,6 +95,86 @@ class Marketplace_Storage {
 	}
 
 	/**
+	 * Absolute path of one file of the feed.
+	 *
+	 * A feed above the size limit is published as several files: the first keeps the
+	 * plain name (the link people already gave the marketplace), the next ones carry
+	 * a "-2", "-3"… suffix.
+	 *
+	 * @param Marketplace_Feed $feed Feed.
+	 * @param int              $n    File number, from 1.
+	 * @return string
+	 */
+	public static function part_path( Marketplace_Feed $feed, int $n ): string {
+		if ( $n <= 1 ) {
+			return self::path( $feed );
+		}
+
+		return self::dir() . '/' . $feed->id() . '-' . self::token( $feed->id() ) . '-' . $n . '.' . $feed->extension();
+	}
+
+	/**
+	 * Public URL of one file of the feed.
+	 *
+	 * @param Marketplace_Feed $feed Feed.
+	 * @param int              $n    File number, from 1.
+	 * @return string
+	 */
+	public static function part_url( Marketplace_Feed $feed, int $n ): string {
+		if ( $n <= 1 ) {
+			return self::url( $feed );
+		}
+
+		$upload = wp_upload_dir();
+
+		return trailingslashit( (string) $upload['baseurl'] ) . 'f2000cs-feeds/' . $feed->id() . '-' . self::token( $feed->id() ) . '-' . $n . '.' . $feed->extension();
+	}
+
+	/**
+	 * Published files of the feed, in order.
+	 *
+	 * @param Marketplace_Feed $feed Feed.
+	 * @return array<int, array{n:int,url:string,size:int,mtime:int}>
+	 */
+	public static function parts( Marketplace_Feed $feed ): array {
+		$out = array();
+
+		for ( $n = 1; $n <= self::MAX_PARTS; $n++ ) {
+			$path = self::part_path( $feed, $n );
+
+			if ( ! is_file( $path ) ) {
+				break;
+			}
+
+			$out[] = array(
+				'n'     => $n,
+				'url'   => self::part_url( $feed, $n ),
+				'size'  => (int) filesize( $path ),
+				'mtime' => (int) filemtime( $path ),
+			);
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Delete the numbered files from $from on (a smaller build leaves old extra files behind).
+	 *
+	 * @param Marketplace_Feed $feed Feed.
+	 * @param int              $from First file number to delete (at least 2).
+	 * @return void
+	 */
+	public static function delete_parts_from( Marketplace_Feed $feed, int $from ): void {
+		for ( $n = max( 2, $from ); $n <= self::MAX_PARTS; $n++ ) {
+			$path = self::part_path( $feed, $n );
+
+			if ( is_file( $path ) ) {
+				wp_delete_file( $path );
+			}
+		}
+	}
+
+	/**
 	 * Public URL of the feed.
 	 *
 	 * @param Marketplace_Feed $feed Feed.
@@ -113,26 +198,28 @@ class Marketplace_Storage {
 	}
 
 	/**
-	 * Size and modification time of the published feed.
+	 * Size and modification time of the published feed (all files together).
 	 *
 	 * @param Marketplace_Feed $feed Feed.
-	 * @return array{exists:bool,size:int,mtime:int}
+	 * @return array{exists:bool,size:int,mtime:int,parts:array<int,array{n:int,url:string,size:int,mtime:int}>}
 	 */
 	public static function info( Marketplace_Feed $feed ): array {
-		$path = self::path( $feed );
+		$parts = self::parts( $feed );
 
-		if ( ! is_file( $path ) ) {
+		if ( ! $parts ) {
 			return array(
 				'exists' => false,
 				'size'   => 0,
 				'mtime'  => 0,
+				'parts'  => array(),
 			);
 		}
 
 		return array(
 			'exists' => true,
-			'size'   => (int) filesize( $path ),
-			'mtime'  => (int) filemtime( $path ),
+			'size'   => (int) array_sum( array_column( $parts, 'size' ) ),
+			'mtime'  => (int) $parts[0]['mtime'],
+			'parts'  => $parts,
 		);
 	}
 }

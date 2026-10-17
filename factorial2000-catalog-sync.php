@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Factorial2000 Catalog Sync for Prom.ua
  * Description:       Імпорт і синхронізація товарів WooCommerce з XML постачальників (YML/Prom.ua): оновлення наявності й цін за розкладом, імпорт простих і варіативних товарів з фото, атрибутами й категоріями, SKU-префікси, конвертація валют, Telegram-сповіщення. Pro: кілька постачальників, часті оновлення, коригування цін і кількість, оновлення окремих полів, обробка зображень, редактор вигрузок XML, вигрузка товарів сайту на Prom.ua з автооновленням. Free назавжди + Pro-тріал 14 днів без карти.
- * Version:           0.7.0
+ * Version:           0.7.1
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -44,7 +44,7 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 	}
 } else {
 
-	define( 'F2000CS_VERSION', '0.7.0' );
+	define( 'F2000CS_VERSION', '0.7.1' );
 	define( 'F2000CS_DB_VERSION', 1 ); // Increment when DB migrations are needed.
 	define( 'F2000CS_PATH', plugin_dir_path( __FILE__ ) );
 	define( 'F2000CS_URL', plugin_dir_url( __FILE__ ) );

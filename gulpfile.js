@@ -39,6 +39,8 @@ const EXCLUDE_LIST = [
 	'.git',
 	'.github',
 	'.claude',
+	'.mcp.json',
+	'.playwright-mcp',
 	'.gitignore',
 	'tests',
 	'bin',

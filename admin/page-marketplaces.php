@@ -443,29 +443,38 @@ function f2000cs_marketplaces_page() {
 					<th scope="row"><?php esc_html_e( 'Посилання на вигрузку', 'factorial2000-catalog-sync' ); ?></th>
 					<td>
 						<?php if ( $info['exists'] ) : ?>
-							<input type="text" class="large-text code" readonly value="<?php echo esc_attr( Marketplace_Storage::url( $feed ) ); ?>" onclick="this.select()">
+							<?php $many = count( $info['parts'] ) > 1; ?>
+							<?php foreach ( $info['parts'] as $part ) : ?>
+								<p style="margin:0 0 6px">
+									<input type="text" class="large-text code" readonly value="<?php echo esc_attr( $part['url'] ); ?>" onclick="this.select()">
+								</p>
+							<?php endforeach; ?>
 							<p class="description">
 								<?php
 								echo esc_html(
 									sprintf(
 										/* translators: 1: date and time, 2: file size */
-										__( 'Оновлено: %1$s · %2$s. Вкажіть це посилання у кабінеті маркетплейсу як джерело імпорту.', 'factorial2000-catalog-sync' ),
+										__( 'Оновлено: %1$s · %2$s.', 'factorial2000-catalog-sync' ),
 										wp_date( 'd.m.Y H:i', $info['mtime'] ),
 										$info['size'] < 1048576
 											? number_format_i18n( max( 1, $info['size'] / 1024 ), 0 ) . ' ' . __( 'КБ', 'factorial2000-catalog-sync' )
 											: number_format_i18n( $info['size'] / 1048576, 1 ) . ' ' . __( 'МБ', 'factorial2000-catalog-sync' )
 									)
 								);
+								echo ' ';
+								echo esc_html(
+									$many
+										? __( 'Каталог завеликий для одного файлу (Prom рекомендує до 180 МБ), тому він розбитий на кілька файлів. Додайте кожне посилання в кабінеті маркетплейсу окремим джерелом імпорту. Товари однієї групи завжди в одному файлі; перше посилання не змінюється.', 'factorial2000-catalog-sync' )
+										: __( 'Вкажіть це посилання у кабінеті маркетплейсу як джерело імпорту.', 'factorial2000-catalog-sync' )
+								);
 								?>
 							</p>
 							<p class="description">
 								<?php esc_html_e( 'У налаштуваннях імпорту Prom виберіть, що робити з товарами, яких немає у файлі («Немає в наявності», «Приховані» або «Залишити без змін»): неопубліковані товари сайту у файл не потрапляють.', 'factorial2000-catalog-sync' ); ?>
+								<?php if ( $many ) : ?>
+									<?php esc_html_e( 'Prom застосовує це до кожного джерела окремо.', 'factorial2000-catalog-sync' ); ?>
+								<?php endif; ?>
 							</p>
-							<?php if ( $info['size'] > 180 * 1048576 ) : ?>
-								<p class="description" style="color:#b32d2e">
-									<?php esc_html_e( 'Prom рекомендує файл імпорту до 180 МБ. Зменшіть кількість фото на товар або розбийте каталог.', 'factorial2000-catalog-sync' ); ?>
-								</p>
-							<?php endif; ?>
 						<?php else : ?>
 							<em><?php esc_html_e( 'Вигрузку ще не згенеровано.', 'factorial2000-catalog-sync' ); ?></em>
 						<?php endif; ?>

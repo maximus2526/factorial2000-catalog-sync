@@ -26,7 +26,7 @@ if ( ! preg_match( '/@fs_premium_only\s+([^\r\n]+)/', $header, $m ) ) {
 
 $premium = array_values( array_filter( array_map( static fn( $p ) => trim( $p, " \t/" ), explode( ',', $m[1] ) ) ) );
 
-$skip = array( '.git', '.github', '.claude', 'vendor', 'vendor-bin', 'node_modules', 'tests', 'bin', 'release', '.phpunit.cache', 'Promo' );
+$skip = array( '.git', '.github', '.claude', '.mcp.json', '.playwright-mcp', 'vendor', 'vendor-bin', 'node_modules', 'tests', 'bin', 'release', '.phpunit.cache', 'Promo' );
 
 function sim_copy( string $src, string $dst, array $skip ): void {
 	if ( ! is_dir( $dst ) ) {

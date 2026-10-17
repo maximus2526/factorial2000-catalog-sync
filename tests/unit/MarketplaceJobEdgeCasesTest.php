@@ -29,6 +29,13 @@ final class F2000CS_Edge_Feed extends Marketplace_Feed {
 	public static $tail = "    </offers>\n  </shop>\n</root>\n";
 
 	/**
+	 * Offers per group_id (0 = no groups).
+	 *
+	 * @var int
+	 */
+	public static $group_size = 0;
+
+	/**
 	 * @return string
 	 */
 	public function id(): string {
@@ -71,8 +78,10 @@ final class F2000CS_Edge_Feed extends Marketplace_Feed {
 	 * @return array
 	 */
 	public function process_unit( array $unit, Marketplace_Category_Tree $tree, array $settings ): array {
+		$group = self::$group_size > 0 ? ' group_id="g' . ( intdiv( (int) $unit['id'] - 1, self::$group_size ) + 1 ) . '"' : '';
+
 		return array(
-			'xml'      => '      <offer id="' . (int) $unit['id'] . "\"/>\n",
+			'xml'      => '      <offer id="' . (int) $unit['id'] . '"' . $group . "/>\n",
 			'exported' => 1,
 			'skipped'  => 0,
 			'excluded' => array(),
@@ -149,7 +158,9 @@ final class F2000CS_Unit_MarketplaceJobEdgeCasesTest extends F2000CS_Unit_TestCa
 	protected function setUp(): void {
 		parent::setUp();
 
-		F2000CS_Edge_Feed::$tail = "    </offers>\n  </shop>\n</root>\n";
+		F2000CS_Edge_Feed::$tail       = "    </offers>\n  </shop>\n</root>\n";
+		F2000CS_Edge_Feed::$group_size = 0;
+		self::clear_limit_filters();
 
 		Marketplace_Registry::reset();
 		Marketplace_Registry::register( new F2000CS_Edge_Feed() );
@@ -162,6 +173,7 @@ final class F2000CS_Unit_MarketplaceJobEdgeCasesTest extends F2000CS_Unit_TestCa
 	 * @return void
 	 */
 	protected function tearDown(): void {
+		self::clear_limit_filters();
 		$this->remove_dir( Marketplace_Storage::base_dir() );
 		Marketplace_Registry::reset();
 
@@ -273,6 +285,7 @@ final class F2000CS_Unit_MarketplaceJobEdgeCasesTest extends F2000CS_Unit_TestCa
 				'exists' => false,
 				'size'   => 0,
 				'mtime'  => 0,
+				'parts'  => array(),
 			),
 			Marketplace_Storage::info( $feed )
 		);
@@ -286,6 +299,14 @@ final class F2000CS_Unit_MarketplaceJobEdgeCasesTest extends F2000CS_Unit_TestCa
 				'exists' => true,
 				'size'   => 7,
 				'mtime'  => 1700000000,
+				'parts'  => array(
+					array(
+						'n'     => 1,
+						'url'   => Marketplace_Storage::url( $feed ),
+						'size'  => 7,
+						'mtime' => 1700000000,
+					),
+				),
 			),
 			Marketplace_Storage::info( $feed )
 		);
@@ -510,5 +531,154 @@ final class F2000CS_Unit_MarketplaceJobEdgeCasesTest extends F2000CS_Unit_TestCa
 		f2000cs_uninstall_delete_dir( $root ); // Already gone: no error.
 		f2000cs_uninstall_delete_dir( '' );
 		$this->addToAssertionCount( 1 );
+	}
+
+	// ------------------------------------------------------------- splitting
+
+	/**
+	 * Remove only the split-limit filters (other hooks belong to other tests).
+	 *
+	 * @return void
+	 */
+	private static function clear_limit_filters(): void {
+		unset(
+			F2000CS_Test_State::$hooks['f2000cs_marketplace_max_file_bytes'],
+			F2000CS_Test_State::$hooks['f2000cs_marketplace_part_bytes']
+		);
+	}
+
+	/**
+	 * Make the split limits tiny for a test.
+	 *
+	 * @param int $max  Size above which the feed is split.
+	 * @param int $part Ceiling of one file.
+	 * @return void
+	 */
+	private function tiny_limits( int $max, int $part ): void {
+		self::clear_limit_filters();
+
+		add_filter(
+			'f2000cs_marketplace_max_file_bytes',
+			static function () use ( $max ) {
+				return $max;
+			}
+		);
+		add_filter(
+			'f2000cs_marketplace_part_bytes',
+			static function () use ( $part ) {
+				return $part;
+			}
+		);
+	}
+
+	/**
+	 * Read the offer ids of a published file.
+	 *
+	 * @param string $path File.
+	 * @return array<int,int>
+	 */
+	private function offer_ids( string $path ): array {
+		preg_match_all( '/<offer id="(\d+)"/', (string) file_get_contents( $path ), $m );
+
+		return array_map( 'intval', $m[1] );
+	}
+
+	/**
+	 * Small feed stays one file at the old link.
+	 *
+	 * @return void
+	 */
+	public function test_small_feed_is_one_file(): void {
+		$result = Marketplace_Job::run( 'edge', 10, new F2000CS_Edge_Source( 5 ) );
+		$feed   = Marketplace_Registry::get( 'edge' );
+
+		$this->assertSame( 'done', $result['status'] );
+		$this->assertSame( 1, $result['files'] );
+		$this->assertCount( 1, Marketplace_Storage::parts( $feed ) );
+		$this->assertSame( Marketplace_Storage::url( $feed ), Marketplace_Storage::part_url( $feed, 1 ) );
+		$this->assertSame( array( 1, 2, 3, 4, 5 ), $this->offer_ids( Marketplace_Storage::path( $feed ) ) );
+	}
+
+	/**
+	 * Above the limit the feed is cut into complete files; every offer lands in exactly one.
+	 *
+	 * @return void
+	 */
+	public function test_big_feed_is_split_into_complete_files(): void {
+		$this->tiny_limits( 300, 200 );
+
+		$result = Marketplace_Job::run( 'edge', 10, new F2000CS_Edge_Source( 20 ) );
+		$feed   = Marketplace_Registry::get( 'edge' );
+		$parts  = Marketplace_Storage::parts( $feed );
+
+		$this->assertSame( 'done', $result['status'] );
+		$this->assertGreaterThan( 1, count( $parts ) );
+		$this->assertSame( count( $parts ), $result['files'] );
+		$this->assertSame( 20, $result['exported'] );
+		$this->assertStringEndsWith( '-2.xml', Marketplace_Storage::part_url( $feed, 2 ) );
+
+		$all = array();
+
+		foreach ( $parts as $part ) {
+			$path = Marketplace_Storage::part_path( $feed, $part['n'] );
+
+			$this->assertTrue( Marketplace_Job::is_well_formed( $path ), 'Every file is complete XML' );
+			$this->assertStringContainsString( '<root>', (string) file_get_contents( $path ) );
+			$this->assertFileDoesNotExist( $path . '.part' );
+
+			$all = array_merge( $all, $this->offer_ids( $path ) );
+		}
+
+		$this->assertSame( range( 1, 20 ), $all, 'No offer lost or duplicated, order kept' );
+	}
+
+	/**
+	 * Variations of one group_id are never separated.
+	 *
+	 * @return void
+	 */
+	public function test_split_keeps_a_group_together(): void {
+		F2000CS_Edge_Feed::$group_size = 4;
+		$this->tiny_limits( 300, 150 );
+
+		Marketplace_Job::run( 'edge', 10, new F2000CS_Edge_Source( 20 ) );
+		$feed = Marketplace_Registry::get( 'edge' );
+
+		$groups_in = array();
+
+		foreach ( Marketplace_Storage::parts( $feed ) as $part ) {
+			preg_match_all( '/group_id="(g\d+)"/', (string) file_get_contents( Marketplace_Storage::part_path( $feed, $part['n'] ) ), $m );
+
+			foreach ( array_unique( $m[1] ) as $group ) {
+				$groups_in[ $group ][] = $part['n'];
+			}
+		}
+
+		$this->assertCount( 5, $groups_in );
+
+		foreach ( $groups_in as $group => $files ) {
+			$this->assertCount( 1, $files, "Group $group sits in one file" );
+		}
+	}
+
+	/**
+	 * A later, smaller build removes the files it no longer needs.
+	 *
+	 * @return void
+	 */
+	public function test_smaller_build_removes_surplus_files(): void {
+		$this->tiny_limits( 300, 200 );
+
+		Marketplace_Job::run( 'edge', 10, new F2000CS_Edge_Source( 20 ) );
+		$feed = Marketplace_Registry::get( 'edge' );
+		$this->assertGreaterThan( 1, count( Marketplace_Storage::parts( $feed ) ) );
+
+		self::clear_limit_filters();
+		update_option( Marketplace_Job::published_option( 'edge' ), 0, false );
+
+		Marketplace_Job::run( 'edge', 10, new F2000CS_Edge_Source( 11 ), true );
+
+		$this->assertCount( 1, Marketplace_Storage::parts( $feed ), 'Back to one file' );
+		$this->assertFileDoesNotExist( Marketplace_Storage::part_path( $feed, 2 ) );
 	}
 }

@@ -63,6 +63,17 @@ class Marketplace_Job {
 	const STALE_AFTER = 259200;
 
 	/**
+	 * A feed above this size (bytes, decimal: the stricter reading of Prom's «180 МБ») is split
+	 * into several files, each about the same size and below PART_BYTES.
+	 */
+	const MAX_FILE_BYTES = 180000000;
+
+	/**
+	 * Ceiling of one file of a split feed (bytes).
+	 */
+	const PART_BYTES = 170000000;
+
+	/**
 	 * Name of a per-feed option: f2000cs_mp_<what>_<feed id>.
 	 *
 	 * @param string $what Kind of option.
@@ -521,8 +532,6 @@ class Marketplace_Job {
 	private static function finalize( Marketplace_Feed $feed, array $settings, Marketplace_Category_Tree $tree, array $state ): array {
 		$id     = $feed->id();
 		$tmp    = Marketplace_Storage::build_path( $feed );
-		$final  = Marketplace_Storage::path( $feed );
-		$part   = $final . '.part';
 		$result = array(
 			'finished'   => time(),
 			'duration'   => max( 0, time() - (int) ( $state['started'] ?? time() ) ),
@@ -568,36 +577,29 @@ class Marketplace_Job {
 			return $result;
 		}
 
-		$out = fopen( $part, 'wb' );
-		$in  = fopen( $tmp, 'rb' );
-
-		if ( ! $out || ! $in ) {
-			throw new \RuntimeException( esc_html__( 'Не вдалося зібрати файл вигрузки.', 'factorial2000-catalog-sync' ) );
-		}
-
-		fwrite( $out, $feed->head( $settings ) );
-		fwrite( $out, "    <categories>\n" . $tree->to_xml( '      ' ) . "    </categories>\n    <offers>\n" );
-		stream_copy_to_stream( $in, $out );
-		fwrite( $out, $feed->tail() );
-		fclose( $in );
-		fclose( $out );
+		$parts = self::assemble( $feed, $settings, $tree, $tmp );
 		wp_delete_file( $tmp );
 
-		if ( ! self::is_well_formed( $part ) ) {
-			wp_delete_file( $part );
-			$result['status']  = 'error';
-			$result['message'] = __( 'Згенерований файл не є коректним XML — попередній файл залишено без змін.', 'factorial2000-catalog-sync' );
-			update_option( self::result_option( $id ), $result, false );
+		foreach ( $parts as $file ) {
+			if ( ! self::is_well_formed( $file ) ) {
+				foreach ( $parts as $leftover ) {
+					wp_delete_file( $leftover );
+				}
 
-			return $result;
+				$result['status']  = 'error';
+				$result['message'] = __( 'Згенерований файл не є коректним XML — попередній файл залишено без змін.', 'factorial2000-catalog-sync' );
+				update_option( self::result_option( $id ), $result, false );
+
+				return $result;
+			}
 		}
 
-		if ( ! @rename( $part, $final ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Falls back to copy below.
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- Windows cannot rename over an open file.
-			$copied = copy( $part, $final );
-			wp_delete_file( $part );
+		foreach ( $parts as $i => $file ) {
+			if ( ! self::publish_file( $file, Marketplace_Storage::part_path( $feed, $i + 1 ) ) ) {
+				foreach ( $parts as $leftover ) {
+					wp_delete_file( $leftover );
+				}
 
-			if ( ! $copied ) {
 				$result['status']  = 'error';
 				$result['message'] = __( 'Не вдалося опублікувати файл вигрузки — попередній файл залишено без змін.', 'factorial2000-catalog-sync' );
 				update_option( self::result_option( $id ), $result, false );
@@ -606,15 +608,155 @@ class Marketplace_Job {
 			}
 		}
 
+		// A smaller build than the last one: its extra numbered files are gone from the feed.
+		Marketplace_Storage::delete_parts_from( $feed, count( $parts ) + 1 );
+
 		update_option( self::published_option( $id ), (int) $result['exported'], false );
 
+		$published = Marketplace_Storage::parts( $feed );
+
 		$result['status'] = 'done';
-		$result['size']   = is_file( $final ) ? (int) filesize( $final ) : 0;
+		$result['size']   = (int) array_sum( array_column( $published, 'size' ) );
 		$result['url']    = Marketplace_Storage::url( $feed );
+		$result['files']  = count( $published );
 
 		update_option( self::result_option( $id ), $result, false );
 
 		return $result;
+	}
+
+	/**
+	 * Write the feed document(s) from the working file of offers.
+	 *
+	 * Normally one file. When the whole document would exceed MAX_FILE_BYTES it is cut into
+	 * files of about equal size: every file is a complete YML with the same shop head and
+	 * category list, and the variations of one group (same group_id) never end up in
+	 * different files. Returned paths still carry the ".part" suffix.
+	 *
+	 * @param Marketplace_Feed          $feed     Feed.
+	 * @param array<string,mixed>       $settings Settings.
+	 * @param Marketplace_Category_Tree $tree     Category tree.
+	 * @param string                    $tmp      Working file with the offers.
+	 * @return array<int,string> Paths of the files to publish, in order.
+	 * @throws \RuntimeException When a file cannot be written.
+	 */
+	private static function assemble( Marketplace_Feed $feed, array $settings, Marketplace_Category_Tree $tree, string $tmp ): array {
+		$head     = $feed->head( $settings ) . "    <categories>\n" . $tree->to_xml( '      ' ) . "    </categories>\n    <offers>\n";
+		$tail     = $feed->tail();
+		$overhead = strlen( $head ) + strlen( $tail );
+		$total    = $overhead + (int) filesize( $tmp );
+
+		/**
+		 * Filters the size above which the feed is split into several files (bytes).
+		 *
+		 * @param int $bytes Default 180 000 000.
+		 */
+		$max_file = max( 1, (int) apply_filters( 'f2000cs_marketplace_max_file_bytes', self::MAX_FILE_BYTES ) );
+
+		/**
+		 * Filters the ceiling of one file of a split feed (bytes).
+		 *
+		 * @param int $bytes Default 170 000 000.
+		 */
+		$part_max = max( 1, (int) apply_filters( 'f2000cs_marketplace_part_bytes', self::PART_BYTES ) );
+		$count    = $total > $max_file ? min( Marketplace_Storage::MAX_PARTS, (int) ceil( $total / $part_max ) ) : 1;
+		$target   = (int) ceil( ( $total - $overhead ) / $count );
+		$in       = fopen( $tmp, 'rb' );
+
+		if ( ! $in ) {
+			throw new \RuntimeException( esc_html__( 'Не вдалося зібрати файл вигрузки.', 'factorial2000-catalog-sync' ) );
+		}
+
+		$paths   = array();
+		$out     = null;
+		$written = 0;
+		$group   = null;
+		$block   = '';
+
+		$open = static function () use ( &$out, &$paths, &$written, $feed, $head ) {
+			$path = Marketplace_Storage::part_path( $feed, count( $paths ) + 1 ) . '.part';
+			$out  = fopen( $path, 'wb' );
+
+			if ( ! $out ) {
+				throw new \RuntimeException( esc_html__( 'Не вдалося зібрати файл вигрузки.', 'factorial2000-catalog-sync' ) );
+			}
+
+			fwrite( $out, $head );
+			$paths[] = $path;
+			$written = 0;
+		};
+
+		$close = static function () use ( &$out, $tail ) {
+			if ( $out ) {
+				fwrite( $out, $tail );
+				fclose( $out );
+				$out = null;
+			}
+		};
+
+		// An offer block starts at its opening tag line and runs to the next one.
+		$flush = static function () use ( &$block, &$out, &$written, &$group, &$paths, $count, $target, $open, $close ) {
+			if ( '' === $block ) {
+				return;
+			}
+
+			$this_group = preg_match( '/^\s*<offer[^>]*\sgroup_id="([^"]*)"/', $block, $m ) ? $m[1] : '';
+
+			if ( ! $out ) {
+				$open();
+			} elseif ( $written >= $target && count( $paths ) < $count && ( '' === $this_group || $this_group !== $group ) ) {
+				// A new file starts only between groups.
+				$close();
+				$open();
+			}
+
+			fwrite( $out, $block );
+			$written += strlen( $block );
+			$group    = $this_group;
+			$block    = '';
+		};
+
+		$line = fgets( $in );
+
+		while ( false !== $line ) {
+			if ( 0 === strpos( $line, '      <offer' ) ) {
+				$flush();
+			}
+
+			$block .= $line;
+			$line   = fgets( $in );
+		}
+
+		$flush();
+
+		fclose( $in );
+
+		if ( ! $out ) {
+			$open();
+		}
+
+		$close();
+
+		return $paths;
+	}
+
+	/**
+	 * Move a finished ".part" file over the published one.
+	 *
+	 * @param string $from Source.
+	 * @param string $to   Destination.
+	 * @return bool
+	 */
+	private static function publish_file( string $from, string $to ): bool {
+		if ( @rename( $from, $to ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Falls back to copy below.
+			return true;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- Windows cannot rename over an open file.
+		$copied = copy( $from, $to );
+		wp_delete_file( $from );
+
+		return $copied;
 	}
 
 	/**
@@ -812,6 +954,7 @@ class Marketplace_Job {
 		}
 
 		wp_delete_file( $path );
+		Marketplace_Storage::delete_parts_from( $feed, 2 );
 
 		if ( function_exists( 'f2000cs_log' ) ) {
 			f2000cs_log( sprintf( 'Marketplace feed "%s" withdrawn: Pro is not active and the file was no longer updated.', $id ), 'warning' );
