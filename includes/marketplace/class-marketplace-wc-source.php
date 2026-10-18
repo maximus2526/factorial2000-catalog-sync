@@ -232,6 +232,9 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 			'Parent'                  => $is_variation ? $this->parent_ref( $parent_product ) : '',
 			'Brands'                  => $is_variation ? '' : $this->brands( $product ),
 			'Meta: mpn'               => $this->mpn( $product, $is_variation ? $parent_product : null ),
+			'Tags'                    => $is_variation ? '' : $this->tags( $product ),
+			// Translator's per-language Prom keywords, still language-tagged; kept on the product only.
+			'Meta: prom_keywords'     => $is_variation ? '' : (string) $product->get_meta( '_f2000tr_prom_keywords', true ),
 		);
 
 		// Set on the product, not on variations: the feed falls back to the parent row.
@@ -420,6 +423,22 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 		}
 
 		return implode( ', ', $urls );
+	}
+
+	/**
+	 * Product tag names (the WooCommerce CSV "Tags" column).
+	 *
+	 * @param \WC_Product $product Product.
+	 * @return string
+	 */
+	private function tags( $product ): string {
+		$terms = wp_get_object_terms( $product->get_id(), 'product_tag', array( 'fields' => 'names' ) );
+
+		if ( ! is_array( $terms ) || ! $terms ) {
+			return '';
+		}
+
+		return implode( ', ', array_map( array( $this, 'esc' ), array_map( 'strval', $terms ) ) );
 	}
 
 	/**

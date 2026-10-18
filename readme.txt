@@ -5,7 +5,7 @@ Tags: woocommerce, prom-ua, xml-import, stock-sync, marketplace
 Requires at least: 5.8
 Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 0.7.1
+Stable tag: 0.7.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -187,6 +187,9 @@ This service is provided by Freemius. Terms of Service: https://freemius.com/ter
 
 == Upgrade Notice ==
 
+= 0.7.2 =
+The Prom feed now carries search keywords (`keywords` / `keywords_ua`). Pro users: update the Pro build from your Freemius account.
+
 = 0.7.1 =
 Large Prom feeds (over 180 MB) are now split into several links automatically, and admin script caching is fixed. Pro users: update the Pro build from your Freemius account.
 
@@ -194,6 +197,10 @@ Large Prom feeds (over 180 MB) are now split into several links automatically, a
 Pro features moved to a separate Pro build. If you use a Pro license, stock quantity updates or the marketplace feed, install the Pro version from your Freemius account before updating. Price adjustment now works in the Free version too.
 
 == Changelog ==
+
+= 0.7.2 =
+New:
+* (Pro) The Prom feed now includes search keywords for every offer: `<keywords>` (Russian) and `<keywords_ua>` (Ukrainian). They come from the Prom keywords field of the Factorial2000 Translator plugin, and from the product tags when that field is empty. Duplicates are removed and the list is cut to Prom's 255 characters on a whole keyword; a variation uses its parent product's keywords.
 
 = 0.7.1 =
 New:

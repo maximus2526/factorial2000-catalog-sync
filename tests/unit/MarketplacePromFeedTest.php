@@ -624,6 +624,57 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * Keywords come from the translator's meta, else from the product tags.
+	 *
+	 * @return void
+	 */
+	public function test_offer_carries_keywords() {
+		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Meta: prom_keywords' => 'куртка; Куртка, тактична' ) ) ) );
+
+		$this->assertStringContainsString( '<keywords>куртка, тактична</keywords>', $res['xml'] );
+		$this->assertStringContainsString( '<keywords_ua>куртка, тактична</keywords_ua>', $res['xml'] );
+
+		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Tags' => 'зима, тепла\\, легка' ) ) ) );
+
+		$this->assertStringContainsString( '<keywords>зима, тепла, легка</keywords>', $res['xml'], 'Tags are the fallback' );
+
+		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row() ) );
+
+		$this->assertStringNotContainsString( '<keywords', $res['xml'], 'No keywords, no element' );
+	}
+
+	/**
+	 * Keywords are cut on a whole word at Prom's 255 character limit.
+	 *
+	 * @return void
+	 */
+	public function test_keywords_are_capped_at_255_characters() {
+		$words = array();
+
+		for ( $i = 0; $i < 60; $i++ ) {
+			$words[] = 'слово' . $i;
+		}
+
+		list( $keywords ) = Prom_Feed::pick_keywords( array( 'Tags' => implode( ',', $words ) ), null );
+
+		$this->assertLessThanOrEqual( 255, mb_strlen( $keywords ) );
+		$this->assertStringStartsWith( 'слово0, слово1, ', $keywords );
+		$this->assertStringEndsNotWith( ',', $keywords );
+	}
+
+	/**
+	 * A variation without keywords uses its parent's.
+	 *
+	 * @return void
+	 */
+	public function test_variation_keywords_fall_back_to_parent() {
+		$this->assertSame(
+			array( 'a, b', 'a, b' ),
+			Prom_Feed::pick_keywords( array( 'ID' => '1' ), array( 'Meta: prom_keywords' => 'a,b' ) )
+		);
+	}
+
+	/**
 	 * Unpublished variations are not exported.
 	 *
 	 * @return void

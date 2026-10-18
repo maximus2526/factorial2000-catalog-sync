@@ -827,6 +827,16 @@ class Prom_Feed extends Marketplace_Feed {
 		$xml .= $ind2 . '<description>' . Marketplace_Text::xml_text( $description ) . "</description>\n";
 		$xml .= $ind2 . '<description_ua>' . Marketplace_Text::xml_text( $description_ua ) . "</description_ua>\n";
 
+		list( $keywords, $keywords_ua ) = self::pick_keywords( $row, $parent_row );
+
+		if ( '' !== $keywords ) {
+			$xml .= $ind2 . '<keywords>' . Marketplace_Text::xml_text( $keywords ) . "</keywords>\n";
+		}
+
+		if ( '' !== $keywords_ua ) {
+			$xml .= $ind2 . '<keywords_ua>' . Marketplace_Text::xml_text( $keywords_ua ) . "</keywords_ua>\n";
+		}
+
 		$sku = Marketplace_Text::clean( null !== $sku_override ? $sku_override : '' );
 
 		if ( '' === $sku ) {
@@ -891,6 +901,73 @@ class Prom_Feed extends Marketplace_Feed {
 		$xml .= $ind . "</offer>\n";
 
 		return array( $xml, 0 );
+	}
+
+	/**
+	 * Search keywords of an offer: the translator's per-language Prom keywords, else product tags.
+	 *
+	 * @param array<string,string>      $row        Row.
+	 * @param array<string,string>|null $parent_row Parent row (keywords live on the product).
+	 * @return array{0:string,1:string} Main and Ukrainian keywords.
+	 */
+	public static function pick_keywords( array $row, $parent_row ): array {
+		$sources = array( $row, $parent_row ? $parent_row : array() );
+
+		foreach ( $sources as $source ) {
+			$tagged = Marketplace_Text::clean( $source['Meta: prom_keywords'] ?? '' );
+
+			if ( '' !== $tagged ) {
+				list( $main, $ua ) = self::split_languages( $tagged );
+
+				$main = self::format_keywords( $main );
+				$ua   = self::format_keywords( $ua );
+
+				if ( '' !== $main || '' !== $ua ) {
+					return array( '' !== $main ? $main : $ua, '' !== $ua ? $ua : $main );
+				}
+			}
+		}
+
+		foreach ( $sources as $source ) {
+			$tags = self::format_keywords( implode( ',', Marketplace_Text::split_escaped( (string) ( $source['Tags'] ?? '' ) ) ) );
+
+			if ( '' !== $tags ) {
+				return array( $tags, $tags );
+			}
+		}
+
+		return array( '', '' );
+	}
+
+	/**
+	 * Comma-separated unique keywords, at most 255 characters (Prom's limit), cut on a whole keyword.
+	 *
+	 * @param string $text Keywords separated by commas or semicolons.
+	 * @return string
+	 */
+	private static function format_keywords( string $text ): string {
+		$result = '';
+		$seen   = array();
+
+		foreach ( (array) preg_split( '/[,;]+/u', $text ) as $word ) {
+			$word = Marketplace_Text::clean( (string) $word );
+			$key  = Marketplace_Text::lower( $word );
+
+			if ( '' === $word || isset( $seen[ $key ] ) ) {
+				continue;
+			}
+
+			$next = '' === $result ? $word : $result . ', ' . $word;
+
+			if ( mb_strlen( $next ) > 255 ) {
+				break;
+			}
+
+			$seen[ $key ] = true;
+			$result       = $next;
+		}
+
+		return $result;
 	}
 
 	/**
