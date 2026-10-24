@@ -285,9 +285,7 @@ function f2000cs_handle_action() {
 							if ( function_exists( 'f2000cs_log' ) ) {
 								f2000cs_log( $msg, 'error' );
 							}
-							if ( function_exists( 'f2000cs_send_telegram_notification' ) ) {
-								f2000cs_send_telegram_notification( '❌ ' . $msg );
-							}
+							f2000cs_notify_supplier_failure( (int) $index, (string) $xml_url, $e->getMessage() );
 							add_settings_error( 'f2000cs_settings', 'stock_update_error_' . (int) $index, $msg, 'error' );
 						}
 					}

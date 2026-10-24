@@ -62,6 +62,7 @@ function f2000cs_uninstall_cleanup() {
 	delete_option( 'f2000cs_img_max_dimension' );
 	delete_option( 'f2000cs_telegram_user_ids' );
 	delete_option( 'f2000cs_telegram_token_id' );
+	delete_option( 'f2000cs_telegram_debug' );
 	delete_option( 'f2000cs_free_update_day' );
 	delete_option( 'f2000cs_free_update_count' );
 	delete_option( 'f2000cs_db_version' );

@@ -97,6 +97,13 @@ class XML_Stock_Updater {
 	private $feed_unreachable = false;
 
 	/**
+	 * Data of the short Telegram report sent once at the end of a run.
+	 *
+	 * @var array<string,mixed>
+	 */
+	private $report = array();
+
+	/**
 	 * Currency rates parsed from XML <currencies> section.
 	 *
 	 * @var array<string,float>
@@ -209,8 +216,15 @@ class XML_Stock_Updater {
 		$this->set_max_execution_time();
 		$this->increase_memory_limit();
 
+		$this->report = array(
+			'level'  => 'ok',
+			'url'    => $this->xml_url,
+			'prefix' => $this->sku_prefix,
+		);
+
 		$this->send_telegram_message(
-			'Starting stock and price update process for XML: ' . $this->xml_url
+			'Старт оновлення наявності: ' . f2000cs_telegram_feed_label( $this->xml_url )
+			. ( '' !== $this->sku_prefix ? ' · префікс ' . $this->sku_prefix : '' )
 			. ( $this->skip_price_updates ? ' (ціни не оновлюються)' : '' )
 			. ( $this->update_stock_qty ? ' (кількість оновлюється)' : '' )
 		);
@@ -238,13 +252,14 @@ class XML_Stock_Updater {
 			// An invalid feed (broken XML, no offers): nothing in it can be trusted,
 			// so every product of this supplier is taken off sale until a valid feed comes back.
 			if ( '' !== $this->feed_error ) {
-				$this->send_telegram_message( 'XML не пройшов перевірку: ' . $this->feed_error );
+				$this->report_problem( 'error', 'Вигрузка некоректна: ' . $this->feed_error );
 				$this->mark_all_out_of_stock();
 				return;
 			}
 
-			$total_products = count( $updates );
-			$this->send_telegram_message( "Found $total_products products to process" );
+			$total_products        = count( $updates );
+			$this->report['total'] = $total_products;
+			$this->send_telegram_message( "Товарів у вигрузці: $total_products" );
 
 			// Process updates in batches
 			$this->process_updates_in_batches( $updates );
@@ -252,14 +267,51 @@ class XML_Stock_Updater {
 			// Find and report missing products
 			$this->find_missing_products_in_xml( $updates );
 
-			$this->log_memory_usage( $start_time, $start_memory, 'Stock and price update completed' );
+			$this->log_memory_usage( $start_time, $start_memory, 'Оновлення завершено' );
 
 		} catch ( Exception $e ) {
-			$error_message = 'Error updating products: ' . $e->getMessage();
-			$this->send_telegram_message( $error_message );
+			$this->report_problem( 'error', 'Помилка оновлення: ' . $e->getMessage() );
 		} finally {
 			$this->cleanup_resources();
+			$this->send_report( microtime( true ) - $start_time );
 		}
+	}
+
+	/**
+	 * Record a problem for the short report; the worse level wins.
+	 *
+	 * @param string $level 'warn' or 'error'.
+	 * @param string $note  What happened (plain text).
+	 * @return void
+	 */
+	private function report_problem( $level, $note ) {
+		$rank = array(
+			'ok'    => 0,
+			'warn'  => 1,
+			'error' => 2,
+		);
+
+		if ( $rank[ $level ] >= $rank[ $this->report['level'] ?? 'ok' ] ) {
+			$this->report['level'] = $level;
+		}
+
+		$this->report['note'] = trim( ( $this->report['note'] ?? '' ) . ' ' . $note );
+		$this->send_telegram_message( $note );
+	}
+
+	/**
+	 * Send the short report of this run (always, also without «Розширений дебаг»).
+	 *
+	 * @param float $seconds Run time.
+	 * @return void
+	 */
+	private function send_report( $seconds ) {
+		if ( empty( $this->telegram_token_id ) || empty( array_filter( $this->telegram_user_ids ) ) ) {
+			return;
+		}
+
+		$this->report['seconds'] = $seconds;
+		f2000cs_send_telegram_notification( f2000cs_telegram_stock_report( $this->report ), 2, true );
 	}
 
 	/**
@@ -300,14 +352,15 @@ class XML_Stock_Updater {
 		f2000cs_log( 'Feed unreachable for ' . $down . 's: ' . $this->feed_error, 'error' );
 
 		if ( $down < $grace ) {
-			$this->send_telegram_message(
-				'⚠️ Вигрузка недоступна (' . $this->feed_error . '). Наявність не змінено; якщо вигрузка не з\'явиться до '
-				. gmdate( 'Y-m-d H:i', $since + $grace ) . ' UTC, товари постачальника буде знято з продажу.'
+			$this->report_problem(
+				'warn',
+				'Вигрузка недоступна (' . $this->feed_error . '). Наявність не змінено; якщо вигрузка не з\'явиться до '
+				. wp_date( 'd.m H:i', $since + $grace ) . ', товари постачальника буде знято з продажу.'
 			);
 			return;
 		}
 
-		$this->send_telegram_message( 'Вигрузка недоступна понад ' . round( $grace / HOUR_IN_SECONDS, 1 ) . ' год: ' . $this->feed_error );
+		$this->report_problem( 'error', 'Вигрузка недоступна понад ' . round( $grace / HOUR_IN_SECONDS, 1 ) . ' год: ' . $this->feed_error );
 		$this->mark_all_out_of_stock();
 	}
 
@@ -431,7 +484,7 @@ class XML_Stock_Updater {
 				$xml_data = $this->fetch_xml_data();
 				if ( ! $xml_data ) {
 					$this->feed_unreachable = true;
-					throw new Exception( 'Failed to retrieve XML data' );
+					throw new Exception( 'не вдалося завантажити вигрузку' );
 				}
 
 				$temp_file = wp_tempnam( 'f2000cs_' );
@@ -440,12 +493,12 @@ class XML_Stock_Updater {
 					// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Local temp file open failure is caught by the subsequent read() check below.
 					@$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET );
 				} else {
-					throw new Exception( 'Failed to create temporary XML file' );
+					throw new Exception( 'не вдалося створити тимчасовий файл вигрузки' );
 				}
 			}
 
 			if ( ! $reader->read() ) {
-				throw new Exception( 'Failed to read XML content' );
+				throw new Exception( 'вигрузка порожня або не читається як XML' );
 			}
 
 			$dom = new \DOMDocument();
@@ -516,7 +569,7 @@ class XML_Stock_Updater {
 			}
 		} catch ( Exception $e ) {
 			$this->feed_error = $e->getMessage();
-			$this->send_telegram_message( 'XML parsing error: ' . $e->getMessage() );
+			$this->send_telegram_message( 'Помилка читання XML: ' . $e->getMessage() );
 			$updates = array();
 		} finally {
 			libxml_clear_errors();
@@ -599,19 +652,19 @@ class XML_Stock_Updater {
 		$batches     = array_chunk( $updates, $this->batch_size, true );
 		$batch_count = count( $batches );
 
-		$this->send_telegram_message( "Processing $total products in $batch_count batches" );
+		$this->send_telegram_message( "Обробка: $total товарів, пакетів: $batch_count" );
 
 		$process_start_time = microtime( true );
 
 		foreach ( $batches as $batch_index => $batch ) {
 			// Add timing checks to avoid timeouts.
 			if ( connection_aborted() ) {
-				$this->send_telegram_message( "Connection aborted. Processed $processed/$total products." );
+				$this->report_problem( 'warn', "З'єднання перервано: оброблено $processed з $total." );
 				break;
 			}
 
 			if ( $this->max_execution_time > 0 && ( microtime( true ) - $process_start_time ) > $this->max_execution_time ) {
-				$this->send_telegram_message( "Execution time limit approaching. Processed $processed/$total products. Continuing in next run." );
+				$this->report_problem( 'warn', "Не вистачило часу виконання: оброблено $processed з $total, решта — у наступному прогоні." );
 				break;
 			}
 
@@ -736,6 +789,13 @@ class XML_Stock_Updater {
 				$republished
 			)
 		);
+
+		$this->report['in_stock']     = $updated_in_stock;
+		$this->report['out_of_stock'] = $updated_out_of_stock;
+		$this->report['prices']       = $updated_price;
+		$this->report['quantities']   = $updated_qty;
+		$this->report['not_found']    = $not_found;
+		$this->report['republished']  = $republished;
 
 		if ( ( $updated_in_stock + $updated_out_of_stock ) > 0 || $updated_price > 0 || $updated_qty > 0 ) {
 			f2000cs_log(
@@ -883,7 +943,7 @@ class XML_Stock_Updater {
 	}
 
 	/**
-	 * Send a message to Telegram with error handling.
+	 * Send a step-by-step service message (only with «Розширений дебаг»).
 	 *
 	 * @param string $message Message to send.
 	 * @return void
@@ -893,8 +953,9 @@ class XML_Stock_Updater {
 			return;
 		}
 
-		// Use the helper function from functions.php
-		f2000cs_send_telegram_notification( $message );
+		// Step-by-step details go out only with «Розширений дебаг»; every run ends with
+		// one short report (send_report()) either way.
+		f2000cs_telegram_debug( $message );
 	}
 
 	/**
@@ -989,7 +1050,7 @@ class XML_Stock_Updater {
 		$missing_skus = array_diff( $db_skus, $xml_sku_keys );
 
 		if ( empty( $missing_skus ) ) {
-			$this->send_telegram_message( '✅ Всі товари з бази даних присутні у вигрузці XML' );
+			$this->send_telegram_message( 'Усі товари з сайту є у вигрузці' );
 			return;
 		}
 
@@ -1045,7 +1106,7 @@ class XML_Stock_Updater {
 		global $wpdb;
 
 		if ( empty( $this->sku_prefix ) ) {
-			$this->send_telegram_message( 'SKU-префікс не задано — товари не змінювалися.' );
+			$this->report_problem( 'warn', 'SKU-префікс не задано — товари не змінювалися.' );
 			return 0;
 		}
 
@@ -1093,7 +1154,8 @@ class XML_Stock_Updater {
 			$this->sync_parent_stock_status( $parent_id );
 		}
 
-		$this->send_telegram_message( "🔻 Вигрузка некоректна: {$count} товарів/варіацій переведено в 'Немає в наявності'" );
+		$this->report['off_sale'] = $count;
+		$this->send_telegram_message( "Переведено в «Немає в наявності»: {$count} товарів/варіацій" );
 
 		return $count;
 	}
@@ -1135,9 +1197,11 @@ class XML_Stock_Updater {
 	 * @return void
 	 */
 	private function send_missing_products_report( $missing_products, $total_missing ) {
-		$message  = "⚠️ Товари, яких немає у вигрузці XML:\n\n";
-		$message .= "📊 Всього відсутніх товарів: $total_missing\n";
-		$message .= "🔗 URL вигрузки: $this->xml_url\n\n";
+		$this->report['missing'] = (int) $total_missing;
+
+		$message  = "Товари, яких немає у вигрузці:\n\n";
+		$message .= "📊 Усього: $total_missing\n";
+		$message .= '🏬 Вигрузка: ' . f2000cs_telegram_feed_label( $this->xml_url ) . "\n\n";
 
 		$products   = array();
 		$variations = array();
@@ -1286,7 +1350,8 @@ class XML_Stock_Updater {
 		}
 
 		if ( $converted_count > 0 ) {
-			$this->send_telegram_message( "✅ Переведено в статус 'Чернетка': $converted_count товарів" );
+			$this->report['drafted'] = $converted_count;
+			$this->send_telegram_message( "Переведено в «Чернетку»: $converted_count товарів" );
 		}
 	}
 }

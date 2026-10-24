@@ -113,15 +113,13 @@ class Cron_Job {
 					$msg = sprintf(
 						'Stock update failed for supplier #%d (%s): %s',
 						(int) $index,
-						(string) $xml_url,
+						f2000cs_telegram_feed_label( $xml_url ),
 						$e->getMessage()
 					);
 					if ( function_exists( 'f2000cs_log' ) ) {
 						f2000cs_log( $msg, 'error' );
 					}
-					if ( function_exists( 'f2000cs_send_telegram_notification' ) ) {
-						f2000cs_send_telegram_notification( '❌ ' . $msg );
-					}
+					f2000cs_notify_supplier_failure( (int) $index, (string) $xml_url, $e->getMessage() );
 				}
 			}
 

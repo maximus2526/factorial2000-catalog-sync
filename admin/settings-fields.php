@@ -94,6 +94,15 @@ function f2000cs_settings_init() {
 	);
 	register_setting( 'f2000cs_settings', 'f2000cs_telegram_user_ids', $text_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_telegram_token_id', $text_args );
+	register_setting(
+		'f2000cs_settings',
+		'f2000cs_telegram_debug',
+		array(
+			'sanitize_callback' => function ( $value ) {
+				return '1' === (string) $value ? '1' : '0';
+			},
+		)
+	);
 
 	add_settings_section(
 		'f2000cs_section_suppliers',
@@ -172,6 +181,16 @@ function f2000cs_settings_init() {
 		'f2000cs',
 		'f2000cs_section_telegram'
 	);
+	add_settings_field(
+		'f2000cs_telegram_debug',
+		f2000cs_with_tip(
+			__( 'Розширений дебаг', 'factorial2000-catalog-sync' ),
+			__( 'Покрокові службові повідомлення для діагностики. Зазвичай не потрібні.', 'factorial2000-catalog-sync' )
+		),
+		'f2000cs_telegram_debug_render',
+		'f2000cs',
+		'f2000cs_section_telegram'
+	);
 }
 add_action( 'admin_init', 'f2000cs_settings_init' );
 
@@ -232,7 +251,7 @@ function f2000cs_section_schedule_intro() {
  * @return void
  */
 function f2000cs_section_telegram_intro() {
-	echo '<p class="description">' . esc_html__( 'Отримуйте повідомлення про завершення оновлення наявності, імпорту та інші службові події.', 'factorial2000-catalog-sync' ) . '</p>';
+	echo '<p class="description">' . esc_html__( 'Короткий звіт після кожного оновлення наявності та окремі попередження, коли щось пішло не так. Посилання на вигрузку в повідомленнях не передається — лише сайт постачальника.', 'factorial2000-catalog-sync' ) . '</p>';
 }
 
 /**
@@ -483,6 +502,18 @@ function f2000cs_telegram_token_id_render() {
 	?>
 	<input type="text" name="f2000cs_telegram_token_id" value="<?php echo esc_attr( $token_id ); ?>" placeholder="<?php esc_attr_e( '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
 	<p class="description"><?php esc_html_e( 'Токен бота отримаєте у @BotFather: надішліть /newbot, задайте ім\'я — і скопіюйте рядок виду 1234567890:ABCdef... Без токена Telegram-сповіщення не надсилаються.', 'factorial2000-catalog-sync' ); ?></p>
+	<?php
+}
+
+function f2000cs_telegram_debug_render() {
+	$val = get_option( 'f2000cs_telegram_debug', '0' );
+	?>
+	<input type="hidden" name="f2000cs_telegram_debug" value="0">
+	<label>
+		<input type="checkbox" name="f2000cs_telegram_debug" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Надсилати покрокові службові повідомлення', 'factorial2000-catalog-sync' ); ?>
+	</label>
+	<p class="description"><?php esc_html_e( 'Вимкнено (рекомендовано): після оновлення кожного постачальника приходить одне коротке повідомлення — статус [OK]/[WARN]/[ERROR], дата, сайт постачальника, SKU-префікс, кількість товарів у вигрузці та що змінилось. Увімкнено: додатково старт, пакети, списки зниклих товарів, час і пам\'ять — для діагностики.', 'factorial2000-catalog-sync' ); ?></p>
 	<?php
 }
 

@@ -2,18 +2,43 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Send notification to Telegram with retry and error handling
+ * Telegram allows 4096 characters per message; keep a margin for entities.
+ */
+const F2000CS_TELEGRAM_MAX_CHARS = 4000;
+
+/**
+ * Send notification to Telegram with retry and error handling.
  *
- * @param string $message Message to send
- * @param int    $retry_count Number of retries (default: 2)
+ * Messages go out with parse_mode=HTML. Plain text (the default) is escaped first, so
+ * product names with "<" or "&" no longer make Telegram reject the whole message.
+ *
+ * @param string $message     Message to send.
+ * @param int    $retry_count Number of retries on network / server errors (default: 2).
+ * @param bool   $is_html     Whether $message is already Telegram HTML (values escaped).
  * @return bool Success status
  */
-function f2000cs_send_telegram_notification( $message, $retry_count = 2 ) {
+function f2000cs_send_telegram_notification( $message, $retry_count = 2, $is_html = false ) {
 	$token    = get_option( 'f2000cs_telegram_token_id', '' );
 	$user_ids = get_option( 'f2000cs_telegram_user_ids', '' );
 
 	if ( empty( $token ) || empty( $user_ids ) ) {
 		return false;
+	}
+
+	$message = (string) $message;
+
+	// Too long for one message: a cut could split an HTML tag, so send it as plain text.
+	if ( $is_html && mb_strlen( $message, 'UTF-8' ) > F2000CS_TELEGRAM_MAX_CHARS ) {
+		$message = html_entity_decode( wp_strip_all_tags( $message ), ENT_QUOTES, 'UTF-8' );
+		$is_html = false;
+	}
+
+	if ( ! $is_html ) {
+		// Cut on characters, not bytes: half a Cyrillic letter is invalid UTF-8 for Telegram.
+		if ( mb_strlen( $message, 'UTF-8' ) > F2000CS_TELEGRAM_MAX_CHARS ) {
+			$message = mb_substr( $message, 0, F2000CS_TELEGRAM_MAX_CHARS - 3, 'UTF-8' ) . '...';
+		}
+		$message = f2000cs_telegram_escape( $message );
 	}
 
 	$user_ids_array = array_map( 'trim', explode( ',', $user_ids ) );
@@ -24,17 +49,13 @@ function f2000cs_send_telegram_notification( $message, $retry_count = 2 ) {
 			continue;
 		}
 
-		// Limit message length to prevent API errors
-		if ( strlen( $message ) > 4000 ) {
-			$message = substr( $message, 0, 3997 ) . '...';
-		}
-
 		$url  = "https://api.telegram.org/bot{$token}/sendMessage";
 		$args = array(
 			'body'    => array(
-				'chat_id'    => $user_id,
-				'text'       => $message,
-				'parse_mode' => 'HTML',
+				'chat_id'                  => $user_id,
+				'text'                     => $message,
+				'parse_mode'               => 'HTML',
+				'disable_web_page_preview' => 'true',
 			),
 			'timeout' => 30,
 		);
@@ -44,9 +65,16 @@ function f2000cs_send_telegram_notification( $message, $retry_count = 2 ) {
 
 		while ( ! $request_success && $try_count <= $retry_count ) {
 			$response = wp_remote_post( $url, $args );
+			$code     = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
 
-			if ( ! is_wp_error( $response ) && wp_remote_retrieve_response_code( $response ) === 200 ) {
+			if ( 200 === $code ) {
 				$request_success = true;
+				break;
+			}
+
+			// A rejected message (bad markup, blocked bot, wrong chat id) fails the same way
+			// on every retry; only network errors, 429 and 5xx are worth another attempt.
+			if ( $code >= 400 && $code < 500 && 429 !== $code ) {
 				break;
 			}
 
@@ -65,6 +93,190 @@ function f2000cs_send_telegram_notification( $message, $retry_count = 2 ) {
 	}
 
 	return $success;
+}
+
+/**
+ * Escape text for Telegram parse_mode=HTML (only <, > and & are special).
+ *
+ * @param string $text Text.
+ * @return string
+ */
+function f2000cs_telegram_escape( $text ) {
+	return htmlspecialchars( (string) $text, ENT_NOQUOTES, 'UTF-8' );
+}
+
+/**
+ * Whether «Розширений дебаг» is on: step-by-step service messages on top of the short reports.
+ *
+ * @return bool
+ */
+function f2000cs_telegram_debug_enabled() {
+	return '1' === (string) get_option( 'f2000cs_telegram_debug', '0' );
+}
+
+/**
+ * Send a step-by-step service message, only when «Розширений дебаг» is on.
+ *
+ * @param string $message Plain text.
+ * @return void
+ */
+function f2000cs_telegram_debug( $message ) {
+	if ( f2000cs_telegram_debug_enabled() ) {
+		f2000cs_send_telegram_notification( '🔧 ' . $message );
+	}
+}
+
+/**
+ * Short, safe name of a supplier feed for chats: the host of a URL, the file name of a path.
+ *
+ * Never the full URL: feed links often carry access tokens in the query string.
+ *
+ * @param string $url Feed URL or local path.
+ * @return string
+ */
+function f2000cs_telegram_feed_label( $url ) {
+	$url  = (string) $url;
+	$host = (string) wp_parse_url( $url, PHP_URL_HOST );
+
+	if ( '' !== $host ) {
+		return preg_replace( '/^www\./i', '', $host );
+	}
+
+	$path = (string) wp_parse_url( $url, PHP_URL_PATH );
+
+	return '' !== $path ? wp_basename( $path ) : $url;
+}
+
+/**
+ * Format a Telegram event: status line, bold title, then the given lines.
+ *
+ * @param string   $level 'ok', 'info', 'warn' or 'error'.
+ * @param string   $title Title (plain text).
+ * @param string[] $lines Lines, already Telegram HTML (escape values with f2000cs_telegram_escape()).
+ * @return string Telegram HTML.
+ */
+function f2000cs_telegram_format( $level, $title, array $lines = array() ) {
+	$levels = array(
+		'ok'    => array( '✅', 'OK' ),
+		'info'  => array( 'ℹ️', 'INFO' ),
+		'warn'  => array( '⚠️', 'WARN' ),
+		'error' => array( '❌', 'ERROR' ),
+	);
+	$level  = isset( $levels[ $level ] ) ? $level : 'info';
+
+	$head = sprintf(
+		'%s [%s] %s · <b>%s</b>',
+		$levels[ $level ][0],
+		$levels[ $level ][1],
+		wp_date( 'd.m.Y H:i' ),
+		f2000cs_telegram_escape( $title )
+	);
+
+	return implode( "\n", array_merge( array( $head ), array_filter( array_map( 'strval', $lines ), 'strlen' ) ) );
+}
+
+/**
+ * Tell Telegram that a supplier run failed outright (an exception outside the run's own report).
+ *
+ * @param int    $index   Supplier slot.
+ * @param string $xml_url Feed URL (only the host is shown).
+ * @param string $error   Error message.
+ * @return void
+ */
+function f2000cs_notify_supplier_failure( $index, $xml_url, $error ) {
+	f2000cs_send_telegram_notification(
+		f2000cs_telegram_format(
+			'error',
+			'Оновлення наявності',
+			array(
+				'🏬 ' . f2000cs_telegram_escape( f2000cs_telegram_feed_label( $xml_url ) ) . ' · постачальник #' . (int) $index,
+				'❗ ' . f2000cs_telegram_escape( $error ),
+			)
+		),
+		2,
+		true
+	);
+}
+
+/**
+ * The short report of one supplier stock run.
+ *
+ * Only non-zero counters are listed, so a quiet run is three lines.
+ *
+ * @param array $r {
+ *     Run data.
+ *
+ *     @type string $level        'ok', 'warn' or 'error' (default 'ok').
+ *     @type string $note         What went wrong (plain text).
+ *     @type string $url          Feed URL (only the host is shown).
+ *     @type string $prefix       SKU prefix.
+ *     @type int    $total        Offers in the feed.
+ *     @type int    $in_stock     Products set in stock.
+ *     @type int    $out_of_stock Products set out of stock.
+ *     @type int    $prices       Prices changed.
+ *     @type int    $quantities   Quantities changed.
+ *     @type int    $not_found    Feed offers with no product on the site.
+ *     @type int    $missing      Site products missing from the feed.
+ *     @type int    $drafted      Products moved to draft.
+ *     @type int    $republished  Products published again.
+ *     @type int    $off_sale     Products taken off sale (invalid or long-unreachable feed).
+ *     @type float  $seconds      Run time.
+ * }
+ * @return string Telegram HTML.
+ */
+function f2000cs_telegram_stock_report( array $r ) {
+	$n = static function ( $key ) use ( $r ) {
+		return (int) ( $r[ $key ] ?? 0 );
+	};
+
+	$supplier = '🏬 ' . f2000cs_telegram_escape( f2000cs_telegram_feed_label( $r['url'] ?? '' ) );
+	if ( '' !== (string) ( $r['prefix'] ?? '' ) ) {
+		$supplier .= ' · <code>' . f2000cs_telegram_escape( $r['prefix'] ) . '</code>';
+	}
+
+	$lines = array( $supplier );
+
+	if ( '' !== (string) ( $r['note'] ?? '' ) ) {
+		$lines[] = '❗ ' . f2000cs_telegram_escape( $r['note'] );
+	}
+
+	if ( isset( $r['total'] ) ) {
+		$lines[] = '📦 У вигрузці: ' . $n( 'total' );
+	}
+
+	$changes = array();
+	if ( $n( 'in_stock' ) || $n( 'out_of_stock' ) ) {
+		$changes[] = sprintf( 'наявність +%d / −%d', $n( 'in_stock' ), $n( 'out_of_stock' ) );
+	}
+	if ( $n( 'prices' ) ) {
+		$changes[] = 'ціни ' . $n( 'prices' );
+	}
+	if ( $n( 'quantities' ) ) {
+		$changes[] = 'кількість ' . $n( 'quantities' );
+	}
+	if ( $changes ) {
+		$lines[] = '🔄 Змінено: ' . implode( ' · ', $changes );
+	} elseif ( isset( $r['total'] ) && 'ok' === ( $r['level'] ?? 'ok' ) ) {
+		$lines[] = '🔄 Без змін';
+	}
+
+	if ( $n( 'off_sale' ) ) {
+		$lines[] = '🔻 Знято з продажу: ' . $n( 'off_sale' );
+	}
+	if ( $n( 'missing' ) ) {
+		$lines[] = '🗂 Зникли з вигрузки: ' . $n( 'missing' ) . ( $n( 'drafted' ) ? ' (у чернетку: ' . $n( 'drafted' ) . ')' : '' );
+	}
+	if ( $n( 'republished' ) ) {
+		$lines[] = '↩️ Повернуто в продаж: ' . $n( 'republished' );
+	}
+	if ( $n( 'not_found' ) ) {
+		$lines[] = '🔍 Немає на сайті: ' . $n( 'not_found' );
+	}
+	if ( isset( $r['seconds'] ) ) {
+		$lines[] = '⏱ ' . max( 1, (int) round( (float) $r['seconds'] ) ) . ' с';
+	}
+
+	return f2000cs_telegram_format( (string) ( $r['level'] ?? 'ok' ), 'Оновлення наявності', $lines );
 }
 
 /**
@@ -488,9 +700,11 @@ function f2000cs_warn_pro_settings_ignored() {
 	$msg = 'Збережено оновлення кількості (Pro), але Pro-збірка чи ліцензія неактивні. Залишки товарів із керованою кількістю не оновлюються, щоб не розійтися з кількістю. Встановіть Pro-версію з акаунта Freemius.';
 	f2000cs_log( $msg, 'warning' );
 
-	if ( function_exists( 'f2000cs_send_telegram_notification' ) ) {
-		f2000cs_send_telegram_notification( '⚠️ ' . $msg );
-	}
+	f2000cs_send_telegram_notification(
+		f2000cs_telegram_format( 'warn', 'Pro-налаштування не застосовано', array( f2000cs_telegram_escape( $msg ) ) ),
+		2,
+		true
+	);
 }
 
 /**

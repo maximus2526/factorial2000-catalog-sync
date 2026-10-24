@@ -190,9 +190,9 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 		}
 		$all = implode( "\n", $texts );
 
-		$this->assertStringContainsString( 'Found 2 products to process', $all );
-		$this->assertStringContainsString( 'Результати оновлення товарів', $all );
-		$this->assertStringContainsString( 'Не знайдено товарів: 2', $all );
+		$this->assertStringContainsString( '[OK]', $all );
+		$this->assertStringContainsString( 'У вигрузці: 2', $all );
+		$this->assertStringContainsString( 'Немає на сайті: 2', $all );
 
 		unlink( $tmp );
 	}
@@ -217,7 +217,8 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 			$texts[] = $post['args']['body']['text'];
 		}
 
-		$this->assertStringContainsString( 'XML не пройшов перевірку', implode( "\n", $texts ) );
+		$this->assertStringContainsString( '[ERROR]', implode( "\n", $texts ) );
+		$this->assertStringContainsString( 'немає жодної пропозиції', implode( "\n", $texts ) );
 	}
 
 	/**
@@ -236,6 +237,7 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 
 		update_option( 'f2000cs_telegram_token_id', '123:abc' );
 		update_option( 'f2000cs_telegram_user_ids', '111' );
+		update_option( 'f2000cs_telegram_debug', '1' );
 
 		$updater = new XML_Stock_Updater( $tmp, '', false, array(), true );
 		$updater->update_products_stock_status();
@@ -362,8 +364,7 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 		}
 		$all = implode( "\n", $texts );
 
-		$this->assertStringContainsString( 'Товари, яких немає у вигрузці XML', $all );
-		$this->assertStringContainsString( 'Всього відсутніх товарів: 1', $all );
+		$this->assertStringContainsString( 'Зникли з вигрузки: 1', $all, 'The short report counts products missing from the feed' );
 
 		unlink( $tmp );
 	}
@@ -422,10 +423,10 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 			$this->supplier_rows()
 		);
 
-		$this->assertStringContainsString( 'XML не пройшов перевірку', $all );
+		$this->assertStringContainsString( '[ERROR]', $all );
 		$this->assertSame( 'outofstock', get_post_meta( 11, '_stock_status', true ) );
 		$this->assertSame( 'outofstock', get_post_meta( 12, '_stock_status', true ) );
-		$this->assertStringNotContainsString( 'Found', $all, 'No updates are applied from a broken feed' );
+		$this->assertStringNotContainsString( 'У вигрузці:', $all, 'No updates are applied from a broken feed' );
 	}
 
 	/**
@@ -470,8 +471,8 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 			array()
 		);
 
-		$this->assertStringContainsString( 'Found 1 products to process', $all );
-		$this->assertStringNotContainsString( 'не пройшов перевірку', $all );
+		$this->assertStringContainsString( 'У вигрузці: 1', $all );
+		$this->assertStringNotContainsString( '[ERROR]', $all );
 		$this->assertSame( 'instock', get_post_meta( 11, '_stock_status', true ) );
 	}
 
@@ -589,8 +590,8 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 
 		$all = $this->run_with_feed( $xml, 'SUP_', array() );
 
-		$this->assertStringNotContainsString( 'не пройшов перевірку', $all );
-		$this->assertStringContainsString( 'Found 2 products to process', $all, 'Both offers are read, including the one with &nbsp;' );
+		$this->assertStringNotContainsString( '[ERROR]', $all );
+		$this->assertStringContainsString( 'У вигрузці: 2', $all, 'Both offers are read, including the one with &nbsp;' );
 		$this->assertSame( 'instock', get_post_meta( 11, '_stock_status', true ) );
 		$this->assertSame( 'instock', get_post_meta( 12, '_stock_status', true ) );
 	}

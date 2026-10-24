@@ -1962,6 +1962,17 @@ if ( ! function_exists( 'wp_kses_post' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_basename' ) ) {
+	/**
+	 * @param string $path   Path.
+	 * @param string $suffix Suffix.
+	 * @return string
+	 */
+	function wp_basename( $path, $suffix = '' ) {
+		return basename( (string) $path, $suffix );
+	}
+}
+
 if ( ! function_exists( 'wp_strip_all_tags' ) ) {
 	/**
 	 * Strips all HTML tags (mirrors WP core).

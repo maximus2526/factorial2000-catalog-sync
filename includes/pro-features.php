@@ -374,17 +374,20 @@ function f2000cs_pro_after_stock_update() {
 		$examples    = $result['examples'] ?? array();
 		$sample_text = f2000cs_format_variable_low_instock_examples( $examples, $updated );
 
-		$telegram_message = sprintf(
-			'Variable-товарів переведено в «Немає в наявності» (≤ %d варіацій в наявності): %d',
-			$max_instock,
-			$updated
+		$lines = array(
+			sprintf(
+				'🔻 Знято з продажу варіативних товарів: %d (в наявності ≤ %d варіацій)',
+				$updated,
+				$max_instock
+			),
 		);
 
-		if ( $sample_text !== '' ) {
-			$telegram_message .= "\n\nПриклади:\n" . $sample_text;
+		// The product list is a diagnostic detail: only with «Розширений дебаг».
+		if ( '' !== $sample_text && f2000cs_telegram_debug_enabled() ) {
+			$lines[] = "\n" . f2000cs_telegram_escape( "Приклади:\n" . $sample_text );
 		}
 
-		f2000cs_send_telegram_notification( $telegram_message );
+		f2000cs_send_telegram_notification( f2000cs_telegram_format( 'info', 'Мала наявність варіацій', $lines ), 2, true );
 
 		$log_message = sprintf(
 			'Variable low-instock rule applied: threshold=%d, updated=%d',
