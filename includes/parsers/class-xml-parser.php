@@ -289,12 +289,19 @@ class XML_Parser {
 		$offers_with_group_id    = 0;
 		$offers_without_group_id = 0;
 
+		// Entity warnings (e.g. &nbsp; under an unloaded shops.dtd) are not failures.
+		$previous_errors = libxml_use_internal_errors( true );
+		$dom             = new \DOMDocument();
+
 		while ( $reader->read() ) {
 			if ( $reader->nodeType !== XMLReader::ELEMENT || $reader->name !== 'offer' ) {
 				continue;
 			}
 
-			$offer = simplexml_load_string( $reader->readOuterXML(), null, LIBXML_NONET );
+			$offer = f2000cs_reader_element( $reader, $dom );
+			if ( null === $offer ) {
+				continue;
+			}
 			++$total_offers;
 
 			$offer_data = $this->extract_offer_data( $offer );
@@ -322,6 +329,8 @@ class XML_Parser {
 		}
 
 		$reader->close();
+		libxml_clear_errors();
+		libxml_use_internal_errors( $previous_errors );
 
 		if ( ! $import_variations ) {
 			// Promote lone group_id offers to simple; never create variable products in this mode.
@@ -680,14 +689,11 @@ class XML_Parser {
 			return false;
 		}
 
-		// Check if parent product already exists (передаємо group_id без префіксу, функція поверне з ключем без префіксу)
-		$existing_parent = $this->get_product_ids_by_skus( array( $group_id ) );
-		if ( ! empty( $existing_parent ) && isset( $existing_parent[ $group_id ] ) ) {
+		if ( $this->find_group_parent( $group_id, $variations_data ) ) {
 			return false;
 		}
 
-		// Apply SKU prefix to group_id для створення
-		$parent_sku = ! empty( $this->sku_prefix ) ? $this->sku_prefix . $group_id : $group_id;
+		$parent_sku = $this->group_parent_sku( $group_id, $variations_data );
 
 		// Use first variation as base for parent product
 		$base_data = $variations_data[0];
@@ -1753,6 +1759,63 @@ class XML_Parser {
 	 *
 	 * @return array Array of [sku => product ID].
 	 */
+	/**
+	 * SKU part (without prefix) a group's parent product gets.
+	 *
+	 * Normally the group_id. When one of the group's offers has the group_id as its own
+	 * id (e.g. <offer id="9845" group_id="9845">), that SKU belongs to the variation, so
+	 * the parent gets "<group_id>-group" and the stock sync keeps matching the variation.
+	 *
+	 * @param string $group_id        Group id from the feed.
+	 * @param array  $variations_data Offers of the group (each with 'sku' without prefix).
+	 * @return string
+	 */
+	protected function group_parent_sku_part( string $group_id, array $variations_data ): string {
+		foreach ( $variations_data as $variation ) {
+			if ( (string) ( $variation['sku'] ?? '' ) === $group_id ) {
+				return $group_id . '-group';
+			}
+		}
+
+		return $group_id;
+	}
+
+	/**
+	 * Full SKU (with prefix) of a group's parent product.
+	 *
+	 * @param string $group_id        Group id from the feed.
+	 * @param array  $variations_data Offers of the group.
+	 * @return string
+	 */
+	protected function group_parent_sku( string $group_id, array $variations_data ): string {
+		return (string) $this->sku_prefix . $this->group_parent_sku_part( $group_id, $variations_data );
+	}
+
+	/**
+	 * Existing parent product of a group, if it was imported before.
+	 *
+	 * Looks up the current parent SKU and the one older versions used (prefix + group_id).
+	 * A variation that holds the group_id SKU is not the parent.
+	 *
+	 * @param string $group_id        Group id from the feed.
+	 * @param array  $variations_data Offers of the group.
+	 * @return int Parent product ID, or 0.
+	 */
+	protected function find_group_parent( string $group_id, array $variations_data ): int {
+		$candidates = array_unique( array( $this->group_parent_sku_part( $group_id, $variations_data ), $group_id ) );
+
+		foreach ( $candidates as $sku ) {
+			$found = $this->get_product_ids_by_skus( array( $sku ) );
+			$id    = isset( $found[ $sku ] ) ? (int) $found[ $sku ] : 0;
+
+			if ( $id > 0 && 'product_variation' !== get_post_type( $id ) ) {
+				return $id;
+			}
+		}
+
+		return 0;
+	}
+
 	protected function get_product_ids_by_skus( array $skus ): array {
 		if ( empty( $skus ) ) {
 			return array();

@@ -257,4 +257,30 @@ final class F2000CS_Unit_FieldsUpdaterTest extends F2000CS_Unit_TestCase {
 			'wp_tempnam() files must be deleted in finally'
 		);
 	}
+
+	/**
+	 * An offer with &nbsp; in a shops.dtd feed is processed instead of crashing the batch.
+	 *
+	 * @return void
+	 */
+	public function test_update_fields_reads_offer_with_entity_under_shops_dtd() {
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs_fu_' );
+		file_put_contents(
+			$tmp,
+			'<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE yml_catalog SYSTEM "shops.dtd"><yml_catalog><shop><offers>' .
+			'<offer id="1" available="true"><name>Куртка&nbsp;XL</name><price>10</price></offer>' .
+			'<offer id="2" available="true"><name>Куртка L</name><price>20</price></offer>' .
+			'</offers></shop></yml_catalog>'
+		);
+
+		try {
+			$result = ( new Fields_Updater( $tmp, 'P_', array( 'name' ) ) )->update_fields( 0, 10 );
+		} finally {
+			unlink( $tmp );
+		}
+
+		$this->assertSame( 2, $result['processed'] );
+		$this->assertSame( 2, $result['not_found'] );
+		$this->assertSame( 0, $result['skipped'] );
+	}
 }

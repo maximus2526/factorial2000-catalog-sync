@@ -570,4 +570,18 @@ final class F2000CS_Unit_XmlEditorTest extends F2000CS_Unit_TestCase {
 
 		unlink( $tmp );
 	}
+
+	/**
+	 * An offer with &nbsp; in a shops.dtd feed is listed like any other.
+	 *
+	 * @return void
+	 */
+	public function test_offer_with_entity_under_shops_dtd_is_listed() {
+		$this->fixture = '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE yml_catalog SYSTEM "shops.dtd"><yml_catalog><shop><offers>' .
+			'<offer id="A1" available="true"><name>Куртка&nbsp;XL</name><price>10</price></offer>' .
+			'<offer id="A2" available="true"><name>Куртка L</name><price>20</price></offer>' .
+			'</offers></shop></yml_catalog>';
+
+		$this->assertSame( array( 'A1', 'A2' ), $this->make_editor()->get_offer_ids() );
+	}
 }

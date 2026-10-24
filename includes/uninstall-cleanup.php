@@ -95,6 +95,15 @@ function f2000cs_uninstall_cleanup() {
 				$wpdb->esc_like( 'f2000cs_mp_' ) . '%'
 			)
 		);
+
+		// Supplier feed outage marks (start time of an unreachable streak per feed URL).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-off uninstall cleanup of this plugin's own options.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+				$wpdb->esc_like( 'f2000cs_feed_down_' ) . '%'
+			)
+		);
 	}
 
 	// Private upload dirs created by the plugin.

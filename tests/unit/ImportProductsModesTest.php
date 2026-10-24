@@ -197,4 +197,24 @@ final class F2000CS_Unit_ImportProductsModesTest extends F2000CS_Unit_TestCase {
 		$this->assertTrue( $second['finished'] );
 		$this->assertCount( 2, $parser->variable_groups );
 	}
+
+	/**
+	 * An offer with &nbsp; in a shops.dtd feed is imported, not silently skipped.
+	 *
+	 * @return void
+	 */
+	public function test_offer_with_entity_under_shops_dtd_is_imported(): void {
+		file_put_contents(
+			$this->xml_path,
+			'<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE yml_catalog SYSTEM "shops.dtd"><yml_catalog><shop><offers>' .
+			'<offer id="S1" available="true"><name>Simple&nbsp;1</name><price>10</price></offer>' .
+			'<offer id="S2" available="true"><name>Simple 2</name><price>20</price></offer>' .
+			'</offers></shop></yml_catalog>'
+		);
+
+		$parser = $this->parser( false );
+		$parser->import_products( 0, 100 );
+
+		$this->assertSame( array( 'S1', 'S2' ), $parser->simple_skus );
+	}
 }

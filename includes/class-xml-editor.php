@@ -80,7 +80,7 @@ class XML_Editor {
 	/**
 	 * Stream-parse the source XML into lightweight category and offer maps.
 	 *
-	 * Uses XMLReader with per-element readOuterXML() so the full feed is
+	 * Uses XMLReader with per-element expand() so the full feed is
 	 * never loaded into memory at once — safe for feeds with 50k+ offers.
 	 *
 	 * @return bool Whether parsing succeeded.
@@ -122,6 +122,10 @@ class XML_Editor {
 		$this->categories = array();
 		$this->offers     = array();
 
+		// Entity warnings (e.g. &nbsp; under an unloaded shops.dtd) are not failures.
+		$previous_errors = libxml_use_internal_errors( true );
+		$dom             = new \DOMDocument();
+
 		try {
 			while ( $reader->read() ) {
 				if ( \XMLReader::ELEMENT !== $reader->nodeType ) {
@@ -131,11 +135,13 @@ class XML_Editor {
 				if ( 'category' === $reader->name ) {
 					$this->parse_category_element( $reader );
 				} elseif ( 'offer' === $reader->name ) {
-					$this->parse_offer_element( $reader );
+					$this->parse_offer_element( $reader, $dom );
 				}
 			}
 		} finally {
 			$reader->close();
+			libxml_clear_errors();
+			libxml_use_internal_errors( $previous_errors );
 		}
 
 		$this->normalize_category_parents();
@@ -191,15 +197,16 @@ class XML_Editor {
 	/**
 	 * Parse a single <offer> element while XMLReader is positioned on it.
 	 *
-	 * Uses readOuterXML() → SimpleXML on ONE element (safe mem per offer).
+	 * Expands ONE element from the reader's document (safe mem per offer).
 	 *
-	 * @param \XMLReader $reader Positioned on the offer element.
+	 * @param \XMLReader   $reader Positioned on the offer element.
+	 * @param \DOMDocument $dom    Document the expanded nodes belong to.
 	 * @return void
 	 */
-	private function parse_offer_element( \XMLReader $reader ): void {
-		$offer = simplexml_load_string( $reader->readOuterXML(), null, LIBXML_NONET );
+	private function parse_offer_element( \XMLReader $reader, \DOMDocument $dom ): void {
+		$offer = f2000cs_reader_element( $reader, $dom );
 
-		if ( false === $offer ) {
+		if ( null === $offer ) {
 			return;
 		}
 

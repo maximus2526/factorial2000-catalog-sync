@@ -610,6 +610,58 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * Without a supplier SKU prefix the rule cannot tell supplier products apart: it does nothing.
+	 *
+	 * @return void
+	 */
+	public function test_low_instock_rule_needs_a_supplier_prefix() {
+		$this->enable_pro();
+		update_option( 'f2000cs_hide_variable_low_instock', '1' );
+		$GLOBALS['wpdb']->col_queue = array( array( 5 ), array( 6 ) );
+		update_post_meta( 6, '_stock_status', 'instock' );
+
+		$this->assertSame( 0, f2000cs_apply_variable_low_instock_rule()['updated'] );
+		$this->assertSame( 'instock', get_post_meta( 6, '_stock_status', true ), "The shop's own products are never touched" );
+	}
+
+	/**
+	 * Only supplier products with more variations than the threshold are considered.
+	 *
+	 * @return void
+	 */
+	public function test_low_instock_rule_is_limited_to_supplier_products() {
+		$this->enable_pro();
+		update_option( 'f2000cs_hide_variable_low_instock', '1' );
+		update_option( 'f2000cs_sku_prefix_1', 'SUP_' );
+		$GLOBALS['wpdb']->read_queries = array();
+
+		f2000cs_apply_variable_low_instock_rule();
+
+		$sql = (string) ( $GLOBALS['wpdb']->read_queries[0] ?? '' );
+		$this->assertStringContainsString( 'sku.meta_value LIKE SUP_%', str_replace( array( '\\', "'" ), '', $sql ), 'Variations are matched by the supplier SKU prefix' );
+		$this->assertMatchesRegularExpression( '/COUNT\(\*\)\s*>\s*2/', $sql, 'Products with no more variations than the threshold are left alone' );
+	}
+
+	/**
+	 * Backorder variations are not in-stock variations: the rule leaves them as they are.
+	 *
+	 * @return void
+	 */
+	public function test_low_instock_rule_leaves_backorder_variations() {
+		$this->enable_pro();
+		update_option( 'f2000cs_hide_variable_low_instock', '1' );
+		update_option( 'f2000cs_sku_prefix_1', 'SUP_' );
+		$GLOBALS['wpdb']->col_queue = array( array( 5 ), array( 6, 7 ) );
+		update_post_meta( 6, '_stock_status', 'instock' );
+		update_post_meta( 7, '_stock_status', 'onbackorder' );
+
+		f2000cs_apply_variable_low_instock_rule();
+
+		$this->assertSame( 'outofstock', get_post_meta( 6, '_stock_status', true ) );
+		$this->assertSame( 'onbackorder', get_post_meta( 7, '_stock_status', true ) );
+	}
+
+	/**
 	 * Interval threshold option is read as a non-negative int.
 	 *
 	 * @return void

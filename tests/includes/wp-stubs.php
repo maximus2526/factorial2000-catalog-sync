@@ -203,6 +203,13 @@ final class F2000CS_Test_State {
 	public static $products = array();
 
 	/**
+	 * Post types by post ID for get_post_type() (default 'product').
+	 *
+	 * @var array<int, string>
+	 */
+	public static $post_types = array();
+
+	/**
 	 * Post meta store keyed as "{post_id}:{meta_key}".
 	 *
 	 * @var array<string, mixed>
@@ -258,6 +265,7 @@ final class F2000CS_Test_State {
 		self::$is_product          = false;
 		self::$queried_object_id   = 0;
 		self::$products            = array();
+		self::$post_types          = array();
 		self::$post_meta           = array();
 		self::$updated_posts       = array();
 
@@ -1320,6 +1328,26 @@ if ( ! function_exists( 'wp_update_post' ) ) {
 	}
 }
 
+if ( ! function_exists( 'get_post_type' ) ) {
+	/**
+	 * @param int $post_id Post ID.
+	 * @return string
+	 */
+	function get_post_type( $post_id = 0 ) {
+		return F2000CS_Test_State::$post_types[ (int) $post_id ] ?? 'product';
+	}
+}
+
+if ( ! function_exists( 'get_the_title' ) ) {
+	/**
+	 * @param int $post_id Post ID.
+	 * @return string
+	 */
+	function get_the_title( $post_id = 0 ) {
+		return 'Product ' . (int) $post_id;
+	}
+}
+
 if ( ! function_exists( 'get_post_meta' ) ) {
 	/**
 	 * @param int    $post_id Post ID.
@@ -1488,6 +1516,13 @@ class F2000CS_Fake_WPDB {
 	public $queries = array();
 
 	/**
+	 * Recorded SQL passed to get_col().
+	 *
+	 * @var array<int, string>
+	 */
+	public $read_queries = array();
+
+	/**
 	 * Return value for update() calls (0 = no rows, 1 = success).
 	 *
 	 * @var int
@@ -1600,6 +1635,8 @@ class F2000CS_Fake_WPDB {
 	 * @return array
 	 */
 	public function get_col( $query = null ) {
+		$this->read_queries[] = (string) $query;
+
 		if ( ! empty( $this->col_queue ) ) {
 			return (array) array_shift( $this->col_queue );
 		}

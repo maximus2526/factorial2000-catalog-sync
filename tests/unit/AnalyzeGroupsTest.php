@@ -230,4 +230,16 @@ final class F2000CS_Unit_AnalyzeGroupsTest extends F2000CS_Unit_TestCase {
 		$this->assertArrayHasKey( '0', $groups );
 		$this->assertSame( 2, $groups['0']['variations_count'] );
 	}
+
+	public function test_offer_with_entity_under_shops_dtd_stays_in_its_group(): void {
+		$groups = $this->analyze(
+			'<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE yml_catalog SYSTEM "shops.dtd"><yml_catalog><shop><offers>' .
+			'<offer id="1" group_id="G1" available="true"><name>Футболка&nbsp;M</name><price>100</price></offer>' .
+			'<offer id="2" group_id="G1" available="true"><name>Футболка L</name><price>120</price></offer>' .
+			'</offers></shop></yml_catalog>'
+		);
+
+		$this->assertArrayHasKey( 'G1', $groups );
+		$this->assertSame( 2, $groups['G1']['variations_count'] );
+	}
 }

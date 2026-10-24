@@ -376,7 +376,7 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 	 * @param array  $rows   Rows the "products with this prefix" query returns.
 	 * @return string All Telegram messages.
 	 */
-	private function run_with_feed( string $xml, string $prefix, array $rows ): string {
+	private function run_with_feed( string $xml, string $prefix, array $rows, bool $keep_managed = false ): string {
 		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs_' );
 		file_put_contents( $tmp, $xml );
 
@@ -384,7 +384,7 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 		update_option( 'f2000cs_telegram_user_ids', '111' );
 		$GLOBALS['wpdb']->results_queue = array( $rows );
 
-		( new XML_Stock_Updater( $tmp, $prefix ) )->update_products_stock_status();
+		( new XML_Stock_Updater( $tmp, $prefix, false, array(), false, $keep_managed ) )->update_products_stock_status();
 		unlink( $tmp );
 
 		$texts = array();
@@ -473,6 +473,252 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 		$this->assertStringContainsString( 'Found 1 products to process', $all );
 		$this->assertStringNotContainsString( 'не пройшов перевірку', $all );
 		$this->assertSame( 'instock', get_post_meta( 11, '_stock_status', true ) );
+	}
+
+	/**
+	 * A WC_Product stand-in whose prices are read from post meta, like WC does.
+	 *
+	 * @param int $id Product ID.
+	 * @return object
+	 */
+	private function meta_priced_product( int $id ) {
+		return new class( $id ) {
+			/**
+			 * Product ID.
+			 *
+			 * @var int
+			 */
+			private $id;
+
+			/**
+			 * @param int $id Product ID.
+			 */
+			public function __construct( $id ) {
+				$this->id = $id;
+			}
+
+			/**
+			 * @return int
+			 */
+			public function get_id() {
+				return $this->id;
+			}
+
+			/**
+			 * @return string
+			 */
+			public function get_regular_price() {
+				return (string) get_post_meta( $this->id, '_regular_price', true );
+			}
+
+			/**
+			 * @return string
+			 */
+			public function get_sale_price() {
+				return (string) get_post_meta( $this->id, '_sale_price', true );
+			}
+		};
+	}
+
+	/**
+	 * When the supplier ends a promotion by restoring the old price, the sale ends too.
+	 *
+	 * @return void
+	 */
+	public function test_sale_ends_when_oldprice_disappears_and_price_returns_to_regular() {
+		$updater = new XML_Stock_Updater( 'http://shop.test/feed.xml', 'SUP_' );
+		$product = $this->meta_priced_product( 21 );
+
+		// Run 1: promotion — price 80, oldprice 100.
+		F2000CS_Test_Reflection::invoke( $updater, 'update_product_price', array( $product, 80, 100 ) );
+		$this->assertSame( '100.00', get_post_meta( 21, '_regular_price', true ) );
+		$this->assertSame( '80.00', get_post_meta( 21, '_sale_price', true ) );
+
+		// Run 2: promotion over — price back to 100, no oldprice.
+		$changed = F2000CS_Test_Reflection::invoke( $updater, 'update_product_price', array( $product, 100, 0 ) );
+
+		$this->assertTrue( $changed );
+		$this->assertSame( '', (string) get_post_meta( 21, '_sale_price', true ), 'The sale price must be removed' );
+		$this->assertSame( '100.00', get_post_meta( 21, '_price', true ), 'The active price must be the regular price again' );
+		$this->assertSame( '100.00', get_post_meta( 21, '_regular_price', true ) );
+	}
+
+	/**
+	 * Without a sale and with an unchanged price nothing is written.
+	 *
+	 * @return void
+	 */
+	public function test_unchanged_regular_price_without_sale_writes_nothing() {
+		update_post_meta( 22, '_regular_price', '100.00' );
+		update_post_meta( 22, '_price', '100.00' );
+
+		$updater = new XML_Stock_Updater( 'http://shop.test/feed.xml', 'SUP_' );
+		$changed = F2000CS_Test_Reflection::invoke( $updater, 'update_product_price', array( $this->meta_priced_product( 22 ), 100, 0 ) );
+
+		$this->assertFalse( $changed );
+	}
+
+	/**
+	 * Feeds with a DOCTYPE and a named entity (&nbsp;) in an offer are valid YML.
+	 *
+	 * @return array<string,array{0:string}>
+	 */
+	public static function entity_feeds(): array {
+		$offers = '<shop><offers>'
+			. '<offer id="1" available="true"><name>Куртка&nbsp;XL</name><price>10</price></offer>'
+			. '<offer id="2" available="true"><price>20</price></offer>'
+			. '</offers></shop></yml_catalog>';
+
+		return array(
+			'external shops.dtd' => array( '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE yml_catalog SYSTEM "shops.dtd"><yml_catalog date="2026-10-24">' . $offers ),
+			'internal subset'    => array( '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE yml_catalog [<!ENTITY nbsp "&#160;">]><yml_catalog date="2026-10-24">' . $offers ),
+		);
+	}
+
+	/**
+	 * A named entity inside an offer must not make the whole feed "broken".
+	 *
+	 * @dataProvider entity_feeds
+	 * @param string $xml Feed contents.
+	 * @return void
+	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider( 'entity_feeds' )]
+	public function test_entity_in_offer_keeps_the_feed_valid( string $xml ) {
+		update_post_meta( 11, '_stock_status', 'instock' );
+		update_post_meta( 12, '_stock_status', 'instock' );
+
+		$all = $this->run_with_feed( $xml, 'SUP_', array() );
+
+		$this->assertStringNotContainsString( 'не пройшов перевірку', $all );
+		$this->assertStringContainsString( 'Found 2 products to process', $all, 'Both offers are read, including the one with &nbsp;' );
+		$this->assertSame( 'instock', get_post_meta( 11, '_stock_status', true ) );
+		$this->assertSame( 'instock', get_post_meta( 12, '_stock_status', true ) );
+	}
+
+	/**
+	 * Run an update against a feed URL that cannot be fetched at all.
+	 *
+	 * @param string $url  Unreachable feed location.
+	 * @param array  $rows Rows the "products with this prefix" query returns.
+	 * @return string All Telegram messages.
+	 */
+	private function run_unreachable( string $url, array $rows ): string {
+		update_option( 'f2000cs_telegram_token_id', '123:abc' );
+		update_option( 'f2000cs_telegram_user_ids', '111' );
+		$GLOBALS['wpdb']->results_queue = array( $rows );
+
+		( new XML_Stock_Updater( $url, 'SUP_' ) )->update_products_stock_status();
+
+		$texts = array();
+		foreach ( F2000CS_Test_State::$http_posts as $post ) {
+			$texts[] = $post['args']['body']['text'];
+		}
+
+		return implode( "\n", $texts );
+	}
+
+	/**
+	 * A feed location that neither XMLReader nor the HTTP fallback can open.
+	 *
+	 * @return string
+	 */
+	private function unreachable_url(): string {
+		return get_temp_dir() . 'f2000cs_unreachable-' . uniqid() . '.xml';
+	}
+
+	/**
+	 * A feed that cannot be downloaded keeps the current stock and only alerts.
+	 *
+	 * @return void
+	 */
+	public function test_unreachable_feed_keeps_stock_and_alerts() {
+		update_post_meta( 11, '_stock_status', 'instock' );
+		update_post_meta( 12, '_stock_status', 'instock' );
+		$url = $this->unreachable_url();
+
+		$all = $this->run_unreachable( $url, $this->supplier_rows() );
+
+		$this->assertStringContainsString( 'недоступна', $all );
+		$this->assertSame( 'instock', get_post_meta( 11, '_stock_status', true ) );
+		$this->assertSame( 'instock', get_post_meta( 12, '_stock_status', true ) );
+		$this->assertGreaterThan( 0, (int) get_option( 'f2000cs_feed_down_' . md5( $url ) ), 'The start of the outage is remembered' );
+	}
+
+	/**
+	 * A feed that stays unreachable past the grace period takes the products off sale.
+	 *
+	 * @return void
+	 */
+	public function test_unreachable_feed_past_grace_takes_products_off_sale() {
+		update_post_meta( 11, '_stock_status', 'instock' );
+		update_post_meta( 12, '_stock_status', 'instock' );
+		$url = $this->unreachable_url();
+		update_option( 'f2000cs_feed_down_' . md5( $url ), time() - 13 * HOUR_IN_SECONDS );
+
+		$this->run_unreachable( $url, $this->supplier_rows() );
+
+		$this->assertSame( 'outofstock', get_post_meta( 11, '_stock_status', true ) );
+		$this->assertSame( 'outofstock', get_post_meta( 12, '_stock_status', true ) );
+	}
+
+	/**
+	 * A feed that is reachable again ends the outage.
+	 *
+	 * @return void
+	 */
+	public function test_valid_feed_clears_the_outage_mark() {
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs_' );
+		file_put_contents( $tmp, '<?xml version="1.0"?><yml_catalog><shop><offers><offer id="1" available="true"><price>10</price></offer></offers></shop></yml_catalog>' );
+		update_option( 'f2000cs_feed_down_' . md5( $tmp ), time() - HOUR_IN_SECONDS );
+		$GLOBALS['wpdb']->results_queue = array( array() );
+
+		( new XML_Stock_Updater( $tmp, 'SUP_' ) )->update_products_stock_status();
+		unlink( $tmp );
+
+		$this->assertFalse( get_option( 'f2000cs_feed_down_' . md5( $tmp ) ) );
+	}
+
+	/**
+	 * A product that manages its own stock keeps it on a broken feed while quantities are frozen:
+	 * later valid runs do not write its status, so it could never come back.
+	 *
+	 * @return void
+	 */
+	public function test_broken_feed_keeps_managed_stock_when_quantities_are_frozen() {
+		$managed = new class() {
+			/**
+			 * @return bool
+			 */
+			public function managing_stock() {
+				return true;
+			}
+		};
+		$plain   = new class() {
+			/**
+			 * @return bool
+			 */
+			public function managing_stock() {
+				return false;
+			}
+		};
+
+		F2000CS_Test_State::$products[31] = $managed;
+		F2000CS_Test_State::$products[32] = $plain;
+		update_post_meta( 31, '_stock_status', 'instock' );
+		update_post_meta( 32, '_stock_status', 'instock' );
+
+		$this->run_with_feed(
+			'<?xml version="1.0"?><yml_catalog><shop><offers><offer id="1" avail',
+			'SUP_',
+			array(
+				(object) array( 'id' => 31, 'type' => 'product', 'parent' => 0 ),
+				(object) array( 'id' => 32, 'type' => 'product', 'parent' => 0 ),
+			),
+			true
+		);
+
+		$this->assertSame( 'instock', get_post_meta( 31, '_stock_status', true ), 'Managed stock is left to its quantity' );
+		$this->assertSame( 'outofstock', get_post_meta( 32, '_stock_status', true ) );
 	}
 
 	/**

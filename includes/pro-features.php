@@ -204,19 +204,41 @@ function f2000cs_apply_variable_low_instock_rule() {
 
 	$max_instock = f2000cs_get_variable_low_instock_threshold();
 
+	// Only the suppliers' products: the shop's own variable products are never touched.
+	$prefixes = f2000cs_get_supplier_sku_prefixes();
+	if ( empty( $prefixes ) ) {
+		return array(
+			'updated'  => 0,
+			'examples' => array(),
+		);
+	}
+
+	$prefix_sql  = implode( ' OR ', array_fill( 0, count( $prefixes ), 'sku.meta_value LIKE %s' ) );
+	$prefix_args = array_map(
+		static function ( $prefix ) use ( $wpdb ) {
+			return $wpdb->esc_like( $prefix ) . '%';
+		},
+		$prefixes
+	);
+
+	// A product with no more variations than the threshold (e.g. one size) is not "low".
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $prefix_sql is a generated list of %s placeholders.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live aggregate over variations; cache would be stale.
 	$parent_ids = $wpdb->get_col(
 		$wpdb->prepare(
 			"SELECT v.post_parent
 			FROM {$wpdb->posts} v
 			INNER JOIN {$wpdb->postmeta} pm ON v.ID = pm.post_id AND pm.meta_key = '_stock_status'
+			INNER JOIN {$wpdb->postmeta} sku ON v.ID = sku.post_id AND sku.meta_key = '_sku'
 			WHERE v.post_type = 'product_variation'
 			  AND v.post_status IN ('publish', 'private')
+			  AND ( {$prefix_sql} )
 			GROUP BY v.post_parent
-			HAVING SUM(pm.meta_value = 'instock') <= %d",
-			$max_instock
+			HAVING SUM(pm.meta_value = 'instock') <= %d AND COUNT(*) > %d",
+			array_merge( $prefix_args, array( $max_instock, $max_instock ) )
 		)
 	);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 	if ( empty( $parent_ids ) ) {
 		return array(
@@ -263,7 +285,8 @@ function f2000cs_apply_variable_low_instock_rule() {
 		foreach ( $variation_ids as $variation_id ) {
 			$variation_id = (int) $variation_id;
 
-			if ( get_post_meta( $variation_id, '_stock_status', true ) === 'outofstock' ) {
+			// Only in-stock variations are hidden; backorder ones stay orderable.
+			if ( get_post_meta( $variation_id, '_stock_status', true ) !== 'instock' ) {
 				continue;
 			}
 

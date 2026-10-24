@@ -90,6 +90,13 @@ class XML_Stock_Updater {
 	private $feed_error = '';
 
 	/**
+	 * Whether the feed could not be downloaded at all (as opposed to downloaded but invalid).
+	 *
+	 * @var bool
+	 */
+	private $feed_unreachable = false;
+
+	/**
 	 * Currency rates parsed from XML <currencies> section.
 	 *
 	 * @var array<string,float>
@@ -219,7 +226,16 @@ class XML_Stock_Updater {
 				$this->feed_error = 'у вигрузці немає жодної пропозиції (offer)';
 			}
 
-			// An invalid feed (unreachable, broken XML, no offers): nothing in it can be trusted,
+			// A feed that could not be downloaded says nothing about the stock: keep it and
+			// alert, and take the products off sale only when the outage lasts too long.
+			if ( $this->feed_unreachable ) {
+				$this->handle_unreachable_feed();
+				return;
+			}
+
+			delete_option( $this->outage_option() );
+
+			// An invalid feed (broken XML, no offers): nothing in it can be trusted,
 			// so every product of this supplier is taken off sale until a valid feed comes back.
 			if ( '' !== $this->feed_error ) {
 				$this->send_telegram_message( 'XML не пройшов перевірку: ' . $this->feed_error );
@@ -244,6 +260,55 @@ class XML_Stock_Updater {
 		} finally {
 			$this->cleanup_resources();
 		}
+	}
+
+	/**
+	 * Option that remembers when this feed became unreachable.
+	 *
+	 * @return string
+	 */
+	private function outage_option() {
+		return 'f2000cs_feed_down_' . md5( (string) $this->xml_url );
+	}
+
+	/**
+	 * React to a feed that could not be downloaded.
+	 *
+	 * The first failure only starts the outage clock; the supplier's products are taken
+	 * off sale once the feed has stayed unreachable for the grace period.
+	 *
+	 * @return void
+	 */
+	private function handle_unreachable_feed() {
+		$option = $this->outage_option();
+		$since  = (int) get_option( $option, 0 );
+
+		if ( $since <= 0 ) {
+			$since = time();
+			update_option( $option, $since, false );
+		}
+
+		/**
+		 * How long a supplier feed may stay unreachable before its products are taken off sale.
+		 *
+		 * @param int    $grace   Seconds. Default 12 hours.
+		 * @param string $xml_url Feed URL.
+		 */
+		$grace = (int) apply_filters( 'f2000cs_unreachable_feed_grace', 12 * HOUR_IN_SECONDS, $this->xml_url );
+		$down  = time() - $since;
+
+		f2000cs_log( 'Feed unreachable for ' . $down . 's: ' . $this->feed_error, 'error' );
+
+		if ( $down < $grace ) {
+			$this->send_telegram_message(
+				'⚠️ Вигрузка недоступна (' . $this->feed_error . '). Наявність не змінено; якщо вигрузка не з\'явиться до '
+				. gmdate( 'Y-m-d H:i', $since + $grace ) . ' UTC, товари постачальника буде знято з продажу.'
+			);
+			return;
+		}
+
+		$this->send_telegram_message( 'Вигрузка недоступна понад ' . round( $grace / HOUR_IN_SECONDS, 1 ) . ' год: ' . $this->feed_error );
+		$this->mark_all_out_of_stock();
 	}
 
 	/**
@@ -343,10 +408,11 @@ class XML_Stock_Updater {
 	 * @return array Array of [sku => ['stock_status' => status, 'price' => price, 'old_price' => old_price]]
 	 */
 	private function extract_data_from_xml() {
-		$updates          = array();
-		$reader           = null;
-		$this->feed_error = '';
-		$previous_errors  = libxml_use_internal_errors( true );
+		$updates                = array();
+		$reader                 = null;
+		$this->feed_error       = '';
+		$this->feed_unreachable = false;
+		$previous_errors        = libxml_use_internal_errors( true );
 		libxml_clear_errors();
 
 		try {
@@ -364,6 +430,7 @@ class XML_Stock_Updater {
 				// If direct URL open fails, try to download the file first
 				$xml_data = $this->fetch_xml_data();
 				if ( ! $xml_data ) {
+					$this->feed_unreachable = true;
 					throw new Exception( 'Failed to retrieve XML data' );
 				}
 
@@ -381,6 +448,8 @@ class XML_Stock_Updater {
 				throw new Exception( 'Failed to read XML content' );
 			}
 
+			$dom = new \DOMDocument();
+
 			while ( $reader->read() ) {
 				if ( XMLReader::ELEMENT === $reader->nodeType && 'offer' === $reader->localName ) {
 					$sku            = (string) $reader->getAttribute( 'id' );
@@ -388,8 +457,8 @@ class XML_Stock_Updater {
 					$group_id       = (string) $reader->getAttribute( 'group_id' );
 
 					// Get the offer node as SimpleXML to extract pricing
-					$offer_xml = simplexml_load_string( $reader->readOuterXML(), null, LIBXML_NONET );
-					if ( false === $offer_xml ) {
+					$offer_xml = f2000cs_reader_element( $reader, $dom );
+					if ( null === $offer_xml ) {
 						continue;
 					}
 
@@ -561,6 +630,14 @@ class XML_Stock_Updater {
 					$product = wc_get_product( $product_id );
 					if ( ! $product ) {
 						++$not_found;
+						continue;
+					}
+
+					// An offer that matches a variable parent (older imports gave the parent the
+					// SKU of an offer whose id equals its group_id): the parent follows its
+					// variations, so one size's status and price are never written onto it.
+					if ( $product->is_type( 'variable' ) ) {
+						++$skipped_unchanged;
 						continue;
 					}
 
@@ -849,7 +926,11 @@ class XML_Stock_Updater {
 		} else {
 			$current_regular_price = $product->get_regular_price();
 
-			if ( $current_regular_price !== $price ) {
+			// A sale left from an earlier run ends too: suppliers end a promotion by
+			// dropping <oldprice> and restoring the price, often to the same regular price.
+			$has_sale = '' !== (string) $product->get_sale_price( 'edit' );
+
+			if ( $current_regular_price !== $price || $has_sale ) {
 				update_post_meta( $product_id, '_regular_price', $price );
 				update_post_meta( $product_id, '_price', $price );
 
@@ -985,6 +1066,15 @@ class XML_Stock_Updater {
 		$count = 0;
 
 		foreach ( (array) $rows as $row ) {
+			// Same rule as a valid run: while quantities are frozen, a product with managed
+			// stock follows its quantity — later runs would never bring its status back.
+			if ( $this->keep_managed_status ) {
+				$product = wc_get_product( (int) $row->id );
+				if ( $product && $product->managing_stock() ) {
+					continue;
+				}
+			}
+
 			f2000cs_update_stock_status( (int) $row->id, 'outofstock' );
 			wc_delete_product_transients( (int) $row->id );
 			++$count;

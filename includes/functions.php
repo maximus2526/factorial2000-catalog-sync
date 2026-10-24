@@ -127,6 +127,30 @@ function f2000cs_parse_available( $available ) {
 }
 
 /**
+ * The element an XMLReader is positioned on, as SimpleXML.
+ *
+ * The node is expanded from the reader's own document instead of re-parsing
+ * readOuterXML(): a fragment parsed on its own loses the DOCTYPE, so an entity
+ * such as &nbsp; (common in shops.dtd feeds) fails it and leaves a fatal error
+ * in the shared libxml buffer, where it reads as a broken feed.
+ *
+ * @param XMLReader   $reader Reader positioned on an element.
+ * @param DOMDocument $dom    Document the expanded nodes belong to; reuse one per loop.
+ * @return SimpleXMLElement|null Null when the element cannot be read.
+ */
+function f2000cs_reader_element( XMLReader $reader, DOMDocument $dom ) {
+	// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- A malformed element returns false; the caller skips it.
+	$node = @$reader->expand( $dom );
+	if ( ! $node instanceof DOMElement ) {
+		return null;
+	}
+
+	$element = simplexml_import_dom( $node );
+
+	return $element instanceof SimpleXMLElement ? $element : null;
+}
+
+/**
  * Read the stock quantity of a YML offer.
  *
  * Supported tags (first non-empty wins): <quantity>, <stock_quantity>,
@@ -568,6 +592,24 @@ function f2000cs_supplier_slot_has_saved_data( $index ) {
 	}
 
 	return false;
+}
+
+/**
+ * Non-empty SKU prefixes of all saved supplier slots.
+ *
+ * @return array<int,string> Unique prefixes.
+ */
+function f2000cs_get_supplier_sku_prefixes() {
+	$prefixes = array();
+
+	for ( $i = 1, $max = f2000cs_get_highest_saved_supplier_slot(); $i <= $max; $i++ ) {
+		$prefix = trim( (string) get_option( 'f2000cs_sku_prefix_' . $i, '' ) );
+		if ( '' !== $prefix ) {
+			$prefixes[] = $prefix;
+		}
+	}
+
+	return array_values( array_unique( $prefixes ) );
 }
 
 /**

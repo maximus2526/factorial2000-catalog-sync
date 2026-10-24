@@ -84,12 +84,18 @@ class Fields_Updater extends XML_Parser {
 			$this->ensure_categories_loaded();
 		}
 
+		// Entity warnings (e.g. &nbsp; under an unloaded shops.dtd) are not failures.
+		$previous_errors = libxml_use_internal_errors( true );
+
 		$total = $this->count_total_offers();
 
 		$reader = new XMLReader();
 		if ( ! $reader->open( $this->xml_url ) ) {
+			libxml_use_internal_errors( $previous_errors );
 			throw new Exception( 'Failed to open XML file.' );
 		}
+
+		$dom = new \DOMDocument();
 
 		$position  = 0;
 		$processed = 0;
@@ -111,8 +117,8 @@ class Fields_Updater extends XML_Parser {
 				break;
 			}
 
-			$offer  = simplexml_load_string( $reader->readOuterXML(), null, LIBXML_NONET );
-			$result = $this->update_single_offer( $offer );
+			$offer  = f2000cs_reader_element( $reader, $dom );
+			$result = null === $offer ? 'skipped' : $this->update_single_offer( $offer );
 
 			switch ( $result ) {
 				case 'updated':
@@ -131,6 +137,8 @@ class Fields_Updater extends XML_Parser {
 		}
 
 		$reader->close();
+		libxml_clear_errors();
+		libxml_use_internal_errors( $previous_errors );
 
 		return array(
 			'processed' => $processed,
@@ -184,6 +192,12 @@ class Fields_Updater extends XML_Parser {
 
 		if ( ! $product_id ) {
 			return 'not_found';
+		}
+
+		// Same rule as the stock sync: an offer never rewrites a variable parent.
+		$product = wc_get_product( $product_id );
+		if ( $product && $product->is_type( 'variable' ) ) {
+			return 'skipped';
 		}
 
 		$post_type    = get_post_type( $product_id );

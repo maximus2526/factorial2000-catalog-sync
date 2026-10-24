@@ -839,12 +839,19 @@ function f2000cs_analyze_variable_groups( string $file_path ): array {
 
 	$groups = array();
 
+	// Entity warnings (e.g. &nbsp; under an unloaded shops.dtd) are not failures.
+	$previous_errors = libxml_use_internal_errors( true );
+	$dom             = new DOMDocument();
+
 	while ( $reader->read() ) {
 		if ( $reader->nodeType !== XMLReader::ELEMENT || $reader->name !== 'offer' ) {
 			continue;
 		}
 
-		$offer = simplexml_load_string( $reader->readOuterXML(), null, LIBXML_NONET );
+		$offer = f2000cs_reader_element( $reader, $dom );
+		if ( null === $offer ) {
+			continue;
+		}
 
 		// Only offers with a real group_id (empty( '0' ) is true in PHP — do not use empty()).
 		$group_id = isset( $offer['group_id'] ) ? trim( (string) $offer['group_id'] ) : '';
@@ -914,6 +921,8 @@ function f2000cs_analyze_variable_groups( string $file_path ): array {
 	}
 
 	$reader->close();
+	libxml_clear_errors();
+	libxml_use_internal_errors( $previous_errors );
 
 	foreach ( $groups as $group_id => &$group ) {
 		$varying_attributes = array();
