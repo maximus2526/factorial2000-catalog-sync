@@ -5,7 +5,7 @@ Tags: woocommerce, prom-ua, xml-import, stock-sync, marketplace
 Requires at least: 5.8
 Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 0.7.2
+Stable tag: 0.7.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -187,6 +187,9 @@ This service is provided by Freemius. Terms of Service: https://freemius.com/ter
 
 == Upgrade Notice ==
 
+= 0.7.3 =
+Sales the supplier ended are now removed on the next stock sync, big feeds no longer stop at the 256 MB memory cap, and an interrupted run continues where it stopped.
+
 = 0.7.2 =
 The Prom feed now carries search keywords (`keywords` / `keywords_ua`). Pro users: update the Pro build from your Freemius account.
 
@@ -197,6 +200,17 @@ Large Prom feeds (over 180 MB) are now split into several links automatically, a
 Pro features moved to a separate Pro build. If you use a Pro license, stock quantity updates or the marketplace feed, install the Pro version from your Freemius account before updating. Price adjustment now works in the Free version too.
 
 == Changelog ==
+
+= 0.7.3 =
+New:
+* (Pro) Google Merchant Center feed on the Marketplaces page (RSS 2.0 with `g:`): one item per product or variation linked by `g:item_group_id`, colour, size, gender and age group for apparel, Google categories by rules, GTIN only when the checksum is valid, otherwise MPN or `identifier_exists=no`.
+* (Pro) The Prom feed carries the product `<url>`, can send only the regular price (no `<oldprice>`), and the MPN can be the SKU or «supplier code, then SKU».
+* A stock run cut short by the time limit saves its position; the next run continues from there instead of starting over, so the tail of a big feed is updated too.
+
+Fixed:
+* A sale ends when the supplier drops `<oldprice>`, in the stock sync and in the fields update: the sale price and its dates are removed, the price becomes the regular one, the «on sale» flag in the product lookup table is cleared and variable parents get their price range and sale badge recalculated. Only a sale the shop owner scheduled with an end date ahead is kept.
+* `memory_limit = -1` (WP-CLI) is no longer read as 0 and capped to 256M; the stock sync raises the limit to 1024M (filter `f2000cs_memory_limit_mb`). A ~10k-offer feed needs about 340 MB and used to stop part way through.
+* Stock status writes to `wc_product_meta_lookup` are a single upsert: no more thousands of «Duplicate entry» database errors per run.
 
 = 0.7.2 =
 New:

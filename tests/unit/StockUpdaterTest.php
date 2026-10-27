@@ -482,8 +482,8 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 	 * @param int $id Product ID.
 	 * @return object
 	 */
-	private function meta_priced_product( int $id ) {
-		return new class( $id ) {
+	private function meta_priced_product( int $id, int $parent_id = 0 ) {
+		return new class( $id, $parent_id ) {
 			/**
 			 * Product ID.
 			 *
@@ -492,10 +492,34 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 			private $id;
 
 			/**
-			 * @param int $id Product ID.
+			 * Parent ID (a variation when not 0).
+			 *
+			 * @var int
 			 */
-			public function __construct( $id ) {
-				$this->id = $id;
+			private $parent_id;
+
+			/**
+			 * @param int $id        Product ID.
+			 * @param int $parent_id Parent ID.
+			 */
+			public function __construct( $id, $parent_id ) {
+				$this->id        = $id;
+				$this->parent_id = $parent_id;
+			}
+
+			/**
+			 * @param string $type Type.
+			 * @return bool
+			 */
+			public function is_type( $type ) {
+				return ( $this->parent_id ? 'variation' : 'simple' ) === $type;
+			}
+
+			/**
+			 * @return int
+			 */
+			public function get_parent_id() {
+				return $this->parent_id;
 			}
 
 			/**
@@ -542,6 +566,144 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 		$this->assertSame( '', (string) get_post_meta( 21, '_sale_price', true ), 'The sale price must be removed' );
 		$this->assertSame( '100.00', get_post_meta( 21, '_price', true ), 'The active price must be the regular price again' );
 		$this->assertSame( '100.00', get_post_meta( 21, '_regular_price', true ) );
+	}
+
+	/**
+	 * A supplier sale with dates (left from an import or an earlier run) is ended with its dates.
+	 *
+	 * @return void
+	 */
+	public function test_sale_end_clears_past_sale_dates() {
+		update_post_meta( 23, '_regular_price', '100.00' );
+		update_post_meta( 23, '_sale_price', '85.00' );
+		update_post_meta( 23, '_price', '85.00' );
+		update_post_meta( 23, '_sale_price_dates_from', (string) ( time() - 2 * DAY_IN_SECONDS ) );
+		update_post_meta( 23, '_sale_price_dates_to', (string) ( time() - DAY_IN_SECONDS ) );
+
+		$updater = new XML_Stock_Updater( 'http://shop.test/feed.xml', 'SUP_' );
+		$changed = F2000CS_Test_Reflection::invoke( $updater, 'update_product_price', array( $this->meta_priced_product( 23 ), 100, 0 ) );
+
+		$this->assertTrue( $changed );
+		$this->assertSame( '', (string) get_post_meta( 23, '_sale_price', true ) );
+		$this->assertSame( '', (string) get_post_meta( 23, '_sale_price_dates_from', true ) );
+		$this->assertSame( '', (string) get_post_meta( 23, '_sale_price_dates_to', true ) );
+		$this->assertSame( '100.00', get_post_meta( 23, '_price', true ) );
+	}
+
+	/**
+	 * A sale the owner scheduled with an end date ahead stays; only the regular price follows the feed.
+	 *
+	 * @return void
+	 */
+	public function test_owner_scheduled_sale_is_kept() {
+		update_post_meta( 24, '_regular_price', '100.00' );
+		update_post_meta( 24, '_sale_price', '70.00' );
+		update_post_meta( 24, '_price', '70.00' );
+		update_post_meta( 24, '_sale_price_dates_to', (string) ( time() + DAY_IN_SECONDS ) );
+
+		$updater = new XML_Stock_Updater( 'http://shop.test/feed.xml', 'SUP_' );
+		$changed = F2000CS_Test_Reflection::invoke( $updater, 'update_product_price', array( $this->meta_priced_product( 24 ), 110, 0 ) );
+
+		$this->assertTrue( $changed );
+		$this->assertSame( '70.00', get_post_meta( 24, '_sale_price', true ) );
+		$this->assertSame( '70.00', get_post_meta( 24, '_price', true ) );
+		$this->assertSame( '110.00', get_post_meta( 24, '_regular_price', true ) );
+	}
+
+	/**
+	 * A variation whose sale ended queues its parent for a price resync.
+	 *
+	 * @return void
+	 */
+	public function test_variation_price_change_queues_parent_sync() {
+		update_post_meta( 25, '_regular_price', '100.00' );
+		update_post_meta( 25, '_sale_price', '60.00' );
+
+		$updater = new XML_Stock_Updater( 'http://shop.test/feed.xml', 'SUP_' );
+		F2000CS_Test_Reflection::invoke( $updater, 'update_product_price', array( $this->meta_priced_product( 25, 90 ), 100, 0 ) );
+
+		$this->assertSame( array( 90 => true ), F2000CS_Test_Reflection::get( $updater, 'price_changed_parents' ) );
+	}
+
+	/**
+	 * The lookup row's «on sale» flag follows the sale price.
+	 *
+	 * @return void
+	 */
+	public function test_price_lookup_clears_onsale_flag() {
+		update_post_meta( 26, '_regular_price', '100.00' );
+		update_post_meta( 26, '_price', '100.00' );
+		$GLOBALS['wpdb']->var_queue = array( 26 );
+
+		f2000cs_sync_price_lookup( 26 );
+
+		$this->assertSame( 0, $GLOBALS['wpdb']->last_update_data['onsale'] );
+
+		update_post_meta( 26, '_sale_price', '80.00' );
+		$GLOBALS['wpdb']->var_queue = array( 26 );
+
+		f2000cs_sync_price_lookup( 26 );
+
+		$this->assertSame( 1, $GLOBALS['wpdb']->last_update_data['onsale'] );
+	}
+
+	/**
+	 * The stock lookup write is a single upsert, so an unchanged row never causes «Duplicate entry».
+	 *
+	 * @return void
+	 */
+	public function test_stock_lookup_is_upsert() {
+		$GLOBALS['wpdb']->queries = array();
+
+		f2000cs_sync_single_lookup_stock( 27, 'instock' );
+
+		$this->assertCount( 1, $GLOBALS['wpdb']->queries );
+		$this->assertStringContainsString( 'ON DUPLICATE KEY UPDATE', $GLOBALS['wpdb']->queries[0] );
+	}
+
+	/**
+	 * memory_limit -1 (WP-CLI) means no limit and is never lowered.
+	 *
+	 * @return void
+	 */
+	public function test_unlimited_memory_is_not_lowered() {
+		$before = ini_get( 'memory_limit' );
+		ini_set( 'memory_limit', '-1' );
+
+		$updater = new XML_Stock_Updater( 'http://shop.test/feed.xml', 'SUP_' );
+		F2000CS_Test_Reflection::invoke( $updater, 'increase_memory_limit' );
+		$after = ini_get( 'memory_limit' );
+
+		ini_set( 'memory_limit', $before );
+
+		$this->assertSame( '-1', $after );
+	}
+
+	/**
+	 * A run cut short by the time limit keeps its position instead of starting over.
+	 *
+	 * @return void
+	 */
+	public function test_interrupted_run_keeps_resume_position() {
+		$url = 'http://shop.test/resume.xml';
+		$key = 'f2000cs_resume_' . md5( $url );
+		update_option( $key, 2 );
+
+		$updater = new XML_Stock_Updater( $url, 'SUP_' );
+		F2000CS_Test_Reflection::set( $updater, 'batch_size', 1 );
+		F2000CS_Test_Reflection::set( $updater, 'max_execution_time', 1.0E-9 );
+
+		$updates = array();
+		foreach ( array( 'SUP_1', 'SUP_2', 'SUP_3', 'SUP_4' ) as $sku ) {
+			$updates[ $sku ] = array( 'stock_status' => 'instock', 'price' => 10, 'old_price' => 0 );
+		}
+
+		F2000CS_Test_Reflection::invoke( $updater, 'process_updates_in_batches', array( $updates ) );
+		$this->assertSame( 2, (int) get_option( $key ), 'Cut short before any batch: the next run starts from the same place' );
+
+		F2000CS_Test_Reflection::set( $updater, 'max_execution_time', 0 );
+		F2000CS_Test_Reflection::invoke( $updater, 'process_updates_in_batches', array( $updates ) );
+		$this->assertFalse( get_option( $key ), 'A finished run clears the position' );
 	}
 
 	/**

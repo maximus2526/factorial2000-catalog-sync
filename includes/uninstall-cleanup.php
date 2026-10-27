@@ -105,6 +105,15 @@ function f2000cs_uninstall_cleanup() {
 				$wpdb->esc_like( 'f2000cs_feed_down_' ) . '%'
 			)
 		);
+
+		// Resume positions of stock runs cut short by the time limit (per feed URL).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-off uninstall cleanup of this plugin's own options.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+				$wpdb->esc_like( 'f2000cs_resume_' ) . '%'
+			)
+		);
 	}
 
 	// Private upload dirs created by the plugin.

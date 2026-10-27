@@ -464,10 +464,15 @@ class Fields_Updater extends XML_Parser {
 			} else {
 				$regular = number_format( $price, 2, '.', '' );
 
-				if ( $product->get_regular_price() !== $regular || '' !== $product->get_sale_price() ) {
-					update_post_meta( $product_id, '_regular_price', $regular );
-					update_post_meta( $product_id, '_price', $regular );
-					delete_post_meta( $product_id, '_sale_price' );
+				$has_sale = '' !== (string) $product->get_sale_price( 'edit' );
+
+				if ( $has_sale && f2000cs_has_scheduled_sale( $product_id ) ) {
+					if ( $product->get_regular_price() !== $regular ) {
+						update_post_meta( $product_id, '_regular_price', $regular );
+						$changed = true;
+					}
+				} elseif ( $product->get_regular_price() !== $regular || $has_sale ) {
+					f2000cs_end_sale( $product_id, $regular );
 					$changed = true;
 				}
 			}

@@ -27,6 +27,13 @@ class XML_Stock_Updater {
 	private $xml_url;
 
 	/**
+	 * Variable parents whose variations changed price in the current batch (id => true).
+	 *
+	 * @var array<int,bool>
+	 */
+	private $price_changed_parents = array();
+
+	/**
 	 * Telegram bot token ID.
 	 *
 	 * @var string
@@ -182,9 +189,15 @@ class XML_Stock_Updater {
 	 * @return int Memory limit in bytes.
 	 */
 	private function get_memory_limit_in_bytes() {
-		$memory_limit = ini_get( 'memory_limit' );
-		$unit         = strtolower( substr( $memory_limit, -1 ) );
-		$value        = (int) substr( $memory_limit, 0, -1 );
+		$memory_limit = trim( (string) ini_get( 'memory_limit' ) );
+
+		// -1 (WP-CLI, unlimited) has no ceiling at all; it used to read as 0 and get capped to 256M.
+		if ( '' === $memory_limit || (int) $memory_limit < 0 ) {
+			return PHP_INT_MAX;
+		}
+
+		$unit  = strtolower( substr( $memory_limit, -1 ) );
+		$value = ctype_digit( $unit ) ? (int) $memory_limit : (int) substr( $memory_limit, 0, -1 );
 
 		switch ( $unit ) {
 			case 'g':
@@ -388,9 +401,12 @@ class XML_Stock_Updater {
 	 */
 	private function increase_memory_limit() {
 		$current_limit = $this->get_memory_limit_in_bytes();
-		if ( $current_limit < 256 * 1024 * 1024 ) {
+		// A full pass over a ~10k-offer feed peaks around 340 MB, so 256M was not enough.
+		$target = (int) apply_filters( 'f2000cs_memory_limit_mb', 1024 );
+
+		if ( $target > 0 && $current_limit < $target * 1024 * 1024 ) {
 			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.memory_limit_Disallowed, WordPress.PHP.NoSilencedErrors.Discouraged -- Best-effort memory bump for large imports; failure is non-fatal.
-			@ini_set( 'memory_limit', '256M' );
+			@ini_set( 'memory_limit', $target . 'M' );
 		}
 	}
 
@@ -649,8 +665,21 @@ class XML_Stock_Updater {
 		$skipped_unchanged    = 0; // Count of products where nothing changed.
 		$republished          = 0; // Products the plugin drafted earlier that are back in the feed.
 
+		// A run cut short by the time limit continues where it stopped: the feed is
+		// rotated so the unprocessed tail goes first, then the head again.
+		$resume_key = 'f2000cs_resume_' . md5( (string) $this->xml_url );
+		$start      = (int) get_option( $resume_key, 0 );
+
+		if ( $start > 0 && $start < $total ) {
+			$updates = array_slice( $updates, $start, null, true ) + array_slice( $updates, 0, $start, true );
+			$this->send_telegram_message( "Продовження з позиції $start з $total" );
+		} else {
+			$start = 0;
+		}
+
 		$batches     = array_chunk( $updates, $this->batch_size, true );
 		$batch_count = count( $batches );
+		$finished    = true;
 
 		$this->send_telegram_message( "Обробка: $total товарів, пакетів: $batch_count" );
 
@@ -660,13 +689,18 @@ class XML_Stock_Updater {
 			// Add timing checks to avoid timeouts.
 			if ( connection_aborted() ) {
 				$this->report_problem( 'warn', "З'єднання перервано: оброблено $processed з $total." );
+				$finished = false;
 				break;
 			}
 
 			if ( $this->max_execution_time > 0 && ( microtime( true ) - $process_start_time ) > $this->max_execution_time ) {
 				$this->report_problem( 'warn', "Не вистачило часу виконання: оброблено $processed з $total, решта — у наступному прогоні." );
+				$finished = false;
 				break;
 			}
+
+			// Position in the original feed order of the first offer not yet done.
+			update_option( $resume_key, ( $start + $batch_index * $this->batch_size ) % $total, false );
 
 			$skus        = array_keys( $batch );
 			$product_ids = $this->get_product_ids_by_skus( $skus );
@@ -758,11 +792,17 @@ class XML_Stock_Updater {
 				++$processed;
 			}
 
+			$this->sync_price_changed_parents();
+
 			if ( $batch_index % 10 === 0 ) {
 				f2000cs_flush_transients_cache();
 				f2000cs_flush_runtime_cache();
 				gc_collect_cycles();
 			}
+		}
+
+		if ( $finished ) {
+			delete_option( $resume_key );
 		}
 
 		$this->send_telegram_message(
@@ -989,13 +1029,17 @@ class XML_Stock_Updater {
 
 			// A sale left from an earlier run ends too: suppliers end a promotion by
 			// dropping <oldprice> and restoring the price, often to the same regular price.
-			$has_sale = '' !== (string) $product->get_sale_price( 'edit' );
+			// Only a sale the owner scheduled with an end date ahead is kept.
+			$has_sale  = '' !== (string) $product->get_sale_price( 'edit' );
+			$scheduled = $has_sale && f2000cs_has_scheduled_sale( $product_id );
 
-			if ( $current_regular_price !== $price || $has_sale ) {
-				update_post_meta( $product_id, '_regular_price', $price );
-				update_post_meta( $product_id, '_price', $price );
-
-				delete_post_meta( $product_id, '_sale_price' );
+			if ( $scheduled ) {
+				if ( $current_regular_price !== $price ) {
+					update_post_meta( $product_id, '_regular_price', $price );
+					$changed = true;
+				}
+			} elseif ( $current_regular_price !== $price || $has_sale ) {
+				f2000cs_end_sale( $product_id, $price );
 				$changed = true;
 			}
 		}
@@ -1006,9 +1050,33 @@ class XML_Stock_Updater {
 		if ( $changed ) {
 			wc_delete_product_transients( $product_id );
 			f2000cs_sync_price_lookup( $product_id );
+
+			// The parent's price range, «sale» badge and lookup row follow its variations.
+			if ( $product->is_type( 'variation' ) && $product->get_parent_id() ) {
+				$this->price_changed_parents[ $product->get_parent_id() ] = true;
+			}
 		}
 
 		return $changed;
+	}
+
+	/**
+	 * Recalculate prices of the variable parents whose variations changed price.
+	 *
+	 * @return void
+	 */
+	private function sync_price_changed_parents() {
+		if ( ! class_exists( 'WC_Product_Variable' ) ) {
+			$this->price_changed_parents = array();
+			return;
+		}
+
+		foreach ( array_keys( $this->price_changed_parents ) as $parent_id ) {
+			WC_Product_Variable::sync( $parent_id );
+			wc_delete_product_transients( $parent_id );
+		}
+
+		$this->price_changed_parents = array();
 	}
 
 	/**

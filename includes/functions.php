@@ -1067,24 +1067,47 @@ function f2000cs_sync_single_lookup_stock( $product_id, $stock_status ) {
 	$product_id   = absint( $product_id );
 	$stock_status = wc_clean( $stock_status );
 
+	// One statement for both cases: update() returns 0 for a row whose status is already
+	// right, so a follow-up insert used to hit «Duplicate entry» thousands of times a run.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Real-time HPOS sync; cache would be stale.
-	$updated = $wpdb->update(
-		$wpdb->wc_product_meta_lookup,
-		array( 'stock_status' => $stock_status ),
-		array( 'product_id' => $product_id )
+	$wpdb->query(
+		$wpdb->prepare(
+			"INSERT INTO {$wpdb->wc_product_meta_lookup} (product_id, stock_status) VALUES (%d, %s) ON DUPLICATE KEY UPDATE stock_status = VALUES(stock_status)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$product_id,
+			$stock_status
+		)
 	);
+}
 
-	// If the row doesn't exist yet (freshly imported product), insert it.
-	if ( 0 === (int) $updated ) {
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->insert(
-			$wpdb->wc_product_meta_lookup,
-			array(
-				'product_id'   => $product_id,
-				'stock_status' => $stock_status,
-			)
-		);
-	}
+/**
+ * Whether the product has a sale the shop owner scheduled with an end date still ahead.
+ *
+ * Such a sale is the owner's promotion, not a leftover of a supplier's <oldprice>,
+ * so a feed without <oldprice> does not end it.
+ *
+ * @param int $product_id Product or variation ID.
+ * @return bool
+ */
+function f2000cs_has_scheduled_sale( $product_id ) {
+	$to = (int) get_post_meta( $product_id, '_sale_price_dates_to', true );
+
+	return $to > time() && '' !== (string) get_post_meta( $product_id, '_sale_price', true );
+}
+
+/**
+ * End a sale: drop the sale price and its dates, the current price becomes the regular one.
+ *
+ * @param int    $product_id Product or variation ID.
+ * @param string $regular    Regular price (formatted).
+ * @return void
+ */
+function f2000cs_end_sale( $product_id, $regular ) {
+	update_post_meta( $product_id, '_regular_price', $regular );
+	update_post_meta( $product_id, '_price', $regular );
+
+	delete_post_meta( $product_id, '_sale_price' );
+	delete_post_meta( $product_id, '_sale_price_dates_from' );
+	delete_post_meta( $product_id, '_sale_price_dates_to' );
 }
 
 /**
@@ -1123,6 +1146,7 @@ function f2000cs_sync_price_lookup( $product_id ) {
 	$data = array(
 		'min_price' => $min_price,
 		'max_price' => $max_price,
+		'onsale'    => null !== $sale_price && $sale_price > 0 && ( null === $regular_price || $sale_price < $regular_price ) ? 1 : 0,
 	);
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
