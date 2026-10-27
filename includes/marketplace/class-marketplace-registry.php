@@ -82,6 +82,9 @@ class Marketplace_Registry {
 		$prom                       = new Prom_Feed();
 		self::$feeds[ $prom->id() ] = $prom;
 
+		$google                       = new Google_Merchant_Feed();
+		self::$feeds[ $google->id() ] = $google;
+
 		/**
 		 * Add marketplace feeds.
 		 *

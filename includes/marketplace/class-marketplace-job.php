@@ -641,7 +641,7 @@ class Marketplace_Job {
 	 * @throws \RuntimeException When a file cannot be written.
 	 */
 	private static function assemble( Marketplace_Feed $feed, array $settings, Marketplace_Category_Tree $tree, string $tmp ): array {
-		$head     = $feed->head( $settings ) . "    <categories>\n" . $tree->to_xml( '      ' ) . "    </categories>\n    <offers>\n";
+		$head     = $feed->document_head( $settings, $tree );
 		$tail     = $feed->tail();
 		$overhead = strlen( $head ) + strlen( $tail );
 		$total    = $overhead + (int) filesize( $tmp );
@@ -695,12 +695,12 @@ class Marketplace_Job {
 		};
 
 		// An offer block starts at its opening tag line and runs to the next one.
-		$flush = static function () use ( &$block, &$out, &$written, &$group, &$paths, $count, $target, $open, $close ) {
+		$flush = static function () use ( &$block, &$out, &$written, &$group, &$paths, $count, $target, $open, $close, $feed ) {
 			if ( '' === $block ) {
 				return;
 			}
 
-			$this_group = preg_match( '/^\s*<offer[^>]*\sgroup_id="([^"]*)"/', $block, $m ) ? $m[1] : '';
+			$this_group = $feed->offer_group_id( $block );
 
 			if ( ! $out ) {
 				$open();
@@ -716,10 +716,11 @@ class Marketplace_Job {
 			$block    = '';
 		};
 
-		$line = fgets( $in );
+		$offer_prefix = $feed->offer_line_prefix();
+		$line         = fgets( $in );
 
 		while ( false !== $line ) {
-			if ( 0 === strpos( $line, '      <offer' ) ) {
+			if ( 0 === strpos( $line, $offer_prefix ) ) {
 				$flush();
 			}
 

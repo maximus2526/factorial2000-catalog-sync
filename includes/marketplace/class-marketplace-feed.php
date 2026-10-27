@@ -81,6 +81,39 @@ abstract class Marketplace_Feed {
 	abstract public function process_unit( array $unit, Marketplace_Category_Tree $tree, array $settings ): array;
 
 	/**
+	 * Everything written before the first offer.
+	 *
+	 * The default is the YML layout of Prom: head, the category list and the opening of <offers>.
+	 * A feed with another layout overrides it.
+	 *
+	 * @param array<string,mixed>       $settings Feed settings.
+	 * @param Marketplace_Category_Tree $tree     Category tree collected during the build.
+	 * @return string
+	 */
+	public function document_head( array $settings, Marketplace_Category_Tree $tree ): string {
+		return $this->head( $settings ) . "    <categories>\n" . $tree->to_xml( '      ' ) . "    </categories>\n    <offers>\n";
+	}
+
+	/**
+	 * Start of the line that opens an offer (the job cuts a big feed into files there).
+	 *
+	 * @return string
+	 */
+	public function offer_line_prefix(): string {
+		return '      <offer';
+	}
+
+	/**
+	 * Group an offer block belongs to; the blocks of one group are never split between files.
+	 *
+	 * @param string $block One offer, from its opening tag.
+	 * @return string Group id or ''.
+	 */
+	public function offer_group_id( string $block ): string {
+		return preg_match( '/^\s*<offer[^>]*\sgroup_id="([^"]*)"/', $block, $m ) ? $m[1] : '';
+	}
+
+	/**
 	 * Human labels of the skip reasons a feed reports in process_unit()['reasons'].
 	 *
 	 * @return array<string,string>
@@ -171,6 +204,42 @@ abstract class Marketplace_Feed {
 	 */
 	public function with_defaults( array $saved ): array {
 		return array_merge( $this->defaults(), array_intersect_key( $saved, $this->defaults() ) );
+	}
+
+	/**
+	 * A unit without sale prices when the feed sends the regular price only.
+	 *
+	 * The sale price is dropped from every row, so the feed sees no discount:
+	 * no old price, no sale price, the price is the regular one.
+	 *
+	 * @param array<string,mixed> $unit     Unit (simple, lone or group).
+	 * @param array<string,mixed> $settings Feed settings.
+	 * @return array<string,mixed>
+	 */
+	protected static function without_sale_prices( array $unit, array $settings ): array {
+		if ( '1' !== (string) ( $settings['regular_price_only'] ?? '0' ) ) {
+			return $unit;
+		}
+
+		$strip = static function ( $row ) {
+			if ( is_array( $row ) ) {
+				$row['Sale price'] = '';
+			}
+
+			return $row;
+		};
+
+		foreach ( array( 'row', 'parent' ) as $key ) {
+			if ( isset( $unit[ $key ] ) ) {
+				$unit[ $key ] = $strip( $unit[ $key ] );
+			}
+		}
+
+		if ( isset( $unit['children'] ) && is_array( $unit['children'] ) ) {
+			$unit['children'] = array_map( $strip, $unit['children'] );
+		}
+
+		return $unit;
 	}
 
 	/**

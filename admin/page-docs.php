@@ -132,7 +132,7 @@ function f2000cs_docs_page() {
 							<li><strong><?php esc_html_e( 'Оновлення XML', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'постачальники, розклад, Telegram, ручний запуск оновлення, стан автооновлення.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Імпорт XML', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'імпорт товарів, оновлення окремих полів (Pro), налаштування обробки зображень (Pro).', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Налаштування вигрузки', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'фільтр і редактор XML (лише Pro).', 'factorial2000-catalog-sync' ); ?></li>
-							<li><strong><?php esc_html_e( 'Маркетплейси', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'вигрузка товарів сайту на Prom.ua за постійним посиланням (лише Pro).', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Маркетплейси', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'вигрузка товарів сайту на Prom.ua і в Google Merchant Center за постійним посиланням (лише Pro).', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Документація', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'ця сторінка.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<div class="f2000cs-docs-note">
@@ -544,6 +544,23 @@ function f2000cs_docs_page() {
 							<li><?php esc_html_e( 'Щоб Prom завжди бачив свіжі ціни й наявність, увімкніть «Після оновлення наявності» та/або виберіть розклад.', 'factorial2000-catalog-sync' ); ?></li>
 						</ol>
 						<div class="f2000cs-docs-note"><strong><?php esc_html_e( 'Безпека:', 'factorial2000-catalog-sync' ); ?></strong> <?php esc_html_e( 'посилання містить секретний код. Кожен, хто його знає, може прочитати дані ваших товарів — так само, як Prom. Не публікуйте його відкрито.', 'factorial2000-catalog-sync' ); ?></div>
+				</div>
+
+				<div class="f2000cs-docs-card" id="marketplaces-google">
+					<h3><?php esc_html_e( 'Фід для Google Merchant Center', 'factorial2000-catalog-sync' ); ?></h3>
+					<p><?php esc_html_e( 'Друга вкладка на сторінці «Маркетплейси» збирає з товарів сайту фід для Google Merchant Center (безкоштовні лістинги й Shopping-реклама): RSS 2.0 з простором імен g:. Кожен товар і кожен різновид — окремий item; різновиди одного товару зв’язані через g:item_group_id і мають свої g:color та g:size.', 'factorial2000-catalog-sync' ); ?></p>
+					<ol>
+						<li><?php esc_html_e( 'Відкрийте вкладку «Google Merchant», перегляньте налаштування й натисніть «Згенерувати»; скопіюйте посилання на файл.', 'factorial2000-catalog-sync' ); ?></li>
+						<li><?php esc_html_e( 'У Merchant Center: Products → Data sources → Add product source → Scheduled fetch. Вкажіть посилання й розклад завантаження.', 'factorial2000-catalog-sync' ); ?></li>
+					</ol>
+					<ul>
+						<li><strong><?php esc_html_e( 'Префікс ID товару', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'g:id = префікс + ID товару на сайті. Якщо раніше фід робив інший плагін (CTX Feed, Google for WooCommerce), залиште той самий префікс «gla_», інакше Google вважатиме товари новими.', 'factorial2000-catalog-sync' ); ?></li>
+						<li><strong><?php esc_html_e( 'Ціна й знижка', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'g:price — звичайна ціна, g:sale_price з’являється лише коли товар справді зі знижкою.', 'factorial2000-catalog-sync' ); ?></li>
+						<li><strong><?php esc_html_e( 'Наявність', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'in_stock, out_of_stock або backorder (дозволене замовлення без залишку). Прапорець «Не додавати товари без наявності» виключає їх із фіда.', 'factorial2000-catalog-sync' ); ?></li>
+						<li><strong><?php esc_html_e( 'Одяг і взуття', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'для одягу Google вимагає колір, розмір, стать і вікову групу. Колір і розмір беруться з атрибутів різновиду, стать — з атрибута «Стать» або з налаштування, вікова група — з налаштування.', 'factorial2000-catalog-sync' ); ?></li>
+						<li><strong><?php esc_html_e( 'Категорії Google', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'google_product_category задається за замовчуванням і/або правилами «частина шляху=номер» за категорією магазину. Довідник номерів — на сторінці таксономії Google.', 'factorial2000-catalog-sync' ); ?></li>
+						<li><strong><?php esc_html_e( 'Ідентифікатори', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'GTIN передається лише коли це коректний штрихкод (довжина й контрольна цифра); MPN — з поля «Код постачальника». Якщо немає ні GTIN, ні MPN, ставиться identifier_exists=no. Бренд-заглушки на кшталт «N/A» не передаються.', 'factorial2000-catalog-sync' ); ?></li>
+					</ul>
 				</div>
 
 				<div class="f2000cs-docs-card" id="marketplaces-settings">

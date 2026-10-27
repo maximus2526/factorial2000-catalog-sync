@@ -30,6 +30,12 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 	const PROM_CATEGORY_COLUMN = 'Meta: prom_category_id';
 
 	/**
+	 * Values of the mpn_meta_key setting that are not a meta key: use the SKU.
+	 */
+	const MPN_SKU               = '__sku';
+	const MPN_SUPPLIER_THEN_SKU = '__supplier_then_sku';
+
+	/**
 	 * Feed settings (include_unpublished, mpn_meta_key).
 	 *
 	 * @var array<string,mixed>
@@ -232,6 +238,7 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 			'Parent'                  => $is_variation ? $this->parent_ref( $parent_product ) : '',
 			'Brands'                  => $is_variation ? '' : $this->brands( $product ),
 			'Meta: mpn'               => $this->mpn( $product, $is_variation ? $parent_product : null ),
+			'Permalink'               => (string) $product->get_permalink(),
 			'Tags'                    => $is_variation ? '' : $this->tags( $product ),
 			// Translator's per-language Prom keywords, still language-tagged; kept on the product only.
 			'Meta: prom_keywords'     => $is_variation ? '' : (string) $product->get_meta( '_f2000tr_prom_keywords', true ),
@@ -485,14 +492,25 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 			return '';
 		}
 
-		$keys = array( $chosen );
+		// The SKU instead of (or after) the supplier code, for feeds that need some identifier.
+		$sku_only = self::MPN_SKU === $chosen;
+		$keys     = $sku_only ? array() : array( self::MPN_SUPPLIER_THEN_SKU === $chosen ? 'f2000cs-updater-vendor' : $chosen );
+		$sources  = array_filter( array( $product, $parent_product ) );
 
-		foreach ( array_filter( array( $product, $parent_product ) ) as $source ) {
+		foreach ( $sources as $source ) {
 			foreach ( $keys as $key ) {
 				$value = $source->get_meta( $key, true );
 
 				if ( is_scalar( $value ) && '' !== (string) $value ) {
 					return (string) $value;
+				}
+			}
+		}
+
+		if ( $sku_only || self::MPN_SUPPLIER_THEN_SKU === $chosen ) {
+			foreach ( $sources as $source ) {
+				if ( '' !== (string) $source->get_sku() ) {
+					return (string) $source->get_sku();
 				}
 			}
 		}

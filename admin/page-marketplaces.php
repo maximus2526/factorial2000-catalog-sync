@@ -470,9 +470,13 @@ function f2000cs_marketplaces_page() {
 								?>
 							</p>
 							<p class="description">
-								<?php esc_html_e( 'У налаштуваннях імпорту Prom виберіть, що робити з товарами, яких немає у файлі («Немає в наявності», «Приховані» або «Залишити без змін»): неопубліковані товари сайту у файл не потрапляють.', 'factorial2000-catalog-sync' ); ?>
-								<?php if ( $many ) : ?>
-									<?php esc_html_e( 'Prom застосовує це до кожного джерела окремо.', 'factorial2000-catalog-sync' ); ?>
+								<?php if ( $feed instanceof Prom_Feed ) : ?>
+									<?php esc_html_e( 'У налаштуваннях імпорту Prom виберіть, що робити з товарами, яких немає у файлі («Немає в наявності», «Приховані» або «Залишити без змін»): неопубліковані товари сайту у файл не потрапляють.', 'factorial2000-catalog-sync' ); ?>
+									<?php if ( $many ) : ?>
+										<?php esc_html_e( 'Prom застосовує це до кожного джерела окремо.', 'factorial2000-catalog-sync' ); ?>
+									<?php endif; ?>
+								<?php else : ?>
+									<?php esc_html_e( 'У Merchant Center: Products → Data sources → Add product source → Scheduled fetch. Вкажіть це посилання й розклад завантаження; назва файлу в Merchant Center має закінчуватися на .xml.', 'factorial2000-catalog-sync' ); ?>
 								<?php endif; ?>
 							</p>
 						<?php else : ?>
@@ -486,16 +490,28 @@ function f2000cs_marketplaces_page() {
 						<?php if ( ! empty( $result['status'] ) ) : ?>
 							<?php if ( 'done' === $result['status'] ) : ?>
 								<?php
-								echo esc_html(
-									sprintf(
-										/* translators: 1: offers, 2: categories, 3: skipped, 4: seconds */
-										__( 'Товарів у вигрузці: %1$d · категорій: %2$d · пропущено: %3$d · %4$d с', 'factorial2000-catalog-sync' ),
-										(int) ( $result['exported'] ?? 0 ),
-										(int) ( $result['categories'] ?? 0 ),
-										(int) ( $result['skipped'] ?? 0 ),
-										(int) ( $result['duration'] ?? 0 )
-									)
-								);
+								if ( $feed instanceof Prom_Feed ) {
+									echo esc_html(
+										sprintf(
+											/* translators: 1: offers, 2: categories, 3: skipped, 4: seconds */
+											__( 'Товарів у вигрузці: %1$d · категорій: %2$d · пропущено: %3$d · %4$d с', 'factorial2000-catalog-sync' ),
+											(int) ( $result['exported'] ?? 0 ),
+											(int) ( $result['categories'] ?? 0 ),
+											(int) ( $result['skipped'] ?? 0 ),
+											(int) ( $result['duration'] ?? 0 )
+										)
+									);
+								} else {
+									echo esc_html(
+										sprintf(
+											/* translators: 1: items, 2: skipped, 3: seconds */
+											__( 'Товарів у вигрузці: %1$d · пропущено: %2$d · %3$d с', 'factorial2000-catalog-sync' ),
+											(int) ( $result['exported'] ?? 0 ),
+											(int) ( $result['skipped'] ?? 0 ),
+											(int) ( $result['duration'] ?? 0 )
+										)
+									);
+								}
 								?>
 								<?php if ( ! empty( $result['excluded'] ) ) : ?>
 									<p class="description">
@@ -549,7 +565,13 @@ function f2000cs_marketplaces_page() {
 								<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $settings['schedule'], $value ); ?>><?php echo esc_html( $label ); ?></option>
 							<?php endforeach; ?>
 						</select>
-						<p class="description"><?php esc_html_e( 'Файл перегенеровується у фоні через WP-Cron; поки триває генерація, маркетплейс бачить попередній файл. Prom забирає ціни й наявність за посиланням раз на 4 години (з 6:00 до 22:00), решту полів і нові товари — раз на добу вночі, тому оновлювати файл частіше немає сенсу.', 'factorial2000-catalog-sync' ); ?></p>
+						<p class="description">
+							<?php if ( $feed instanceof Prom_Feed ) : ?>
+								<?php esc_html_e( 'Файл перегенеровується у фоні через WP-Cron; поки триває генерація, маркетплейс бачить попередній файл. Prom забирає ціни й наявність за посиланням раз на 4 години (з 6:00 до 22:00), решту полів і нові товари — раз на добу вночі, тому оновлювати файл частіше немає сенсу.', 'factorial2000-catalog-sync' ); ?>
+							<?php else : ?>
+								<?php esc_html_e( 'Файл перегенеровується у фоні через WP-Cron; поки триває генерація, маркетплейс бачить попередній файл. Google Merchant завантажує файл за розкладом, який ви задали в джерелі даних (від раз на добу), тому оновлювати файл частіше немає сенсу.', 'factorial2000-catalog-sync' ); ?>
+							<?php endif; ?>
+						</p>
 					</td>
 				</tr>
 				<tr>
@@ -560,7 +582,7 @@ function f2000cs_marketplaces_page() {
 							<input type="checkbox" id="f2000cs-mp-after-sync" name="mp[after_sync]" value="1" <?php checked( ! empty( $settings['after_sync'] ) ); ?>>
 							<?php esc_html_e( 'Оновлювати вигрузку після кожного оновлення наявності й цін', 'factorial2000-catalog-sync' ); ?>
 						</label>
-						<p class="description"><?php esc_html_e( 'Після завершення синхронізації з постачальниками (за розкладом або кнопкою) вигрузка у фоні збирається заново з товарів сайту за правилами нижче, і за тим самим посиланням Prom отримує актуальні ціни та наявність (при найближчому оновленні за посиланням).', 'factorial2000-catalog-sync' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Після завершення синхронізації з постачальниками (за розкладом або кнопкою) вигрузка у фоні збирається заново з товарів сайту за правилами нижче, і за тим самим посиланням маркетплейс отримує актуальні ціни та наявність (при найближчому оновленні за посиланням).', 'factorial2000-catalog-sync' ); ?></p>
 					</td>
 				</tr>
 			</table>

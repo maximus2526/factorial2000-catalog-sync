@@ -158,6 +158,14 @@ class Prom_Feed extends Marketplace_Feed {
 				'description' => __( 'За замовчуванням у вигрузку потрапляють лише опубліковані товари.', 'factorial2000-catalog-sync' ),
 				'default'     => '0',
 			),
+			'regular_price_only'           => array(
+				'group'       => 'products',
+				'type'        => 'checkbox',
+				'label'       => __( 'Знижки', 'factorial2000-catalog-sync' ),
+				'checkbox'    => __( 'Не передавати знижки — лише основну ціну', 'factorial2000-catalog-sync' ),
+				'description' => __( 'У <price> іде звичайна ціна товару, <oldprice> не додається, навіть якщо на сайті діє акційна ціна.', 'factorial2000-catalog-sync' ),
+				'default'     => '0',
+			),
 			'description_fallback_snippet' => array(
 				'group'       => 'products',
 				'type'        => 'preset',
@@ -814,6 +822,12 @@ class Prom_Feed extends Marketplace_Feed {
 		$xml  = $ind . '<offer' . $attr . ">\n";
 		$xml .= $ind2 . '<name>' . Marketplace_Text::xml_text( $name ) . "</name>\n";
 		$xml .= $ind2 . '<name_ua>' . Marketplace_Text::xml_text( $name_ua ) . "</name_ua>\n";
+
+		$url = self::pick_url( $row, $parent_row );
+
+		if ( '' !== $url ) {
+			$xml .= $ind2 . '<url>' . Marketplace_Text::xml_text( $url ) . "</url>\n";
+		}
 		$xml .= $ind2 . '<price>' . Marketplace_Text::money( (float) $price ) . "</price>\n";
 		$xml .= $ind2 . '<currencyId>' . Marketplace_Text::xml_text( Marketplace_Form::resolve( $settings['currency'] ?? 'UAH' ) ) . "</currencyId>\n";
 		$xml .= $ind2 . '<categoryId>' . (int) $category_id . "</categoryId>\n";
@@ -901,6 +915,25 @@ class Prom_Feed extends Marketplace_Feed {
 		$xml .= $ind . "</offer>\n";
 
 		return array( $xml, 0 );
+	}
+
+	/**
+	 * Page of the product on the shop (a variation's own address, else its parent's).
+	 *
+	 * @param array<string,string>      $row        Row.
+	 * @param array<string,string>|null $parent_row Parent row.
+	 * @return string http(s) URL or ''
+	 */
+	public static function pick_url( array $row, $parent_row ): string {
+		foreach ( array( $row, $parent_row ? $parent_row : array() ) as $source ) {
+			$url = Marketplace_Text::clean( $source['Permalink'] ?? '' );
+
+			if ( preg_match( '#^https?://#i', $url ) ) {
+				return $url;
+			}
+		}
+
+		return '';
 	}
 
 	/**
@@ -1009,6 +1042,7 @@ class Prom_Feed extends Marketplace_Feed {
 	 */
 	public function process_unit( array $unit, Marketplace_Category_Tree $tree, array $settings ): array {
 		$settings      = $this->with_defaults( $settings );
+		$unit          = self::without_sale_prices( $unit, $settings );
 		$this->reasons = array();
 
 		switch ( $unit['kind'] ?? '' ) {

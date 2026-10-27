@@ -137,6 +137,9 @@ final class F2000CS_Fake_Product {
 	public function get_status() {
 		return $this->f['status'];
 	}
+	public function get_permalink() {
+		return $this->f['permalink'] ?? '';
+	}
 	public function get_sku() {
 		return $this->f['sku'];
 	}

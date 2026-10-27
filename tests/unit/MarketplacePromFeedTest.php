@@ -732,7 +732,7 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 			}
 		);
 
-		$this->assertSame( array( 'prom', 'rozetka' ), array_keys( Marketplace_Registry::all() ) );
+		$this->assertSame( array( 'prom', 'google', 'rozetka' ), array_keys( Marketplace_Registry::all() ) );
 	}
 
 	/**
