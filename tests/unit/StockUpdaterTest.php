@@ -626,6 +626,25 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * Queued parents are resynced through the global WooCommerce class (the updater lives in a namespace).
+	 *
+	 * @return void
+	 */
+	public function test_queued_parents_are_synced() {
+		if ( ! class_exists( '\WC_Product_Variable' ) ) {
+			eval( 'class WC_Product_Variable { public static $synced = array(); public static function sync( $id ) { self::$synced[] = $id; } }' );
+		}
+		\WC_Product_Variable::$synced = array();
+
+		$updater = new XML_Stock_Updater( 'http://shop.test/feed.xml', 'SUP_' );
+		F2000CS_Test_Reflection::set( $updater, 'price_changed_parents', array( 90 => true, 91 => true ) );
+		F2000CS_Test_Reflection::invoke( $updater, 'sync_price_changed_parents' );
+
+		$this->assertSame( array( 90, 91 ), \WC_Product_Variable::$synced );
+		$this->assertSame( array(), F2000CS_Test_Reflection::get( $updater, 'price_changed_parents' ) );
+	}
+
+	/**
 	 * The lookup row's «on sale» flag follows the sale price.
 	 *
 	 * @return void

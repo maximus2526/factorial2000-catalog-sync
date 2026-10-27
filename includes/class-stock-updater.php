@@ -1072,7 +1072,7 @@ class XML_Stock_Updater {
 		}
 
 		foreach ( array_keys( $this->price_changed_parents ) as $parent_id ) {
-			WC_Product_Variable::sync( $parent_id );
+			\WC_Product_Variable::sync( $parent_id );
 			wc_delete_product_transients( $parent_id );
 		}
 

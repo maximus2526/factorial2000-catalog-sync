@@ -5,7 +5,7 @@ Tags: woocommerce, prom-ua, xml-import, stock-sync, marketplace
 Requires at least: 5.8
 Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 0.7.3
+Stable tag: 0.7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -187,6 +187,9 @@ This service is provided by Freemius. Terms of Service: https://freemius.com/ter
 
 == Upgrade Notice ==
 
+= 0.7.4 =
+Fixes a fatal error in 0.7.3 that stopped the stock sync when a variation's price changed. Update right away.
+
 = 0.7.3 =
 Sales the supplier ended are now removed on the next stock sync, big feeds no longer stop at the 256 MB memory cap, and an interrupted run continues where it stopped.
 
@@ -200,6 +203,10 @@ Large Prom feeds (over 180 MB) are now split into several links automatically, a
 Pro features moved to a separate Pro build. If you use a Pro license, stock quantity updates or the marketplace feed, install the Pro version from your Freemius account before updating. Price adjustment now works in the Free version too.
 
 == Changelog ==
+
+= 0.7.4 =
+Fixed:
+* 0.7.3 stopped the stock sync with «Class F2000CS\WC_Product_Variable not found» as soon as a variation's price changed; the parent price resync now calls the WooCommerce class.
 
 = 0.7.3 =
 New:
