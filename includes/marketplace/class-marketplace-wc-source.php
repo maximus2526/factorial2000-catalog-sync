@@ -219,12 +219,15 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 
 		$on_sale = (bool) $product->is_on_sale();
 
+		$attributes = $is_variation ? $this->variation_attributes( $product, $parent_product ) : $this->product_attributes( $product );
+		$name       = $is_variation ? $this->variation_name( $product, $parent_product, $attributes ) : self::raw_product_name( $product );
+
 		$row = array(
 			'ID'                      => (string) $product->get_id(),
 			'Type'                    => (string) $product->get_type(),
 			'SKU'                     => (string) $product->get_sku(),
 			'GTIN, UPC, EAN, or ISBN' => $this->gtin( $product ),
-			'Name'                    => self::raw_product_name( $product ),
+			'Name'                    => $name,
 			'Published'               => $published ? '1' : '0',
 			'Short description'       => (string) $product->get_short_description( 'edit' ),
 			'Description'             => (string) $product->get_description( 'edit' ),
@@ -247,8 +250,7 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 		// Set on the product, not on variations: the feed falls back to the parent row.
 		$row[ self::PROM_CATEGORY_COLUMN ] = $is_variation ? '' : (string) $product->get_meta( self::PROM_CATEGORY_META, true );
 
-		$attributes = $is_variation ? $this->variation_attributes( $product, $parent_product ) : $this->product_attributes( $product );
-		$i          = 0;
+		$i = 0;
 
 		foreach ( $attributes as $attr ) {
 			if ( ++$i > 13 ) {
@@ -313,6 +315,61 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 				add_filter( $entry[0], $entry[1], $entry[2], $entry[3] );
 			}
 		}
+	}
+
+	/**
+	 * Variation title without its size attribute values.
+	 *
+	 * WooCommerce builds the variation title as "Parent - Size" (or
+	 * "Parent - Colour, Size"). Prom already receives those values as
+	 * <param> elements, so the size suffix is not repeated in <name> and
+	 * <name_ua>. Other attributes stay in the title.
+	 *
+	 * @param \WC_Product $variation Variation.
+	 * @param \WC_Product $parent_product Parent product.
+	 * @param array<int, array{name:string,value:string,visible:string}> $attributes Variation attributes.
+	 * @return string
+	 */
+	private function variation_name( $variation, $parent_product, array $attributes ): string {
+		$name = self::raw_product_name( $variation );
+
+		$size_values = array();
+		foreach ( $attributes as $attr ) {
+			$display = (string) ( $attr['name'] ?? '' );
+			if ( Prom_Variations::is_size_related_axis( Prom_Variations::normalized_attr_key( $display ), $display ) ) {
+				$value = trim( (string) ( $attr['value'] ?? '' ) );
+				if ( '' !== $value ) {
+					$size_values[] = $value;
+				}
+			}
+		}
+
+		if ( array() === $size_values ) {
+			return $name;
+		}
+
+		$parent_name = self::raw_product_name( $parent_product );
+		$prefix      = $parent_name . ' - ';
+
+		// A custom variation title that does not follow WooCommerce's pattern
+		// is left alone; there is no safe place to remove the size from.
+		if ( 0 !== strpos( $name, $prefix ) ) {
+			return $name;
+		}
+
+		$suffix = substr( $name, strlen( $prefix ) );
+		$parts  = preg_split( '/\s*,\s*/u', $suffix );
+		$parts  = is_array( $parts ) ? $parts : array( $suffix );
+
+		$kept = array();
+		foreach ( $parts as $part ) {
+			$part = trim( (string) $part );
+			if ( '' !== $part && ! in_array( $part, $size_values, true ) ) {
+				$kept[] = $part;
+			}
+		}
+
+		return array() === $kept ? $parent_name : $prefix . implode( ', ', $kept );
 	}
 
 	/**

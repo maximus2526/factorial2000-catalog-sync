@@ -314,6 +314,7 @@ final class F2000CS_Unit_MarketplaceWcSourceTest extends F2000CS_Unit_TestCase {
 				'type'       => 'variable',
 				'status'     => 'draft',
 				'sku'        => '',
+				'name'       => 'Шорти',
 				'attributes' => array( new F2000CS_Fake_Attribute( 'Розмір', array( 'S', 'M' ) ) ),
 				'meta'       => array( 'f2000cs-updater-vendor' => 'PARENT-CODE' ),
 			)
@@ -322,6 +323,7 @@ final class F2000CS_Unit_MarketplaceWcSourceTest extends F2000CS_Unit_TestCase {
 			array(
 				'id'         => 21,
 				'type'       => 'variation',
+				'name'       => 'Шорти - M',
 				'attributes' => array( sanitize_title( 'Розмір' ) => 'M' ),
 			)
 		);
@@ -333,10 +335,44 @@ final class F2000CS_Unit_MarketplaceWcSourceTest extends F2000CS_Unit_TestCase {
 		$this->assertSame( '0', $parent_row['Published'] );
 		$this->assertSame( '0', $row['Published'], 'Variation of a draft product is not published' );
 		$this->assertSame( 'id:20', $row['Parent'], 'Parent without SKU is referenced as id:N' );
+		$this->assertSame( 'Шорти', $row['Name'], 'Variation uses the product name, without the size suffix' );
 		$this->assertSame( 'S, M', $parent_row['Attribute 1 value(s)'] );
 		$this->assertSame( 'M', $row['Attribute 1 value(s)'] );
 		$this->assertSame( 'PARENT-CODE', $row['Meta: mpn'], 'Variation falls back to the parent supplier code' );
 		$this->assertSame( '', $row['Categories'], 'Variations carry no categories of their own' );
+	}
+
+	/**
+	 * Only the size is removed from a variation title; other attributes stay.
+	 *
+	 * @return void
+	 */
+	public function test_variation_name_drops_size_but_keeps_other_attributes() {
+		$parent    = new F2000CS_Fake_Product(
+			array(
+				'id'   => 30,
+				'type' => 'variable',
+				'name' => 'Шорти',
+			)
+		);
+		$variation = new F2000CS_Fake_Product(
+			array(
+				'id'         => 31,
+				'type'       => 'variation',
+				'name'       => 'Шорти - Чорний, M',
+				'attributes' => array(
+					'color' => 'Чорний',
+					'size'  => 'M',
+				),
+			)
+		);
+
+		$source     = new Marketplace_WC_Source( array() );
+		$parent_row = $source->row( $parent );
+		$row        = $source->row( $variation, $parent, $parent_row );
+
+		$this->assertSame( 'Шорти - Чорний', $row['Name'] );
+		$this->assertSame( 'M', $row['Attribute 2 value(s)'] );
 	}
 
 	/**
