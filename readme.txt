@@ -5,7 +5,7 @@ Tags: woocommerce, prom-ua, xml-import, stock-sync, marketplace
 Requires at least: 5.8
 Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 0.7.4
+Stable tag: 0.7.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -45,6 +45,7 @@ Pro is a separate build of the same plugin that you install from your Freemius a
 
 * **Marketplaces: Prom.ua feed.** Publishes your WooCommerce products to Prom.ua as a YML feed at a permanent link. Simple and variable products, brands, pictures and Prom categories are supported, and catalogs of 10,000+ offers are built in the background. Rebuild on a schedule, from the command line (`wp f2000cs marketplace build prom`), or **right after every stock sync**, so Prom always gets current prices and stock
 * **Prom categories picked by name.** The Prom category list is built in: search it in a Select2 field when you map your store categories, set a default category, or choose a category for one product
+* **Recommended Prom characteristics.** For the selected Prom categories, a modal lists Prom's recommended characteristics and maps them to site attributes. Exact names are matched automatically; the feed sends Prom's names while values stay in your product attributes
 * **A report on what was left out and why** (no price, no picture, no category, duplicate variations), with example SKUs; protection against publishing a feed that suddenly shrank
 * **Several suppliers** with their own XML links, SKU prefixes and settings
 * **Stock quantity updates** and more frequent syncs: every 5, 10, 15 or 30 minutes, hourly, or several times a day, without the manual-run limit
@@ -187,6 +188,12 @@ This service is provided by Freemius. Terms of Service: https://freemius.com/ter
 
 == Upgrade Notice ==
 
+= 0.7.6 =
+The Prom feed can add a fake discount: the current price stays, and `<oldprice>` is raised by the percentage you set. Works only with «Не передавати знижки — лише основну ціну». Pro users: update the Pro build from your Freemius account.
+
+= 0.7.5 =
+The Prom feed can mark in-stock products as «Готово до відправки» (`in_stock="true"`). Pro users: update the Pro build from your Freemius account.
+
 = 0.7.4 =
 Fixes a fatal error in 0.7.3 that stopped the stock sync when a variation's price changed. Update right away.
 
@@ -203,6 +210,15 @@ Large Prom feeds (over 180 MB) are now split into several links automatically, a
 Pro features moved to a separate Pro build. If you use a Pro license, stock quantity updates or the marketplace feed, install the Pro version from your Freemius account before updating. Price adjustment now works in the Free version too.
 
 == Changelog ==
+
+= 0.7.6 =
+New:
+* (Pro) Prom feed option «Фейкова знижка для Prom, %»: when «Не передавати знижки — лише основну ціну» is on, the current price becomes `<price>` and `<oldprice>` is raised by the given percentage, so Prom shows a discount. The option appears only with regular-price-only mode, is off at 0%, and is skipped for out-of-stock items.
+* (Pro) Fake discount spread: a comma-separated list such as `30, 40, 50` or `-30%, -40%, -50%` picks a stable percentage per product, so the discounts look varied without changing on every rebuild. A variable product's group uses one percentage for all its variations. A filled spread replaces the fixed percentage.
+
+= 0.7.5 =
+New:
+* (Pro) Prom feed option «Готово до відправки»: offers that are really in stock get `in_stock="true"`, which Prom shows as «Готово до відправки» and ranks higher in the catalog. Out-of-stock and backorder items are never marked ready. The option is off by default and lives on the Marketplaces page.
 
 = 0.7.4 =
 Fixed:

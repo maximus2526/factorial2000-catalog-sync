@@ -15,7 +15,9 @@ use F2000CS\Marketplace_Job;
 use F2000CS\Marketplace_Registry;
 use F2000CS\Marketplace_Storage;
 use F2000CS\Marketplace_Text;
+use F2000CS\Prom_Categories;
 use F2000CS\Prom_Feed;
+use F2000CS\Prom_Recommendations;
 
 /**
  * Human readable schedule names.
@@ -298,19 +300,330 @@ function f2000cs_marketplace_render_category_map( string $key, array $field, $va
 }
 
 /**
+ * Prom category ids currently selected in the form settings.
+ *
+ * @param array<string,mixed> $settings Feed settings.
+ * @return array<int,string>
+ */
+function f2000cs_marketplace_prom_portal_ids( array $settings ): array {
+	$ids = array();
+
+	$default = Prom_Categories::sanitize_id( $settings['default_portal_category_id'] ?? '' );
+
+	if ( '' !== $default ) {
+		$ids[] = $default;
+	}
+
+	foreach ( Marketplace_Feed::parse_pairs( (string) ( $settings['portal_category_rules'] ?? '' ) ) as $portal_id ) {
+		$portal_id = Prom_Categories::sanitize_id( $portal_id );
+
+		if ( '' !== $portal_id ) {
+			$ids[] = $portal_id;
+		}
+	}
+
+	return array_values( array_unique( $ids ) );
+}
+
+/**
+ * Summary above the recommended-attributes table.
+ *
+ * @param array<int,string>                  $ids Prom category ids.
+ * @param array<string,array<string,string>> $map Mapping.
+ * @return string
+ */
+function f2000cs_marketplace_prom_attribute_summary( array $ids, array $map ): string {
+	$categories = Prom_Recommendations::categories( $ids );
+
+	if ( array() === $categories ) {
+		return __( 'Категорії Prom ще не вибрані.', 'factorial2000-catalog-sync' );
+	}
+
+	$unique  = Prom_Recommendations::unique_attributes( $categories );
+	$with    = 0;
+	$auto    = 0;
+	$manual  = 0;
+	$missing = 0;
+
+	foreach ( $categories as $category ) {
+		if ( array() !== $category['attrs'] ) {
+			++$with;
+		}
+
+		foreach ( $category['attrs'] as $attr ) {
+			$selected = (string) ( $map[ $category['id'] ][ $attr['name'] ] ?? '' );
+			$match    = Prom_Recommendations::match( $attr['name'], $attr['name_ru'] );
+
+			if ( '' !== $selected ) {
+				if ( '' !== $match && $selected === $match ) {
+					++$auto;
+				} else {
+					++$manual;
+				}
+			} elseif ( '' !== $match ) {
+				++$auto;
+			} else {
+				++$missing;
+			}
+		}
+	}
+
+	return sprintf(
+		/* translators: 1: selected categories, 2: categories with recommendations, 3: unique characteristics, 4: automatic matches, 5: manual mappings, 6: missing site attributes */
+		__( '%1$d категорій · %2$d з рекомендаціями · %3$d характеристик · %4$d авто · %5$d вручну · %6$d без відповідника', 'factorial2000-catalog-sync' ),
+		count( $categories ),
+		$with,
+		count( $unique ),
+		$auto,
+		$manual,
+		$missing
+	);
+}
+
+/**
+ * Select of site attributes for one recommended characteristic.
+ *
+ * @param string $category_id Prom category id.
+ * @param string $prom_name   Prom characteristic name.
+ * @param string $selected    Stored site key.
+ * @param string $auto        Auto-matched site key.
+ * @return string
+ */
+function f2000cs_marketplace_prom_attribute_select( string $category_id, string $prom_name, string $selected, string $auto ): string {
+	$site    = Prom_Recommendations::site_attributes();
+	$in_list = isset( $site[ $selected ] );
+	$custom  = 0 === strpos( $selected, 'custom:' );
+	$html    = '<select class="f2000cs-mp-attr-select" data-category="' . esc_attr( $category_id ) . '" data-prom="' . esc_attr( $prom_name ) . '" data-auto="' . esc_attr( $auto ) . '">';
+	$html   .= '<option value="">' . esc_html__( '— не вибрано —', 'factorial2000-catalog-sync' ) . '</option>';
+	$html   .= '<optgroup label="' . esc_attr__( 'Глобальні атрибути', 'factorial2000-catalog-sync' ) . '">';
+
+	foreach ( $site as $key => $attr ) {
+		if ( 'global' !== ( $attr['source'] ?? '' ) ) {
+			continue;
+		}
+
+		$html .= '<option value="' . esc_attr( $key ) . '" ' . selected( $selected, $key, false ) . '>' . esc_html( (string) $attr['label'] ) . '</option>';
+	}
+
+	$html .= '</optgroup>';
+
+	if ( '' !== $selected && ! $in_list ) {
+		$label = $custom ? substr( $selected, 7 ) : $selected;
+
+		$html .= '<optgroup label="' . esc_attr__( 'Кастомні атрибути', 'factorial2000-catalog-sync' ) . '">';
+		$html .= '<option value="' . esc_attr( $selected ) . '" selected>' . esc_html( $label . ' (кастомний)' ) . '</option>';
+		$html .= '</optgroup>';
+	}
+
+	$html .= '</select>';
+
+	return $html;
+}
+
+/**
+ * Rows of the recommended-attributes table.
+ *
+ * @param array<int,string>                  $ids Prom category ids.
+ * @param array<string,array<string,string>> $map Mapping.
+ * @return string
+ */
+function f2000cs_marketplace_prom_attribute_rows( array $ids, array $map ): string {
+	$categories = Prom_Recommendations::categories( $ids );
+
+	if ( array() === $categories ) {
+		return '<tr><td colspan="4" class="f2000cs-prom-empty">' . esc_html__( 'Спочатку виберіть категорії Prom у розділі «Категорії Prom».', 'factorial2000-catalog-sync' ) . '</td></tr>';
+	}
+
+	$html = '';
+
+	foreach ( $categories as $category ) {
+		$attrs   = (array) $category['attrs'];
+		$matched = 0;
+		$search  = Marketplace_Text::lower( $category['path'] . ' ' . $category['id'] );
+
+		foreach ( $attrs as $attr ) {
+			$selected = (string) ( $map[ $category['id'] ][ $attr['name'] ] ?? '' );
+			$auto     = Prom_Recommendations::match( $attr['name'], $attr['name_ru'] );
+
+			if ( '' !== $selected || '' !== $auto ) {
+				++$matched;
+			}
+		}
+
+		$html .= '<tr class="f2000cs-prom-group" data-f2000cs-prom-group data-search="' . esc_attr( $search ) . '">';
+		$html .= '<td colspan="4"><strong>' . esc_html( $category['path'] ) . '</strong> <span class="f2000cs-prom-count">' . esc_html( (string) $matched ) . '/' . esc_html( (string) count( $attrs ) ) . '</span></td>';
+		$html .= '</tr>';
+
+		if ( array() === $attrs ) {
+			$html .= '<tr class="f2000cs-prom-empty-row" data-f2000cs-prom-empty data-search="' . esc_attr( $search ) . '"><td></td><td colspan="3">' . esc_html__( 'Prom не має рекомендацій для цієї категорії.', 'factorial2000-catalog-sync' ) . '</td></tr>';
+			continue;
+		}
+
+		foreach ( $attrs as $attr ) {
+			$selected = (string) ( $map[ $category['id'] ][ $attr['name'] ] ?? '' );
+			$auto     = Prom_Recommendations::match( $attr['name'], $attr['name_ru'] );
+			$value    = '' !== $selected ? $selected : $auto;
+			$status   = 'none';
+
+			if ( '' !== $value ) {
+				$status = '' === $selected || $selected === $auto ? 'auto' : 'manual';
+			}
+
+			$row_search = Marketplace_Text::lower( $category['path'] . ' ' . $category['id'] . ' ' . $attr['name'] . ' ' . $attr['name_ru'] );
+			$status_lbl = array(
+				'auto'   => __( 'Авто', 'factorial2000-catalog-sync' ),
+				'manual' => __( 'Вручну', 'factorial2000-catalog-sync' ),
+				'none'   => __( 'Немає', 'factorial2000-catalog-sync' ),
+			);
+
+			$html .= '<tr class="f2000cs-prom-row" data-f2000cs-prom-row data-category="' . esc_attr( $category['id'] ) . '" data-prom="' . esc_attr( $attr['name'] ) . '" data-auto="' . esc_attr( $auto ) . '" data-status="' . esc_attr( $status ) . '" data-search="' . esc_attr( $row_search ) . '">';
+			$html .= '<td class="f2000cs-prom-cat"></td>';
+			$html .= '<td><strong>' . esc_html( $attr['name'] ) . '</strong>';
+
+			if ( '' !== $attr['name_ru'] && $attr['name_ru'] !== $attr['name'] ) {
+				$html .= '<br><small>' . esc_html( $attr['name_ru'] ) . '</small>';
+			}
+
+			$html .= '</td>';
+			$html .= '<td>' . f2000cs_marketplace_prom_attribute_select( $category['id'], $attr['name'], $selected, $auto ) . '</td>';
+			$html .= '<td><span class="f2000cs-prom-status is-' . esc_attr( $status ) . '" data-f2000cs-status>' . esc_html( $status_lbl[ $status ] ) . '</span></td>';
+			$html .= '</tr>';
+		}
+	}
+
+	return $html;
+}
+
+/**
+ * Hidden mapping field, opener button and the modal with the table.
+ *
+ * @param string              $key      Field key.
+ * @param array<string,mixed> $field    Field schema.
+ * @param mixed               $value    Stored value.
+ * @param array<string,mixed> $settings All feed settings.
+ * @return void
+ */
+function f2000cs_marketplace_render_prom_attribute_map( string $key, array $field, $value, array $settings ): void {
+	$ids     = f2000cs_marketplace_prom_portal_ids( $settings );
+	$map     = Prom_Recommendations::sanitize_map_array( $value );
+	$json    = Prom_Recommendations::sanitize_json( $map );
+	$summary = f2000cs_marketplace_prom_attribute_summary( $ids, $map );
+	$dialog  = 'f2000cs-prom-attrs-dialog';
+	?>
+	<input type="hidden" id="f2000cs-mp-<?php echo esc_attr( $key ); ?>" name="mp[<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( $json ); ?>" data-f2000cs-prom-map>
+	<p>
+		<button type="button" class="button f2000cs-mp-open-attributes" data-f2000cs-target="<?php echo esc_attr( $dialog ); ?>"><?php esc_html_e( 'Заповнити характеристики категорії', 'factorial2000-catalog-sync' ); ?></button>
+		<span class="f2000cs-prom-summary" data-f2000cs-prom-summary-field><?php echo esc_html( $summary ); ?></span>
+	</p>
+	<dialog id="<?php echo esc_attr( $dialog ); ?>" class="f2000cs-modal f2000cs-prom-attrs-dialog" aria-labelledby="<?php echo esc_attr( $dialog . '-title' ); ?>">
+		<div class="f2000cs-modal__head">
+			<h2 id="<?php echo esc_attr( $dialog . '-title' ); ?>"><?php esc_html_e( 'Заповнити характеристики категорій', 'factorial2000-catalog-sync' ); ?></h2>
+			<button type="button" class="button-link f2000cs-modal__close" data-f2000cs-close aria-label="<?php esc_attr_e( 'Закрити', 'factorial2000-catalog-sync' ); ?>">&times;</button>
+		</div>
+		<div class="f2000cs-modal__body">
+			<p><?php esc_html_e( 'Prom рекомендує для кожної категорії 2–4 характеристики. Вони впливають на фільтри каталогу. Ми зіставили назви з атрибутами сайту — перевірте мапінг. У фід піде назва Prom, значення братимуться з атрибутів товару.', 'factorial2000-catalog-sync' ); ?></p>
+			<p class="description"><?php esc_html_e( 'Рекомендації не обов’язкові, але заповнені характеристики дають більше трафіку. Щоб значення потрапили у фільтри Prom, вони мають збігатися з довідником характеристик категорії. Атрибута немає на сайті? Створіть його в WooCommerce або залиште поле порожнім.', 'factorial2000-catalog-sync' ); ?></p>
+			<div class="f2000cs-prom-toolbar">
+				<input type="search" class="f2000cs-prom-search" placeholder="<?php esc_attr_e( 'Пошук категорії або характеристики', 'factorial2000-catalog-sync' ); ?>">
+				<label><input type="checkbox" class="f2000cs-prom-only-empty"> <?php esc_html_e( 'Тільки незаповнені', 'factorial2000-catalog-sync' ); ?></label>
+				<button type="button" class="button f2000cs-prom-auto"><?php esc_html_e( 'Підібрати автоматично', 'factorial2000-catalog-sync' ); ?></button>
+				<span class="f2000cs-prom-summary" data-f2000cs-prom-summary><?php echo esc_html( $summary ); ?></span>
+			</div>
+			<div class="f2000cs-prom-table-wrap">
+				<table class="widefat striped f2000cs-prom-attrs-table">
+					<thead>
+						<tr>
+							<th class="f2000cs-prom-cat"><?php esc_html_e( 'Категорія Prom', 'factorial2000-catalog-sync' ); ?></th>
+							<th><?php esc_html_e( 'Характеристика Prom', 'factorial2000-catalog-sync' ); ?></th>
+							<th><?php esc_html_e( 'Наш атрибут', 'factorial2000-catalog-sync' ); ?></th>
+							<th><?php esc_html_e( 'Статус', 'factorial2000-catalog-sync' ); ?></th>
+						</tr>
+					</thead>
+					<tbody data-f2000cs-prom-rows><?php echo f2000cs_marketplace_prom_attribute_rows( $ids, $map ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in the helper. ?></tbody>
+				</table>
+			</div>
+		</div>
+		<div class="f2000cs-modal__foot">
+			<button type="button" class="button f2000cs-prom-pull"><?php esc_html_e( 'Підтягнути категорії з полів', 'factorial2000-catalog-sync' ); ?></button>
+			<div>
+				<button type="button" class="button f2000cs-prom-cancel"><?php esc_html_e( 'Скасувати', 'factorial2000-catalog-sync' ); ?></button>
+				<button type="button" class="button button-primary f2000cs-prom-save"><?php esc_html_e( 'Зберегти', 'factorial2000-catalog-sync' ); ?></button>
+			</div>
+		</div>
+	</dialog>
+	<?php
+}
+
+/**
+ * AJAX: rebuild the recommended-attributes table from the current form values.
+ *
+ * @return void
+ */
+function f2000cs_marketplace_ajax_prom_rows() {
+	check_ajax_referer( 'f2000cs_prom_attribute_rows', 'nonce' );
+
+	if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_products' ) ) {
+		wp_send_json_error( array( 'message' => __( 'Недостатньо прав.', 'factorial2000-catalog-sync' ) ) );
+	}
+
+	$ids = isset( $_POST['ids'] ) && is_array( $_POST['ids'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['ids'] ) ) : array();
+	$ids = array_values(
+		array_unique(
+			array_filter(
+				array_map(
+					static function ( $id ) {
+						return Prom_Categories::sanitize_id( $id );
+					},
+					$ids
+				),
+				'strlen'
+			)
+		)
+	);
+
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by Prom_Recommendations::sanitize_map_array().
+	$map = Prom_Recommendations::sanitize_map_array( isset( $_POST['map'] ) ? wp_unslash( $_POST['map'] ) : '' );
+
+	wp_send_json_success(
+		array(
+			'rows'    => f2000cs_marketplace_prom_attribute_rows( $ids, $map ),
+			'summary' => f2000cs_marketplace_prom_attribute_summary( $ids, $map ),
+			'map'     => Prom_Recommendations::sanitize_json( $map ),
+		)
+	);
+}
+add_action( 'wp_ajax_f2000cs_marketplace_prom_rows', 'f2000cs_marketplace_ajax_prom_rows' );
+
+/**
  * Render one settings field row.
  *
  * @param string              $key   Field key.
  * @param array<string,mixed> $field Field schema.
  * @param mixed               $value Current value.
+ * @param array<string,mixed> $settings All feed settings (for conditional rows).
  * @return void
  */
-function f2000cs_marketplace_render_field( string $key, array $field, $value ): void {
+function f2000cs_marketplace_render_field( string $key, array $field, $value, array $settings = array() ): void {
 	$type = $field['type'] ?? 'text';
 	$id   = 'f2000cs-mp-' . $key;
+
+	$show_if       = isset( $field['show_if'] ) && is_array( $field['show_if'] ) ? $field['show_if'] : array();
+	$show_if_field = isset( $show_if['field'] ) ? (string) $show_if['field'] : '';
+	$show_if_value = isset( $show_if['value'] ) ? (string) $show_if['value'] : '';
+	$row_class     = '' !== $show_if_field ? 'f2000cs-mp-show-if' : '';
+	$row_hidden    = '' !== $show_if_field && (string) ( $settings[ $show_if_field ] ?? '' ) !== $show_if_value;
+	$row_attrs     = '';
+
+	if ( '' !== $show_if_field ) {
+		$row_attrs .= ' data-show-if-field="' . esc_attr( $show_if_field ) . '" data-show-if-value="' . esc_attr( $show_if_value ) . '"';
+	}
+
+	if ( $row_hidden ) {
+		$row_attrs .= ' style="display:none"';
+	}
 	?>
-	<tr>
-		<th scope="row"><?php echo in_array( $type, array( 'pairs', 'category_map' ), true ) ? esc_html( (string) ( $field['label'] ?? $key ) ) : '<label for="' . esc_attr( $id ) . '">' . esc_html( (string) ( $field['label'] ?? $key ) ) . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above. ?></th>
+	<tr class="<?php echo esc_attr( $row_class ); ?>"<?php echo $row_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above. ?>>
+		<th scope="row"><?php echo in_array( $type, array( 'pairs', 'category_map', 'prom_attribute_map' ), true ) ? esc_html( (string) ( $field['label'] ?? $key ) ) : '<label for="' . esc_attr( $id ) . '">' . esc_html( (string) ( $field['label'] ?? $key ) ) . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above. ?></th>
 		<td>
 			<?php
 			if ( 'preset' === $type ) {
@@ -319,6 +632,8 @@ function f2000cs_marketplace_render_field( string $key, array $field, $value ): 
 				f2000cs_marketplace_render_pairs( $key, $field, $value );
 			} elseif ( 'category_map' === $type ) {
 				f2000cs_marketplace_render_category_map( $key, $field, $value );
+			} elseif ( 'prom_attribute_map' === $type ) {
+				f2000cs_marketplace_render_prom_attribute_map( $key, $field, $value, $settings );
 			} elseif ( 'prom_category' === $type ) {
 				f2000cs_prom_category_input( 'mp[' . $key . ']', (string) $value, array( 'id' => $id ) );
 				echo '<p class="description">' . f2000cs_prom_category_reference_link() . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in the helper.
@@ -603,7 +918,7 @@ function f2000cs_marketplaces_page() {
 				<h2><?php echo esc_html( $title ); ?></h2>
 				<table class="form-table" role="presentation">
 					<?php foreach ( $in_group as $key => $field ) : ?>
-						<?php f2000cs_marketplace_render_field( (string) $key, $field, $settings[ $key ] ?? '' ); ?>
+						<?php f2000cs_marketplace_render_field( (string) $key, $field, $settings[ $key ] ?? '', $settings ); ?>
 					<?php endforeach; ?>
 				</table>
 			<?php endforeach; ?>
@@ -811,6 +1126,35 @@ function f2000cs_marketplace_enqueue( $hook ) {
 		. '.f2000cs-marketplaces .form-table td select{max-width:100%}'
 		. '.f2000cs-marketplaces .form-table td details textarea{margin-top:6px}'
 		. '.f2000cs-marketplaces .card{padding:0.7em 2em 1em}'
+		. '.f2000cs-marketplaces .f2000cs-prom-summary{color:#646970;margin-left:8px}'
+		. '.f2000cs-marketplaces dialog.f2000cs-prom-attrs-dialog{width:min(1120px,94vw);max-height:88vh;padding:0;border:1px solid #c3c4c7;border-radius:4px;box-shadow:0 12px 40px rgba(0,0,0,.28);overflow:hidden}'
+		. '.f2000cs-marketplaces dialog.f2000cs-prom-attrs-dialog[open]{display:flex}'
+		. '.f2000cs-marketplaces dialog.f2000cs-prom-attrs-dialog::backdrop{background:rgba(0,0,0,.45)}'
+		. '.f2000cs-marketplaces .f2000cs-modal__head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #dcdcde;background:#f6f7f7}'
+		. '.f2000cs-marketplaces .f2000cs-modal__head h2{margin:0;font-size:18px;line-height:1.3}'
+		. '.f2000cs-marketplaces .f2000cs-modal__close{font-size:26px;line-height:1;text-decoration:none;color:#646970;cursor:pointer}'
+		. '.f2000cs-marketplaces .f2000cs-modal__body{padding:14px 18px;overflow:auto;min-height:0}'
+		. '.f2000cs-marketplaces .f2000cs-modal__body>p:first-child{margin-top:0}'
+		. '.f2000cs-marketplaces .f2000cs-modal__foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-top:1px solid #dcdcde;background:#f6f7f7}'
+		. '.f2000cs-marketplaces .f2000cs-prom-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0}'
+		. '.f2000cs-marketplaces .f2000cs-prom-toolbar .f2000cs-prom-search{min-width:240px;max-width:360px}'
+		. '.f2000cs-marketplaces .f2000cs-prom-table-wrap{overflow:auto;max-height:56vh;border:1px solid #dcdcde}'
+		. '.f2000cs-marketplaces .f2000cs-prom-attrs-table{margin:0;table-layout:fixed}'
+		. '.f2000cs-marketplaces .f2000cs-prom-attrs-table th{position:sticky;top:0;z-index:1;background:#f6f7f7;font-weight:600}'
+		. '.f2000cs-marketplaces .f2000cs-prom-attrs-table th:first-child{width:28%}'
+		. '.f2000cs-marketplaces .f2000cs-prom-attrs-table th:last-child{width:110px}'
+		. '.f2000cs-marketplaces .f2000cs-prom-attrs-table td{vertical-align:middle}'
+		. '.f2000cs-marketplaces .f2000cs-prom-group td{background:#f0f6fc;border-top:1px solid #c3c4c7;font-weight:600}'
+		. '.f2000cs-marketplaces .f2000cs-prom-group:first-child td{border-top:0}'
+		. '.f2000cs-marketplaces .f2000cs-prom-count{color:#646970;font-weight:400;margin-left:6px}'
+		. '.f2000cs-marketplaces .f2000cs-prom-status{display:inline-block;padding:2px 7px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}'
+		. '.f2000cs-marketplaces .f2000cs-prom-status.is-auto{color:#0f834d;background:#e6f6ec}'
+		. '.f2000cs-marketplaces .f2000cs-prom-status.is-manual{color:#135e96;background:#e5f1f8}'
+		. '.f2000cs-marketplaces .f2000cs-prom-status.is-none{color:#b32d2e;background:#fbeaea}'
+		. '.f2000cs-marketplaces .f2000cs-mp-attr-select{width:100%;max-width:100%}'
+		. '.f2000cs-marketplaces .f2000cs-prom-attrs-table .select2-container{width:100%!important}'
+		. '.f2000cs-marketplaces .f2000cs-prom-empty,.f2000cs-marketplaces .f2000cs-prom-empty-row td{color:#646970;font-style:italic}'
+		. '@media (max-width:782px){.f2000cs-marketplaces dialog.f2000cs-prom-attrs-dialog{width:96vw}.f2000cs-marketplaces .f2000cs-prom-table-wrap{max-height:52vh}.f2000cs-marketplaces .f2000cs-prom-attrs-table{min-width:720px}.f2000cs-marketplaces .f2000cs-modal__foot{flex-wrap:wrap}}'
 	);
 
 	wp_enqueue_script(
@@ -825,14 +1169,21 @@ function f2000cs_marketplace_enqueue( $hook ) {
 		'f2000cs-admin-marketplaces',
 		'f2000csMarketplaces',
 		array(
-			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-			'nonce'   => wp_create_nonce( 'f2000cs_marketplace_step' ),
-			'i18n'    => array(
-				'running' => __( 'Формуємо вигрузку…', 'factorial2000-catalog-sync' ),
-				'offers'  => __( 'товарів', 'factorial2000-catalog-sync' ),
-				'done'    => __( 'Готово!', 'factorial2000-catalog-sync' ),
-				'waiting' => __( 'Генерація вже триває, чекаємо…', 'factorial2000-catalog-sync' ),
-				'failed'  => __( 'Помилка. Спробуйте ще раз.', 'factorial2000-catalog-sync' ),
+			'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
+			'nonce'          => wp_create_nonce( 'f2000cs_marketplace_step' ),
+			'promRowsAction' => 'f2000cs_marketplace_prom_rows',
+			'promRowsNonce'  => wp_create_nonce( 'f2000cs_prom_attribute_rows' ),
+			'i18n'           => array(
+				'running'    => __( 'Формуємо вигрузку…', 'factorial2000-catalog-sync' ),
+				'offers'     => __( 'товарів', 'factorial2000-catalog-sync' ),
+				'done'       => __( 'Готово!', 'factorial2000-catalog-sync' ),
+				'waiting'    => __( 'Генерація вже триває, чекаємо…', 'factorial2000-catalog-sync' ),
+				'failed'     => __( 'Помилка. Спробуйте ще раз.', 'factorial2000-catalog-sync' ),
+				'pulling'    => __( 'Підтягуємо категорії…', 'factorial2000-catalog-sync' ),
+				'pullFailed' => __( 'Не вдалося підтягнути категорії.', 'factorial2000-catalog-sync' ),
+				'auto'       => __( 'Авто', 'factorial2000-catalog-sync' ),
+				'manual'     => __( 'Вручну', 'factorial2000-catalog-sync' ),
+				'none'       => __( 'Немає', 'factorial2000-catalog-sync' ),
 			),
 		)
 	);

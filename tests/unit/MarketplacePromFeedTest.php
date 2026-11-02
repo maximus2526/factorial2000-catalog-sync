@@ -309,6 +309,40 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		$this->assertStringContainsString( '<category id="1">Одяг</category>', $restored->to_xml() );
 	}
 
+	/**
+	 * Stable ids depend only on the path, not on the order categories were added.
+	 *
+	 * @return void
+	 */
+	public function test_stable_category_ids_are_order_independent() {
+		$tree = new Marketplace_Category_Tree();
+		$tree->use_stable_ids();
+
+		$boots = $tree->add_paths( array( array( 'Взуття', 'Черевики зимові' ) ) );
+		$women = $tree->add_paths( array( array( 'Жіночий одяг' ) ) );
+
+		$this->assertIsInt( $boots );
+		$this->assertGreaterThanOrEqual( 100000000, $boots );
+		$this->assertLessThanOrEqual( 999999999, $boots );
+		$this->assertNotSame( $boots, $women );
+		$this->assertSame( $boots, $tree->add_paths( array( array( 'Взуття', 'Черевики зимові' ) ) ) );
+
+		$other = new Marketplace_Category_Tree();
+		$other->use_stable_ids();
+		$other->add_paths( array( array( 'Жіночий одяг' ) ) );
+
+		$this->assertSame(
+			$boots,
+			$other->add_paths( array( array( 'Взуття', 'Черевики зимові' ) ) ),
+			'A new category does not shift the ids of the existing ones'
+		);
+
+		$restored = Marketplace_Category_Tree::from_array( $tree->to_array() );
+		$restored->use_stable_ids();
+
+		$this->assertSame( $boots, $restored->add_paths( array( array( 'Взуття', 'Черевики зимові' ) ) ) );
+	}
+
 	// ---------------------------------------------------------------- simple offers
 
 	/**
@@ -317,7 +351,11 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 	 * @return void
 	 */
 	public function test_simple_offer_xml() {
-		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Brands' => 'Acme', 'GTIN, UPC, EAN, or ISBN' => '123', 'Meta: mpn' => 'SUP-1', 'Attribute 1 name' => 'Матеріал', 'Attribute 1 value(s)' => 'Бавовна', 'Attribute 1 visible' => '1' ) ) ) );
+		$tree = new Marketplace_Category_Tree();
+		$tree->use_stable_ids();
+		$category_id = $tree->add_paths( array( array( 'Одяг', 'Куртки' ) ) );
+
+		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Brands' => 'Acme', 'GTIN, UPC, EAN, or ISBN' => '123', 'Meta: mpn' => 'SUP-1', 'Attribute 1 name' => 'Матеріал', 'Attribute 1 value(s)' => 'Бавовна', 'Attribute 1 visible' => '1' ) ) ), $tree );
 
 		$this->assertSame( 1, $res['exported'] );
 		$this->assertSame( 0, $res['skipped'] );
@@ -326,7 +364,7 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 
 		$this->assertStringContainsString( '<offer id="10" available="true">', $xml );
 		$this->assertStringContainsString( '<price>1000</price>', $xml );
-		$this->assertStringContainsString( '<categoryId>2</categoryId>', $xml );
+		$this->assertStringContainsString( '<categoryId>' . $category_id . '</categoryId>', $xml );
 		$this->assertStringContainsString( '<vendorCode>SKU-10</vendorCode>', $xml );
 		$this->assertStringContainsString( '<vendor>Acme</vendor>', $xml );
 		$this->assertStringContainsString( '<mpn>SUP-1</mpn>', $xml );
@@ -360,6 +398,237 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		$back = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'In stock?' => '0', 'Backorders allowed?' => 'notify' ) ) ) );
 
 		$this->assertStringContainsString( 'available="true"', $back['xml'], 'Backorders count as available' );
+	}
+
+	/**
+	 * Fake discount: the current price is sold and the old price is inflated by the percentage.
+	 *
+	 * @return void
+	 */
+	public function test_fake_discount_inflates_old_price() {
+		$this->settings['regular_price_only']    = '1';
+		$this->settings['fake_discount_percent'] = '20';
+
+		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Sale price' => '800' ) ) ) );
+
+		$this->assertStringContainsString( '<price>1000</price>', $res['xml'] );
+		$this->assertStringContainsString( '<oldprice>1200</oldprice>', $res['xml'] );
+
+		$this->settings['fake_discount_percent'] = '0';
+
+		$plain = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row() ) );
+
+		$this->assertStringNotContainsString( 'oldprice', $plain['xml'], 'No percentage, no fake discount' );
+
+		$this->settings['fake_discount_percent'] = '20';
+
+		$out = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'In stock?' => '0', 'Stock' => '0' ) ) ) );
+
+		$this->assertStringNotContainsString( 'oldprice', $out['xml'], 'Prom rejects a discount on unavailable items' );
+	}
+
+	/**
+	 * A fake discount needs the "regular price only" mode; otherwise the real sale price wins.
+	 *
+	 * @return void
+	 */
+	public function test_fake_discount_ignored_without_regular_price_only() {
+		$this->settings['fake_discount_percent'] = '20';
+
+		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Sale price' => '800' ) ) ) );
+
+		$this->assertStringContainsString( '<price>800</price>', $res['xml'] );
+		$this->assertStringContainsString( '<oldprice>1000</oldprice>', $res['xml'], 'The real sale price is used unchanged' );
+	}
+
+	/**
+	 * The fake discount applies to the main group offer and its variations.
+	 *
+	 * @return void
+	 */
+	public function test_fake_discount_on_group_offers() {
+		$this->settings['regular_price_only']    = '1';
+		$this->settings['fake_discount_percent'] = '10';
+
+		$res = $this->process( $this->group_unit( array( 'S' => 'S', 'M' => 'M' ) ) );
+		$xml = simplexml_load_string( '<offers>' . $res['xml'] . '</offers>' );
+
+		$this->assertCount( 2, $xml->offer );
+		$this->assertCount( 2, $xml->xpath( '//oldprice[text()="330"]' ) );
+
+		foreach ( $xml->offer as $offer ) {
+			$this->assertSame( '300', (string) $offer->price );
+		}
+	}
+
+	/**
+	 * A percentage list gives products different, stable fake discounts.
+	 *
+	 * @return void
+	 */
+	public function test_fake_discount_spread_varies_and_stays_stable() {
+		$this->settings['regular_price_only']    = '1';
+		$this->settings['fake_discount_percent'] = '20';
+		$this->settings['fake_discount_spread']  = '30, 40, 50';
+
+		$ratios = array();
+
+		for ( $i = 0; $i < 12; $i++ ) {
+			$row = $this->simple_row(
+				array(
+					'ID'            => (string) ( 2000 + $i ),
+					'SKU'           => 'SKU-' . ( 2000 + $i ),
+					'Regular price' => '1000',
+				)
+			);
+
+			$res = $this->process( array( 'kind' => 'simple', 'row' => $row ) );
+			$xml = simplexml_load_string( '<offers>' . $res['xml'] . '</offers>' );
+
+			$ratio = round( (float) $xml->offer[0]->oldprice / (float) $xml->offer[0]->price, 2 );
+
+			$this->assertContains( $ratio, array( 1.3, 1.4, 1.5 ) );
+			$ratios[] = $ratio;
+		}
+
+		$this->assertGreaterThan( 1, count( array_unique( $ratios ) ), 'The spread gives products different percentages' );
+
+		$again = $this->process( array( 'kind' => 'simple', 'row' => $row ) );
+		$again = simplexml_load_string( '<offers>' . $again['xml'] . '</offers>' );
+
+		$this->assertSame(
+			$ratio,
+			round( (float) $again->offer[0]->oldprice / (float) $again->offer[0]->price, 2 ),
+			'The same product keeps its percentage on the next build'
+		);
+	}
+
+	/**
+	 * A group is one product on Prom, so its variations share one percentage.
+	 *
+	 * @return void
+	 */
+	public function test_fake_discount_spread_is_same_for_a_group() {
+		$this->settings['regular_price_only']   = '1';
+		$this->settings['fake_discount_spread'] = '30,40,50';
+
+		$res = $this->process( $this->group_unit( array( 'S' => 'S', 'M' => 'M' ) ) );
+		$xml = simplexml_load_string( '<offers>' . $res['xml'] . '</offers>' );
+
+		$this->assertCount( 2, $xml->offer );
+
+		$ratio = round( (float) $xml->offer[0]->oldprice / (float) $xml->offer[0]->price, 2 );
+
+		$this->assertContains( $ratio, array( 1.3, 1.4, 1.5 ) );
+
+		foreach ( $xml->offer as $offer ) {
+			$this->assertSame( $ratio, round( (float) $offer->oldprice / (float) $offer->price, 2 ) );
+		}
+	}
+
+	/**
+	 * An unusable spread list falls back to the fixed percentage.
+	 *
+	 * @return void
+	 */
+	public function test_fake_discount_spread_falls_back_to_fixed() {
+		$this->settings['regular_price_only']    = '1';
+		$this->settings['fake_discount_percent'] = '20';
+		$this->settings['fake_discount_spread']  = 'abc';
+
+		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row() ) );
+
+		$this->assertStringContainsString( '<oldprice>1200</oldprice>', $res['xml'] );
+	}
+
+	/**
+	 * The spread accepts the way shop owners write discounts: -30%, -40%, -50%.
+	 *
+	 * @return void
+	 */
+	public function test_fake_discount_spread_accepts_minus_and_percent_signs() {
+		$this->settings['regular_price_only']   = '1';
+		$this->settings['fake_discount_spread'] = '-30%, -40%, -50%';
+
+		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row() ) );
+		$xml = simplexml_load_string( '<offers>' . $res['xml'] . '</offers>' );
+
+		$ratio = round( (float) $xml->offer[0]->oldprice / (float) $xml->offer[0]->price, 2 );
+
+		$this->assertContains( $ratio, array( 1.3, 1.4, 1.5 ) );
+	}
+
+	/**
+	 * The fake discount field is an opt-in number that only appears with regular-price-only mode.
+	 *
+	 * @return void
+	 */
+	public function test_fake_discount_field_is_conditional() {
+		$field  = ( new Prom_Feed() )->fields()['fake_discount_percent'];
+		$spread = ( new Prom_Feed() )->fields()['fake_discount_spread'];
+
+		$this->assertSame( 'number', $field['type'] );
+		$this->assertSame( '0', $field['default'] );
+		$this->assertSame( 'regular_price_only', $field['show_if']['field'] );
+		$this->assertSame( '1', $field['show_if']['value'] );
+
+		$this->assertSame( 'text', $spread['type'] );
+		$this->assertSame( 'regular_price_only', $spread['show_if']['field'] );
+	}
+
+	/**
+	 * «Готово до відправки»: in_stock="true" only for offers that are really in stock.
+	 *
+	 * @return void
+	 */
+	public function test_ready_for_shipment_attribute() {
+		$plain = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row() ) );
+
+		$this->assertStringNotContainsString( 'in_stock=', $plain['xml'], 'The status is opt-in' );
+
+		$this->settings['ready_for_shipment'] = '1';
+
+		$in = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row() ) );
+
+		$this->assertStringContainsString( '<offer id="10" available="true" in_stock="true">', $in['xml'] );
+
+		$out = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'In stock?' => '0', 'Stock' => '0' ) ) ) );
+
+		$this->assertStringContainsString( 'available="false"', $out['xml'] );
+		$this->assertStringNotContainsString( 'in_stock=', $out['xml'] );
+
+		$back = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'In stock?' => '0', 'Stock' => '0', 'Backorders allowed?' => 'notify' ) ) ) );
+
+		$this->assertStringContainsString( 'available="true"', $back['xml'] );
+		$this->assertStringNotContainsString( 'in_stock=', $back['xml'], 'Backorders are not ready for shipment' );
+	}
+
+	/**
+	 * The main group offer follows the variation it represents, not the parent's stock flag.
+	 *
+	 * @return void
+	 */
+	public function test_ready_for_shipment_on_group_main_offer() {
+		$this->settings['ready_for_shipment'] = '1';
+
+		$unit = $this->group_unit( array( 'S' => 'S', 'M' => 'M' ) );
+
+		$unit['parent']['In stock?']       = '0';
+		$unit['children'][1]['In stock?']  = '0';
+		$unit['children'][1]['Stock']      = '0';
+
+		$res = $this->process( $unit );
+		$xml = simplexml_load_string( '<offers>' . $res['xml'] . '</offers>' );
+
+		$ready = 0;
+
+		foreach ( $xml->offer as $offer ) {
+			if ( 'true' === (string) $offer['in_stock'] ) {
+				++$ready;
+			}
+		}
+
+		$this->assertSame( 1, $ready, 'Only the in-stock variation is ready for shipment' );
 	}
 
 	/**

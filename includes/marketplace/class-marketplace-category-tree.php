@@ -24,6 +24,13 @@ class Marketplace_Category_Tree {
 	private $seq = 1;
 
 	/**
+	 * Whether ids are derived from the path instead of the creation order.
+	 *
+	 * @var bool
+	 */
+	private $stable_ids = false;
+
+	/**
 	 * Category list in creation order: id => array( 'name' => string, 'parent' => int|null, 'path' => string ).
 	 *
 	 * @var array<int, array{name:string,parent:?int,path:string}>
@@ -55,7 +62,7 @@ class Marketplace_Category_Tree {
 				$key       = implode( "\x1f", $current );
 
 				if ( ! isset( $this->by_path[ $key ] ) ) {
-					$id                    = $this->seq++;
+					$id                    = $this->allocate_id( $key );
 					$this->by_path[ $key ] = $id;
 					$this->nodes[ $id ]    = array(
 						'name'   => (string) $segment,
@@ -70,6 +77,40 @@ class Marketplace_Category_Tree {
 		}
 
 		return $last_id;
+	}
+
+	/**
+	 * Use ids derived from the path (Prom groups stay put when categories are added).
+	 *
+	 * @param bool $stable Stable mode.
+	 * @return void
+	 */
+	public function use_stable_ids( bool $stable = true ): void {
+		$this->stable_ids = $stable;
+	}
+
+	/**
+	 * Id for a new path: sequential by default, a hash of the path in stable mode.
+	 *
+	 * @param string $key Path key.
+	 * @return int
+	 */
+	private function allocate_id( string $key ): int {
+		if ( ! $this->stable_ids ) {
+			return $this->seq++;
+		}
+
+		$id = 100000000 + (int) hexdec( substr( md5( $key ), 0, 7 ) );
+
+		while ( isset( $this->nodes[ $id ] ) ) {
+			++$id;
+
+			if ( $id > 999999999 ) {
+				$id = 100000000;
+			}
+		}
+
+		return $id;
 	}
 
 	/**

@@ -33,6 +33,14 @@ define( 'WP_DEBUG', false );
 require_once $repo . '/vendor/autoload.php';
 require_once $repo . '/tests/includes/wp-stubs.php';
 
+// The expected file comes from the Python tool, which used sequential category ids.
+add_filter(
+	'f2000cs_prom_stable_category_ids',
+	static function () {
+		return false;
+	}
+);
+
 foreach ( glob( $repo . '/includes/marketplace/*.php' ) as $file ) {
 	if ( false === strpos( $file, 'registry' ) && false === strpos( $file, 'job' ) && false === strpos( $file, 'storage' ) && false === strpos( $file, 'wc-source' ) && false === strpos( $file, 'cli' ) ) {
 		require_once $file;

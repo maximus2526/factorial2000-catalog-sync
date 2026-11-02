@@ -166,6 +166,38 @@ class Prom_Feed extends Marketplace_Feed {
 				'description' => __( 'У <price> іде звичайна ціна товару, <oldprice> не додається, навіть якщо на сайті діє акційна ціна.', 'factorial2000-catalog-sync' ),
 				'default'     => '0',
 			),
+			'fake_discount_percent'        => array(
+				'group'       => 'products',
+				'type'        => 'number',
+				'label'       => __( 'Фейкова знижка для Prom, %', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Працює лише разом із «Не передавати знижки — лише основну ціну». Ціна товару стане акційною, а <oldprice> буде на вказаний відсоток вищою: ціна 1000 і 20% → <price>1000</price>, <oldprice>1200</oldprice>. Prom покаже знижку лише для товарів у наявності.', 'factorial2000-catalog-sync' ),
+				'min'         => 0,
+				'max'         => 90,
+				'default'     => '0',
+				'show_if'     => array(
+					'field' => 'regular_price_only',
+					'value' => '1',
+				),
+			),
+			'fake_discount_spread'         => array(
+				'group'       => 'products',
+				'type'        => 'text',
+				'label'       => __( 'Розкид фейкової знижки, %', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Необов’язково. Перелічіть відсотки через кому, наприклад 30, 40, 50 (можна писати -30%, -40%, -50%). Кожен товар стабільно отримає один із них, тому знижки виглядають різними, але не змінюються при кожній перегенерації. Для групи різновидів — один відсоток на всю групу. Якщо поле заповнене, воно замінює фіксований відсоток вище.', 'factorial2000-catalog-sync' ),
+				'default'     => '',
+				'show_if'     => array(
+					'field' => 'regular_price_only',
+					'value' => '1',
+				),
+			),
+			'ready_for_shipment'           => array(
+				'group'       => 'products',
+				'type'        => 'checkbox',
+				'label'       => __( 'Готово до відправки', 'factorial2000-catalog-sync' ),
+				'checkbox'    => __( 'Позначати товари в наявності як «Готово до відправки»', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Додає в <offer> атрибут in_stock="true" товарам, які справді є в наявності. Prom показує їх як «Готово до відправки» й піднімає у видачі. Статус доступний лише продавцям із високими показниками обслуговування; товари під замовлення й без залишку його не отримують.', 'factorial2000-catalog-sync' ),
+				'default'     => '0',
+			),
 			'description_fallback_snippet' => array(
 				'group'       => 'products',
 				'type'        => 'preset',
@@ -228,6 +260,13 @@ class Prom_Feed extends Marketplace_Feed {
 				'type'        => 'category_map',
 				'label'       => __( 'Категорії магазину → категорії Prom', 'factorial2000-catalog-sync' ),
 				'description' => __( 'Навпроти категорії магазину натисніть на поле, почніть вводити назву категорії Prom (або початок її номера) і виберіть її зі списку — номер підставиться сам. Правило для батьківської категорії діє й на вкладені, якщо в них немає власного. Поле «Категорія Prom» у картці товару важливіше за ці правила.', 'factorial2000-catalog-sync' ),
+				'default'     => '',
+			),
+			'prom_attribute_map'           => array(
+				'group'       => 'categories',
+				'type'        => 'prom_attribute_map',
+				'label'       => __( 'Рекомендовані характеристики', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Підберіть, які атрибути сайту передавати замість рекомендованих характеристик Prom. У фід піде назва Prom, значення — з атрибута товару.', 'factorial2000-catalog-sync' ),
 				'default'     => '',
 			),
 			'mpn_meta_key'                 => array(
@@ -313,23 +352,115 @@ class Prom_Feed extends Marketplace_Feed {
 	}
 
 	/**
+	 * Whether a row is really in stock (backorders do not count).
+	 *
+	 * @param array<string,string> $row Row.
+	 * @return bool
+	 */
+	public static function row_in_stock( array $row ): bool {
+		$in_stock = Marketplace_Text::parse_bool( $row['In stock?'] ?? '' );
+		$count    = Marketplace_Text::parse_float( $row['Stock'] ?? '' );
+		$count    = null === $count ? 0.0 : $count;
+
+		return $in_stock || $count > 0;
+	}
+
+	/**
 	 * Whether a row is purchasable (stock, quantity or backorders).
 	 *
 	 * @param array<string,string> $row Row.
 	 * @return bool
 	 */
 	public static function row_available( array $row ): bool {
-		$in_stock = Marketplace_Text::parse_bool( $row['In stock?'] ?? '' );
-		$count    = Marketplace_Text::parse_float( $row['Stock'] ?? '' );
-		$count    = null === $count ? 0.0 : $count;
-
-		if ( $in_stock || $count > 0 ) {
+		if ( self::row_in_stock( $row ) ) {
 			return true;
 		}
 
 		$bo = Marketplace_Text::lower( Marketplace_Text::clean( $row['Backorders allowed?'] ?? '' ) );
 
 		return in_array( $bo, array( '1', 'true', 'yes', 'notify' ), true );
+	}
+
+	/**
+	 * Raise the old price by a fixed percentage when the feed sends no real discounts.
+	 *
+	 * The current price stays the selling price; Prom shows the difference to the
+	 * inflated old price as a discount.
+	 *
+	 * @param float|null          $price     Selling price.
+	 * @param float|null          $old_price Real old price, if any.
+	 * @param array<string,mixed> $settings  Feed settings.
+	 * @param string              $seed      Stable seed for the spread (product or group id).
+	 * @return array{0:?float,1:?float}
+	 */
+	public static function with_fake_discount( $price, $old_price, array $settings, string $seed = '' ): array {
+		if ( null === $price || '1' !== (string) ( $settings['regular_price_only'] ?? '0' ) ) {
+			return array( $price, $old_price );
+		}
+
+		$percent = self::fake_discount_percent( $settings, $seed );
+
+		if ( $percent <= 0 ) {
+			return array( $price, $old_price );
+		}
+
+		$price    = (float) number_format( (float) $price, 2, '.', '' );
+		$inflated = (float) number_format( $price * ( 1 + $percent / 100 ), 2, '.', '' );
+
+		return array( $price, $inflated > $price ? $inflated : $price );
+	}
+
+	/**
+	 * Percentage used for this offer: the spread wins over the fixed value.
+	 *
+	 * The spread is picked by a hash of the seed, so a product keeps its
+	 * percentage between builds instead of changing on every regeneration.
+	 *
+	 * @param array<string,mixed> $settings Feed settings.
+	 * @param string              $seed     Stable seed.
+	 * @return float
+	 */
+	public static function fake_discount_percent( array $settings, string $seed = '' ): float {
+		$spread = self::parse_fake_discount_spread( (string) ( $settings['fake_discount_spread'] ?? '' ) );
+
+		if ( $spread ) {
+			$index = (int) hexdec( substr( md5( '' !== $seed ? $seed : '0' ), 0, 6 ) ) % count( $spread );
+
+			return (float) $spread[ $index ];
+		}
+
+		return max( 0, min( 90, (float) ( $settings['fake_discount_percent'] ?? 0 ) ) );
+	}
+
+	/**
+	 * Parse "30, 40, 50" into valid percentages (1–90), sorted and unique.
+	 *
+	 * @param string $value Stored text.
+	 * @return array<int,float>
+	 */
+	private static function parse_fake_discount_spread( string $value ): array {
+		$out = array();
+
+		foreach ( (array) preg_split( '/[\s,;]+/', $value ) as $part ) {
+			$part = str_replace( '%', '', (string) $part );
+
+			if ( ! is_numeric( $part ) ) {
+				continue;
+			}
+
+			$num = abs( (float) $part );
+
+			if ( $num <= 0 ) {
+				continue;
+			}
+
+			$out[] = min( 90, $num );
+		}
+
+		$out = array_values( array_unique( $out ) );
+		sort( $out );
+
+		return $out;
 	}
 
 	/**
@@ -367,6 +498,22 @@ class Prom_Feed extends Marketplace_Feed {
 	public static function any_child_available( array $children ): bool {
 		foreach ( $children as $row ) {
 			if ( self::row_available( $row ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Any child really in stock?
+	 *
+	 * @param array<int, array<string,string>> $children Rows.
+	 * @return bool
+	 */
+	public static function any_child_in_stock( array $children ): bool {
+		foreach ( $children as $row ) {
+			if ( self::row_in_stock( $row ) ) {
 				return true;
 			}
 		}
@@ -715,10 +862,11 @@ class Prom_Feed extends Marketplace_Feed {
 	 * @param array|null                $price_override array( price, old price ).
 	 * @param array<string,string>|null $images_fallback_row Row whose pictures/categories are used as a last resort.
 	 * @param bool|null                 $available_override  Forced availability.
+	 * @param bool|null                 $in_stock_override   Forced in-stock flag (backorders are not in stock).
 	 * @param string|null               $sku_override   Forced vendorCode.
 	 * @return array{0:?string,1:int}
 	 */
-	public function compose_offer( Marketplace_Category_Tree $tree, array $settings, array $row, $parent_row, string $group_id, $params = null, $price_override = null, $images_fallback_row = null, $available_override = null, $sku_override = null ): array {
+	public function compose_offer( Marketplace_Category_Tree $tree, array $settings, array $row, $parent_row, string $group_id, $params = null, $price_override = null, $images_fallback_row = null, $available_override = null, $in_stock_override = null, $sku_override = null ): array {
 		$name_raw = Marketplace_Text::clean( $row['Name'] ?? '' );
 
 		if ( '' === $name_raw && $parent_row ) {
@@ -761,6 +909,10 @@ class Prom_Feed extends Marketplace_Feed {
 
 			return array( null, 1 );
 		}
+
+		$discount_seed = '' !== $group_id ? $group_id : (string) ( $row['ID'] ?? $row['SKU'] ?? '' );
+
+		list( $price, $old_price ) = self::with_fake_discount( $price, $old_price, $settings, $discount_seed );
 
 		$max    = (int) ( $settings['max_pictures'] ?? 10 );
 		$images = Marketplace_Text::parse_image_list( $row['Images'] ?? '', $max );
@@ -810,10 +962,16 @@ class Prom_Feed extends Marketplace_Feed {
 		}
 
 		$available = null !== $available_override ? (bool) $available_override : self::row_available( $row );
+		$in_stock  = null !== $in_stock_override ? (bool) $in_stock_override : self::row_in_stock( $row );
+		$ready     = $available && $in_stock && '1' === (string) ( $settings['ready_for_shipment'] ?? '0' );
 
 		$ind  = '      ';
 		$ind2 = '        ';
 		$attr = ' id="' . Marketplace_Text::xml_attr( $offer_id ) . '" available="' . ( $available ? 'true' : 'false' ) . '"';
+
+		if ( $ready ) {
+			$attr .= ' in_stock="true"';
+		}
 
 		if ( '' !== $group_id ) {
 			$attr .= ' group_id="' . Marketplace_Text::xml_attr( $group_id ) . '"';
@@ -898,6 +1056,8 @@ class Prom_Feed extends Marketplace_Feed {
 		if ( null === $params ) {
 			$params = Prom_Variations::collect_params( $row, false );
 		}
+
+		$params = Prom_Recommendations::apply_params( $params, $portal, $settings );
 
 		$seen = array();
 
@@ -1044,6 +1204,8 @@ class Prom_Feed extends Marketplace_Feed {
 		$settings      = $this->with_defaults( $settings );
 		$unit          = self::without_sale_prices( $unit, $settings );
 		$this->reasons = array();
+
+		$tree->use_stable_ids( (bool) apply_filters( 'f2000cs_prom_stable_category_ids', true ) );
 
 		switch ( $unit['kind'] ?? '' ) {
 			case 'group':
@@ -1390,11 +1552,13 @@ class Prom_Feed extends Marketplace_Feed {
 				list( $min_p, $min_old ) = self::pick_price( $main_child );
 
 				$available_main = self::row_available( $main_child );
+				$in_stock_main  = self::row_in_stock( $main_child );
 				$sku_main       = '' !== Marketplace_Text::clean( $main_child['SKU'] ?? '' ) ? Marketplace_Text::clean( $main_child['SKU'] ?? '' ) : null;
 			} else {
 				list( $min_p, $min_old ) = self::min_price_from_children( $children );
 
 				$available_main = self::any_child_available( $children );
+				$in_stock_main  = self::any_child_in_stock( $children );
 				$sku_main       = null;
 			}
 
@@ -1420,6 +1584,7 @@ class Prom_Feed extends Marketplace_Feed {
 					array( $min_p, $min_old ),
 					$main_child ? $main_child : $children[0],
 					$available_main,
+					$in_stock_main,
 					$sku_main
 				);
 

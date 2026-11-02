@@ -61,7 +61,7 @@ require_once __DIR__ . '/../includes/trait-xml-rebuilder.php';
 require_once __DIR__ . '/../includes/class-xml-export-filter.php';
 require_once __DIR__ . '/../includes/class-xml-editor.php';
 require_once __DIR__ . '/../includes/class-image-processor.php';
-foreach ( array( 'marketplace-text', 'marketplace-category-tree', 'marketplace-feed', 'prom-variations', 'prom-categories', 'prom-feed', 'google-merchant-feed', 'marketplace-form', 'marketplace-registry', 'marketplace-storage' ) as $f2000cs_mp_file ) {
+foreach ( array( 'marketplace-text', 'marketplace-category-tree', 'marketplace-feed', 'prom-variations', 'prom-categories', 'prom-recommendations', 'prom-feed', 'google-merchant-feed', 'marketplace-form', 'marketplace-registry', 'marketplace-storage' ) as $f2000cs_mp_file ) {
 	require_once __DIR__ . '/../includes/marketplace/class-' . $f2000cs_mp_file . '.php';
 }
 require_once __DIR__ . '/../includes/marketplace/interface-marketplace-unit-source.php';
@@ -70,7 +70,7 @@ require_once __DIR__ . '/../includes/marketplace/class-marketplace-job.php';
 require_once __DIR__ . '/../includes/class-frontend-display.php';
 
 if ( ! defined( 'F2000CS_VERSION' ) ) {
-	define( 'F2000CS_VERSION', '0.6.10' );
+	define( 'F2000CS_VERSION', '0.7.6' );
 }
 
 if ( ! defined( 'F2000CS_DB_VERSION' ) ) {

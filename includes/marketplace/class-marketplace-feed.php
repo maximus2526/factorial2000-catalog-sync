@@ -49,7 +49,8 @@ abstract class Marketplace_Feed {
 	/**
 	 * Settings form schema: key => array( type, label, description, default, ...).
 	 *
-	 * Types: text, number, checkbox, textarea, select (with 'options').
+	 * Types: text, number, checkbox, textarea, select (with 'options'),
+	 * prom_attribute_map (Prom recommended characteristics).
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */
@@ -288,6 +289,10 @@ abstract class Marketplace_Feed {
 
 				case 'preset':
 					$out[ $key ] = $this->sanitize_preset( $key, $field, $raw );
+					break;
+
+				case 'prom_attribute_map':
+					$out[ $key ] = Prom_Recommendations::sanitize_json( null === $value ? (string) $default : $value );
 					break;
 
 				case 'pairs':

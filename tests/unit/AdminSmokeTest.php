@@ -365,4 +365,74 @@ final class F2000CS_Unit_AdminSmokeTest extends F2000CS_Unit_TestCase {
 			$this->assertCount( 1, $response->data['offers'] );
 		}
 	}
+
+	/**
+	 * The fake discount row is rendered but hidden until regular-price-only mode is on.
+	 *
+	 * @return void
+	 */
+	public function test_prom_recommended_attributes_modal_renders(): void {
+		$html = $this->capture(
+			static function () {
+				f2000cs_marketplace_render_prom_attribute_map(
+					'prom_attribute_map',
+					array( 'label' => 'Recommended' ),
+					'',
+					array(
+						'default_portal_category_id' => '',
+						'portal_category_rules'      => '',
+						'prom_attribute_map'         => '',
+					)
+				);
+			}
+		);
+
+		$this->assertStringContainsString( 'f2000cs-mp-open-attributes', $html );
+		$this->assertStringContainsString( 'f2000cs-prom-attrs-dialog', $html );
+		$this->assertStringContainsString( 'f2000cs-prom-attrs-table', $html );
+	}
+
+	public function test_prom_recommended_attributes_modal_lists_selected_categories(): void {
+		$html = $this->capture(
+			static function () {
+				f2000cs_marketplace_render_prom_attribute_map(
+					'prom_attribute_map',
+					array( 'label' => 'Recommended' ),
+					'{"30807":{"Стать":"pa_gender"}}',
+					array(
+						'default_portal_category_id' => '',
+						'portal_category_rules'      => 'x=30807',
+						'prom_attribute_map'         => '{"30807":{"Стать":"pa_gender"}}',
+					)
+				);
+			}
+		);
+
+		$this->assertStringContainsString( 'data-category="30807"', $html );
+		$this->assertStringContainsString( 'data-prom="Стать"', $html );
+		$this->assertStringContainsString( 'pa_gender', $html );
+	}
+
+	public function test_fake_discount_row_is_conditional(): void {
+		$field = ( new \F2000CS\Prom_Feed() )->fields()['fake_discount_percent'];
+
+		$hidden = $this->capture(
+			static function () use ( $field ) {
+				f2000cs_marketplace_render_field( 'fake_discount_percent', $field, '0', array( 'regular_price_only' => '0' ) );
+			}
+		);
+
+		$this->assertStringContainsString( 'f2000cs-mp-show-if', $hidden );
+		$this->assertStringContainsString( 'data-show-if-field="regular_price_only"', $hidden );
+		$this->assertStringContainsString( 'style="display:none"', $hidden );
+
+		$shown = $this->capture(
+			static function () use ( $field ) {
+				f2000cs_marketplace_render_field( 'fake_discount_percent', $field, '20', array( 'regular_price_only' => '1' ) );
+			}
+		);
+
+		$this->assertStringNotContainsString( 'style="display:none"', $shown );
+		$this->assertStringContainsString( 'value="20"', $shown );
+	}
 }
