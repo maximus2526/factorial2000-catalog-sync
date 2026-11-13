@@ -12,7 +12,7 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       factorial2000-catalog-sync
  *
- * @fs_premium_only /includes/pro-features.php, /admin/pro-settings.php, /includes/class-image-processor.php, /includes/class-xml-editor.php, /includes/class-xml-export-filter.php, /includes/trait-xml-rebuilder.php, /includes/parsers/class-fields-updater.php, /admin/xml-editor.php, /admin/images-settings.php, /admin/page-export.php, /assets/js/admin-xml-editor.js, /includes/marketplace/, /admin/page-marketplaces.php, /assets/js/admin-marketplaces.js, /admin/prom-category-field.php, /assets/js/admin-prom-category.js
+ * @fs_premium_only /includes/pro-features.php, /admin/pro-settings.php, /includes/class-image-processor.php, /includes/class-xml-editor.php, /includes/class-xml-export-filter.php, /includes/trait-xml-rebuilder.php, /includes/parsers/class-fields-updater.php, /includes/parsers/class-missing-offers-importer.php, /admin/xml-editor.php, /admin/images-settings.php, /admin/page-export.php, /assets/js/admin-xml-editor.js, /includes/marketplace/, /admin/page-marketplaces.php, /assets/js/admin-marketplaces.js, /admin/prom-category-field.php, /assets/js/admin-prom-category.js
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -68,6 +68,7 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 		require_once F2000CS_PATH . 'includes/pro-features.php';
 		require_once F2000CS_PATH . 'admin/pro-settings.php';
 		require_once F2000CS_PATH . 'includes/parsers/class-fields-updater.php';
+		require_once F2000CS_PATH . 'includes/parsers/class-missing-offers-importer.php';
 		require_once F2000CS_PATH . 'includes/trait-xml-rebuilder.php';
 		require_once F2000CS_PATH . 'includes/class-xml-export-filter.php';
 		require_once F2000CS_PATH . 'includes/class-xml-editor.php';

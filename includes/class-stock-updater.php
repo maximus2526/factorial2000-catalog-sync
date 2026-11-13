@@ -20,6 +20,11 @@ class XML_Stock_Updater {
 	const AUTO_DRAFT_META = '_f2000cs_auto_drafted';
 
 	/**
+	 * Meta key with the status a product had before the plugin drafted it ('publish' or 'private').
+	 */
+	const AUTO_DRAFT_FROM_META = '_f2000cs_auto_drafted_from';
+
+	/**
 	 * URL for fetching XML data.
 	 *
 	 * @var string
@@ -139,6 +144,20 @@ class XML_Stock_Updater {
 	private $price_adjust_value = 0.0;
 
 	/**
+	 * Supplier slot of this feed (0 = a URL that matches no slot).
+	 *
+	 * @var int
+	 */
+	private $slot = 0;
+
+	/**
+	 * Feed SKUs (with prefix) that matched no product in this run.
+	 *
+	 * @var string[]
+	 */
+	private $not_found_skus = array();
+
+	/**
 	 * XML_Stock_Updater constructor.
 	 *
 	 * @param string $xml_url URL for fetching XML data.
@@ -181,6 +200,16 @@ class XML_Stock_Updater {
 		// Get the current PHP max execution time and set our limit slightly below it
 		$current_limit            = ini_get( 'max_execution_time' );
 		$this->max_execution_time = ( $current_limit > 0 ) ? $current_limit - 5 : 0;
+	}
+
+	/**
+	 * Supplier slot this feed belongs to (enables per-slot options such as importing missing offers).
+	 *
+	 * @param int $slot Supplier slot 1+.
+	 * @return void
+	 */
+	public function set_slot( $slot ) {
+		$this->slot = absint( $slot );
 	}
 
 	/**
@@ -280,6 +309,9 @@ class XML_Stock_Updater {
 			// Find and report missing products
 			$this->find_missing_products_in_xml( $updates );
 
+			// Offers of the feed that are not on the site yet (Pro option per supplier).
+			$this->import_missing_offers( $start_time );
+
 			$this->log_memory_usage( $start_time, $start_memory, 'Оновлення завершено' );
 
 		} catch ( Exception $e ) {
@@ -288,6 +320,71 @@ class XML_Stock_Updater {
 			$this->cleanup_resources();
 			$this->send_report( microtime( true ) - $start_time );
 		}
+	}
+
+	/**
+	 * Hand the offers that matched no product to the importer of missing offers.
+	 *
+	 * The free build has no importer: the filter returns null and nothing happens.
+	 * The Pro build creates them (new products as private, new variations of
+	 * existing products) when the supplier has the option on.
+	 *
+	 * @param float $start_time Run start (microtime).
+	 * @return void
+	 */
+	private function import_missing_offers( $start_time ) {
+		if ( $this->slot < 1 || empty( $this->not_found_skus ) ) {
+			return;
+		}
+
+		$prefix_len = strlen( (string) $this->sku_prefix );
+		$skus       = array();
+
+		foreach ( $this->not_found_skus as $sku ) {
+			$skus[] = $prefix_len ? (string) substr( $sku, $prefix_len ) : $sku;
+		}
+
+		/**
+		 * Import the offers of a supplier feed that are not on the site.
+		 *
+		 * @param array|null $result Null when nothing imports them; otherwise counts:
+		 *                           products, variations, left (offers waiting for later runs).
+		 * @param array      $args {
+		 *     @type int      $slot       Supplier slot.
+		 *     @type string   $xml_url    Feed URL.
+		 *     @type string   $sku_prefix SKU prefix.
+		 *     @type string[] $skus       Feed offer ids (without prefix) that matched no product.
+		 *     @type float    $deadline   Unix time to stop by (0 = no limit).
+		 * }
+		 */
+		$result = apply_filters(
+			'f2000cs_import_missing_offers',
+			null,
+			array(
+				'slot'       => $this->slot,
+				'xml_url'    => $this->xml_url,
+				'sku_prefix' => (string) $this->sku_prefix,
+				'skus'       => $skus,
+				'deadline'   => $this->max_execution_time > 0 ? $start_time + $this->max_execution_time - 20 : 0,
+			)
+		);
+
+		if ( ! is_array( $result ) ) {
+			return;
+		}
+
+		$this->report['new_products']   = (int) ( $result['products'] ?? 0 );
+		$this->report['new_variations'] = (int) ( $result['variations'] ?? 0 );
+		$this->report['new_left']       = (int) ( $result['left'] ?? 0 );
+
+		$this->send_telegram_message(
+			sprintf(
+				'Нові з вигрузки: товарів %d (приватні), варіацій %d, у черзі ще %d',
+				$this->report['new_products'],
+				$this->report['new_variations'],
+				$this->report['new_left']
+			)
+		);
 	}
 
 	/**
@@ -710,6 +807,7 @@ class XML_Stock_Updater {
 
 				if ( ! $product_id ) {
 					++$not_found;
+					$this->not_found_skus[] = (string) $sku;
 					continue;
 				}
 
@@ -1342,10 +1440,13 @@ class XML_Stock_Updater {
 			return false;
 		}
 
+		// Back to the status it had: a private product (e.g. imported for review) stays private.
+		$status = 'private' === get_post_meta( $product_id, self::AUTO_DRAFT_FROM_META, true ) ? 'private' : 'publish';
+
 		$result = wp_update_post(
 			array(
 				'ID'          => $product_id,
-				'post_status' => 'publish',
+				'post_status' => $status,
 			),
 			true
 		);
@@ -1356,6 +1457,7 @@ class XML_Stock_Updater {
 		}
 
 		delete_post_meta( $product_id, self::AUTO_DRAFT_META );
+		delete_post_meta( $product_id, self::AUTO_DRAFT_FROM_META );
 		wc_delete_product_transients( $product_id );
 
 		return true;
@@ -1372,6 +1474,8 @@ class XML_Stock_Updater {
 
 		foreach ( $missing_products as $product ) {
 			try {
+				$previous_status = 'publish';
+
 				// Skip variable products (parent) and variations entirely
 				$product_obj = wc_get_product( $product->ID );
 				if ( $product_obj ) {
@@ -1385,6 +1489,8 @@ class XML_Stock_Updater {
 					if ( 'draft' === $product_obj->get_status() ) {
 						continue;
 					}
+
+					$previous_status = (string) $product_obj->get_status();
 				}
 
 				$result = wp_update_post(
@@ -1401,6 +1507,7 @@ class XML_Stock_Updater {
 					// Remember that the plugin (not the admin) drafted it, so it can be
 					// published again when the product returns to the feed.
 					update_post_meta( $product->ID, self::AUTO_DRAFT_META, time() );
+					update_post_meta( $product->ID, self::AUTO_DRAFT_FROM_META, $previous_status );
 
 					wc_delete_product_transients( $product->ID );
 				} else {

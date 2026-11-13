@@ -39,6 +39,77 @@ function f2000cs_pro_import_stock_qty_allowed( $allowed ) {
 add_filter( 'f2000cs_import_stock_qty_allowed', 'f2000cs_pro_import_stock_qty_allowed' );
 
 /**
+ * Import the offers a stock sync found no product for (Pro / trial, per supplier option).
+ *
+ * New products are created as private; new sizes/colors of products already on the
+ * site become variations of them. At most `f2000cs_import_missing_offers_limit` groups
+ * per run, so a big backlog is spread over several syncs.
+ *
+ * @param array|null $result Result from an earlier handler (null = nothing imported yet).
+ * @param array      $args   slot, xml_url, sku_prefix, skus, deadline.
+ * @return array|null
+ */
+function f2000cs_pro_import_missing_offers( $result, $args ) {
+	$slot = absint( $args['slot'] ?? 0 );
+
+	if ( null !== $result || $slot < 1 || ! f2000cs_is_pro() || ! f2000cs_supplier_has_saved_import_missing( $slot ) || empty( $args['skus'] ) ) {
+		return $result;
+	}
+
+	/**
+	 * How many feed groups / single offers the stock sync may import per supplier and run.
+	 *
+	 * @param int $limit Default 50.
+	 * @param int $slot  Supplier slot.
+	 */
+	$limit = (int) apply_filters( 'f2000cs_import_missing_offers_limit', 50, $slot );
+	if ( $limit < 1 ) {
+		return $result;
+	}
+
+	$file = wp_tempnam( 'f2000cs_missing_' );
+	if ( ! $file ) {
+		return $result;
+	}
+
+	try {
+		$response = wp_remote_get(
+			(string) $args['xml_url'],
+			array(
+				'timeout'   => 300,
+				'stream'    => true,
+				'filename'  => $file,
+				'sslverify' => f2000cs_ssl_verify_enabled(),
+			)
+		);
+
+		if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) || ! filesize( $file ) ) {
+			f2000cs_log( 'Import of missing offers skipped: the feed could not be downloaded again', 'warning' );
+			return $result;
+		}
+
+		$importer = new \F2000CS\Missing_Offers_Importer(
+			$file,
+			(string) ( $args['sku_prefix'] ?? '' ),
+			$slot,
+			f2000cs_get_price_adjust_settings( $slot ),
+			f2000cs_supplier_skip_price( $slot ),
+			f2000cs_supplier_updates_stock_qty( $slot )
+		);
+
+		return $importer->import_missing( (array) $args['skus'], $limit, (float) ( $args['deadline'] ?? 0 ) );
+	} catch ( \Throwable $e ) {
+		f2000cs_log( 'Import of missing offers failed: ' . $e->getMessage(), 'error' );
+		return $result;
+	} finally {
+		if ( file_exists( $file ) ) {
+			wp_delete_file( $file );
+		}
+	}
+}
+add_filter( 'f2000cs_import_missing_offers', 'f2000cs_pro_import_missing_offers', 10, 2 );
+
+/**
  * Cron intervals selectable in Pro.
  *
  * @return string[]
@@ -162,6 +233,7 @@ function f2000cs_register_pro_feature_guards() {
 
 	for ( $i = 1; $i <= $max; $i++ ) {
 		$keys[] = 'f2000cs_update_stock_qty_' . $i;
+		$keys[] = 'f2000cs_import_missing_' . $i;
 	}
 
 	$is_pro = f2000cs_is_pro();

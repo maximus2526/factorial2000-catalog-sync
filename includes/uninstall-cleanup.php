@@ -46,6 +46,8 @@ function f2000cs_uninstall_cleanup() {
 		delete_option( 'f2000cs_sku_prefix_' . $i );
 		delete_option( 'f2000cs_skip_price_' . $i );
 		delete_option( 'f2000cs_update_stock_qty_' . $i );
+		delete_option( 'f2000cs_import_missing_' . $i );
+		delete_option( 'f2000cs_auto_imported_' . $i );
 		delete_option( 'f2000cs_price_adjust_type_' . $i );
 		delete_option( 'f2000cs_price_adjust_direction_' . $i );
 		delete_option( 'f2000cs_price_adjust_value_' . $i );

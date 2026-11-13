@@ -260,6 +260,11 @@ function f2000cs_telegram_stock_report( array $r ) {
 		$lines[] = '🔄 Без змін';
 	}
 
+	if ( $n( 'new_products' ) || $n( 'new_variations' ) || $n( 'new_left' ) ) {
+		$lines[] = sprintf( '🆕 Нові з вигрузки: товарів %d (приватні) · варіацій %d', $n( 'new_products' ), $n( 'new_variations' ) )
+			. ( $n( 'new_left' ) ? ' · у черзі ще ' . $n( 'new_left' ) : '' );
+	}
+
 	if ( $n( 'off_sale' ) ) {
 		$lines[] = '🔻 Знято з продажу: ' . $n( 'off_sale' );
 	}
@@ -675,7 +680,7 @@ function f2000cs_make_stock_updater( $index, $xml_url, $sku_prefix = null ) {
 
 	$update_qty = f2000cs_supplier_updates_stock_qty( $index );
 
-	return new \F2000CS\XML_Stock_Updater(
+	$updater = new \F2000CS\XML_Stock_Updater(
 		$xml_url,
 		$sku_prefix,
 		f2000cs_supplier_skip_price( $index ),
@@ -683,6 +688,19 @@ function f2000cs_make_stock_updater( $index, $xml_url, $sku_prefix = null ) {
 		$update_qty,
 		f2000cs_supplier_qty_frozen( $index, $update_qty )
 	);
+	$updater->set_slot( $index );
+
+	return $updater;
+}
+
+/**
+ * Whether «import missing offers» is saved for a slot (it takes effect only with Pro).
+ *
+ * @param int $index Supplier slot 1+.
+ * @return bool
+ */
+function f2000cs_supplier_has_saved_import_missing( $index ) {
+	return f2000cs_option_is_on( 'f2000cs_import_missing_' . absint( $index ) );
 }
 
 /**
@@ -857,7 +875,7 @@ function f2000cs_get_supplier_option_register_max() {
 	if ( ! empty( $_POST ) && is_array( $_POST ) ) {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Only inspecting keys to register settings before save.
 		foreach ( array_keys( $_POST ) as $key ) {
-			if ( preg_match( '/^f2000cs_(?:url|sku_prefix|skip_price|update_stock_qty|price_adjust_(?:type|direction|value))_(\d+)$/', (string) $key, $m ) ) {
+			if ( preg_match( '/^f2000cs_(?:url|sku_prefix|skip_price|update_stock_qty|import_missing|price_adjust_(?:type|direction|value))_(\d+)$/', (string) $key, $m ) ) {
 				$max = max( $max, absint( $m[1] ) );
 			}
 		}

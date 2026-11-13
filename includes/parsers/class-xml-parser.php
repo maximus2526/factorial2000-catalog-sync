@@ -28,6 +28,7 @@ class XML_Parser {
 	private array $new_category_term_cache = array(); // Cache for terms nested under "Новинки".
 	protected string $sku_prefix           = '';
 	protected array $currencies            = array(); // Cache for currency rates (id => rate)
+	protected string $product_status       = 'publish'; // post_status of new products (variations are always published).
 
 	/**
 	 * XML_Parser constructor.
@@ -49,6 +50,281 @@ class XML_Parser {
 		$this->new_category_subcats = $new_category_subcats;
 		$this->import_stock_qty     = $import_stock_qty;
 		$this->in_stock_only        = $in_stock_only;
+	}
+
+	/**
+	 * Status of the products this parser creates ('publish', 'private' or 'draft').
+	 *
+	 * New variations of an existing product are always published: they show only
+	 * under their parent, which keeps its own status.
+	 *
+	 * @param string $status Post status.
+	 * @return void
+	 */
+	public function set_product_status( string $status ): void {
+		$this->product_status = in_array( $status, array( 'publish', 'private', 'draft' ), true ) ? $status : 'publish';
+	}
+
+	/**
+	 * Hook to adjust offer data right after it is read from the feed (prices etc.).
+	 *
+	 * @param array $offer_data Offer data from extract_offer_data().
+	 * @return array
+	 */
+	protected function prepare_offer_data( array $offer_data ): array {
+		return $offer_data;
+	}
+
+	/**
+	 * What already exists on the site for the given offers.
+	 *
+	 * @param string[] $skus Offer SKUs without prefix.
+	 * @return array<string,array{id:int,kind:string,parent:int}> SKU => id, kind
+	 *         ('simple', 'variable' or 'variation') and parent id (variations only).
+	 */
+	protected function lookup_existing( array $skus ): array {
+		$skus = array_values( array_unique( array_map( 'strval', $skus ) ) );
+		if ( empty( $skus ) ) {
+			return array();
+		}
+
+		$existing = array();
+
+		foreach ( $this->get_product_ids_by_skus( $skus ) as $sku => $id ) {
+			$id = (int) $id;
+
+			if ( 'product_variation' === get_post_type( $id ) ) {
+				$existing[ (string) $sku ] = array(
+					'id'     => $id,
+					'kind'   => 'variation',
+					'parent' => (int) wp_get_post_parent_id( $id ),
+				);
+				continue;
+			}
+
+			$existing[ (string) $sku ] = array(
+				'id'     => $id,
+				'kind'   => has_term( 'variable', 'product_type', $id ) ? 'variable' : 'simple',
+				'parent' => 0,
+			);
+		}
+
+		return $existing;
+	}
+
+	/**
+	 * How the missing offers of a feed group must be added to the site.
+	 *
+	 * - 'variations': the group already is a variable product → add its new offers as variations;
+	 * - 'simple':     the group's offers were imported as separate simple products → add the new
+	 *                 ones as simple products too (a new variable parent would duplicate them);
+	 * - 'new':        nothing of the group is on the site → create a variable product.
+	 *
+	 * @param string $group_id Group id from the feed.
+	 * @param array  $offers   All offers of the group (each with 'sku' without prefix).
+	 * @param array  $existing Result of lookup_existing() for these offers.
+	 * @return array{mode:string,parent:int}
+	 */
+	protected function classify_group( string $group_id, array $offers, array $existing ): array {
+		$parent = $this->find_group_parent( $group_id, $offers );
+		if ( $parent > 0 ) {
+			return array(
+				'mode'   => 'variations',
+				'parent' => $parent,
+			);
+		}
+
+		$has_simple = false;
+
+		foreach ( $offers as $offer ) {
+			$found = $existing[ (string) ( $offer['sku'] ?? '' ) ] ?? null;
+			if ( ! $found ) {
+				continue;
+			}
+
+			if ( 'variation' === $found['kind'] && $found['parent'] > 0 ) {
+				return array(
+					'mode'   => 'variations',
+					'parent' => (int) $found['parent'],
+				);
+			}
+
+			if ( 'variable' === $found['kind'] ) {
+				return array(
+					'mode'   => 'variations',
+					'parent' => (int) $found['id'],
+				);
+			}
+
+			$has_simple = true;
+		}
+
+		return array(
+			'mode'   => $has_simple ? 'simple' : 'new',
+			'parent' => 0,
+		);
+	}
+
+	/**
+	 * Add the offers that are not on the site yet as variations of an existing variable product.
+	 *
+	 * The new values are added to the parent's variation attribute. An offer without a value
+	 * for that attribute, or with a value another variation already has, is skipped: it would
+	 * make a variation nobody can select.
+	 *
+	 * @param int   $parent_id Variable product ID.
+	 * @param array $offers    Offers of the group (each with 'sku' without prefix).
+	 * @return int Number of variations created.
+	 */
+	protected function add_variations_to_parent( int $parent_id, array $offers ): int {
+		$existing = $this->get_product_ids_by_skus( array_map( 'strval', array_column( $offers, 'sku' ) ) );
+		$offers   = array_values(
+			array_filter(
+				$offers,
+				static function ( $offer ) use ( $existing ) {
+					return ! isset( $existing[ (string) ( $offer['sku'] ?? '' ) ] );
+				}
+			)
+		);
+
+		if ( empty( $offers ) ) {
+			return 0;
+		}
+
+		$product_attributes = get_post_meta( $parent_id, '_product_attributes', true );
+		$product_attributes = is_array( $product_attributes ) ? $product_attributes : array();
+
+		// Feed attribute name of every variation taxonomy of the parent.
+		$variation_attributes = array();
+		foreach ( $product_attributes as $taxonomy => $attribute ) {
+			if ( empty( $attribute['is_variation'] ) || empty( $attribute['is_taxonomy'] ) ) {
+				continue;
+			}
+
+			foreach ( $offers as $offer ) {
+				foreach ( array_keys( (array) ( $offer['attributes'] ?? array() ) ) as $attr_name ) {
+					if ( $this->attribute_taxonomy( (string) $attr_name ) === (string) $taxonomy ) {
+						$variation_attributes[ (string) $attr_name ] = array();
+					}
+				}
+			}
+		}
+
+		if ( empty( $variation_attributes ) ) {
+			f2000cs_log( sprintf( 'Cannot add variations to product #%d: its variation attribute is missing in the new offers', $parent_id ) );
+			return 0;
+		}
+
+		$taken = $this->taken_variation_values( $parent_id, $variation_attributes );
+		$valid = array();
+
+		foreach ( $offers as $offer ) {
+			$key = array();
+
+			foreach ( array_keys( $variation_attributes ) as $attr_name ) {
+				$value = (string) ( $offer['attributes'][ $attr_name ] ?? '' );
+				if ( '' === $value ) {
+					f2000cs_log( sprintf( 'Skipping new variation %s of product #%d: no "%s" value', (string) $offer['sku'], $parent_id, $attr_name ) );
+					continue 2;
+				}
+				// Variations store the term slug; a value without a term cannot be taken yet.
+				$term  = get_term_by( 'name', $value, $this->attribute_taxonomy( (string) $attr_name ) );
+				$key[] = $term ? (string) $term->slug : "\0new:" . $value;
+			}
+
+			$key = implode( '|', $key );
+			if ( isset( $taken[ $key ] ) ) {
+				f2000cs_log( sprintf( 'Skipping new variation %s of product #%d: another variation has the same value', (string) $offer['sku'], $parent_id ) );
+				continue;
+			}
+
+			$taken[ $key ] = true;
+			$valid[]       = $offer;
+
+			foreach ( array_keys( $variation_attributes ) as $attr_name ) {
+				$variation_attributes[ $attr_name ][] = (string) $offer['attributes'][ $attr_name ];
+			}
+		}
+
+		if ( empty( $valid ) ) {
+			return 0;
+		}
+
+		foreach ( $variation_attributes as $attr_name => $values ) {
+			$taxonomy = $this->attribute_taxonomy( $attr_name );
+			$term_ids = array();
+
+			foreach ( array_unique( $values ) as $value ) {
+				$term = get_term_by( 'name', $value, $taxonomy );
+				if ( $term ) {
+					$term_ids[] = (int) $term->term_id;
+					continue;
+				}
+
+				$term_info = $this->insert_term_with_slug( $value, $taxonomy );
+				if ( ! is_wp_error( $term_info ) ) {
+					$term_ids[] = (int) $term_info['term_id'];
+				}
+			}
+
+			if ( $term_ids ) {
+				wp_set_object_terms( $parent_id, $term_ids, $taxonomy, true );
+			}
+		}
+
+		$created = $this->create_product_variations( $parent_id, $valid, $variation_attributes );
+
+		if ( $created > 0 ) {
+			f2000cs_log( sprintf( 'Added %d new variation(s) to product #%d', $created, $parent_id ) );
+		}
+
+		return $created;
+	}
+
+	/**
+	 * Attribute value combinations (slugs joined with "|") the parent's variations already use.
+	 *
+	 * @param int   $parent_id            Variable product ID.
+	 * @param array $variation_attributes Feed attribute name => values.
+	 * @return array<string,bool>
+	 */
+	protected function taken_variation_values( int $parent_id, array $variation_attributes ): array {
+		global $wpdb;
+
+		$keys = array();
+		foreach ( array_keys( $variation_attributes ) as $attr_name ) {
+			$keys[] = 'attribute_' . $this->attribute_taxonomy( (string) $attr_name );
+		}
+
+		$taken = array();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh read of the parent's children.
+		$children = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT ID FROM {$wpdb->posts} WHERE post_parent = %d AND post_type = 'product_variation' AND post_status IN ('publish','private')",
+				$parent_id
+			)
+		);
+
+		foreach ( (array) $children as $child_id ) {
+			$key = array();
+			foreach ( $keys as $meta_key ) {
+				$key[] = (string) get_post_meta( (int) $child_id, $meta_key, true );
+			}
+			$taken[ implode( '|', $key ) ] = true;
+		}
+
+		return $taken;
+	}
+
+	/**
+	 * WooCommerce taxonomy of a feed attribute name (pa_ + transliterated slug, max 32 chars).
+	 *
+	 * @param string $attr_name Feed attribute name.
+	 * @return string
+	 */
+	protected function attribute_taxonomy( string $attr_name ): string {
+		return substr( 'pa_' . $this->sanitize_for_taxonomy( $attr_name ), 0, 32 );
 	}
 
 	/**
@@ -304,7 +580,7 @@ class XML_Parser {
 			}
 			++$total_offers;
 
-			$offer_data = $this->extract_offer_data( $offer );
+			$offer_data = $this->prepare_offer_data( $this->extract_offer_data( $offer ) );
 
 			// empty( '0' ) === true in PHP — treat any non-empty string as a real group_id.
 			$has_group_id = '' !== trim( (string) $offer_data['group_id'] );
@@ -337,6 +613,32 @@ class XML_Parser {
 			foreach ( $grouped_products as $group_id => $variations ) {
 				if ( 1 === count( $variations ) ) {
 					$simple_products[] = $variations[0];
+				}
+			}
+
+			// A group whose offers were imported as separate simple products earlier (one per
+			// color, say) gets its new offers as simple products too; variable mode would add a
+			// second parent next to them. One lookup for all groups keeps the AJAX steps cheap.
+			$multi = array_filter(
+				$grouped_products,
+				static function ( $variations ) {
+					return count( $variations ) > 1;
+				}
+			);
+
+			if ( $multi ) {
+				$existing = $this->lookup_existing( array_merge( ...array_map( fn( $v ) => array_column( $v, 'sku' ), array_values( $multi ) ) ) );
+
+				foreach ( $multi as $group_id => $variations ) {
+					if ( ! array_intersect_key( $existing, array_flip( array_map( 'strval', array_column( $variations, 'sku' ) ) ) ) ) {
+						continue;
+					}
+
+					if ( 'simple' === $this->classify_group( (string) $group_id, $variations, $existing )['mode'] ) {
+						foreach ( $variations as $offer_data ) {
+							$simple_products[] = $offer_data;
+						}
+					}
 				}
 			}
 			$grouped_products = array();
@@ -440,7 +742,7 @@ class XML_Parser {
 	 * @param array $offer_data Offer data from extract_offer_data().
 	 * @return bool
 	 */
-	private function offer_in_stock( array $offer_data ): bool {
+	protected function offer_in_stock( array $offer_data ): bool {
 		return 'instock' === ( $offer_data['available'] ?? '' );
 	}
 
@@ -468,7 +770,7 @@ class XML_Parser {
 	 * @param SimpleXMLElement $offer Offer element.
 	 * @return array Offer data.
 	 */
-	private function extract_offer_data( $offer ): array {
+	protected function extract_offer_data( $offer ): array {
 		$sku      = (string) $offer['id'];
 		$group_id = isset( $offer['group_id'] ) ? (string) $offer['group_id'] : '';
 		$title    = (string) $offer->name;
@@ -618,7 +920,7 @@ class XML_Parser {
 				'post_title'   => $title,
 				'post_name'    => $this->sanitize_slug( $title ),
 				'post_content' => $desc,
-				'post_status'  => 'publish',
+				'post_status'  => $this->product_status,
 				'post_type'    => 'product',
 			)
 		);
@@ -689,8 +991,23 @@ class XML_Parser {
 			return false;
 		}
 
-		if ( $this->find_group_parent( $group_id, $variations_data ) ) {
-			return false;
+		$plan = $this->classify_group(
+			$group_id,
+			$variations_data,
+			$this->lookup_existing( array_column( $variations_data, 'sku' ) )
+		);
+
+		// The group is on the site already: add only what is new, never a second parent.
+		if ( 'variations' === $plan['mode'] ) {
+			return $this->add_variations_to_parent( $plan['parent'], $variations_data ) > 0;
+		}
+
+		if ( 'simple' === $plan['mode'] ) {
+			$imported = false;
+			foreach ( $variations_data as $offer_data ) {
+				$imported = $this->import_simple_product( $offer_data ) || $imported;
+			}
+			return $imported;
 		}
 
 		$parent_sku = $this->group_parent_sku( $group_id, $variations_data );
@@ -707,7 +1024,7 @@ class XML_Parser {
 				'post_title'   => wp_strip_all_tags( (string) $parent_name ),
 				'post_name'    => $this->sanitize_slug( $parent_name ),
 				'post_content' => wp_kses_post( (string) $base_data['desc'] ),
-				'post_status'  => 'publish',
+				'post_status'  => $this->product_status,
 				'post_type'    => 'product',
 			)
 		);
@@ -1102,7 +1419,7 @@ class XML_Parser {
 	 * @param array $variation_attributes Variation attributes.
 	 * @return int Number of variations created.
 	 */
-	private function create_product_variations( int $parent_id, array $variations_data, array $variation_attributes ): int {
+	protected function create_product_variations( int $parent_id, array $variations_data, array $variation_attributes ): int {
 		$created = 0;
 
 		// Variations of one group usually share the same pictures; reuse the parent's

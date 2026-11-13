@@ -448,6 +448,7 @@ function f2000cs_render_supplier_card( $index, $as_template = false ) {
 			</div>
 
 			<?php f2000cs_render_supplier_qty_field( $slot ); ?>
+			<?php f2000cs_render_supplier_import_missing_field( $slot ); ?>
 		</div>
 
 		<?php f2000cs_render_supplier_price_adjust( $slot ); ?>

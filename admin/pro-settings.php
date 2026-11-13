@@ -27,6 +27,7 @@ function f2000cs_register_pro_settings() {
 
 	for ( $i = 1; $i <= $slot_max; $i++ ) {
 		register_setting( 'f2000cs_settings', 'f2000cs_update_stock_qty_' . $i, $flag_args );
+		register_setting( 'f2000cs_settings', 'f2000cs_import_missing_' . $i, $flag_args );
 	}
 
 	register_setting( 'f2000cs_settings', 'f2000cs_hide_variable_low_instock', $flag_args );
@@ -102,6 +103,37 @@ function f2000cs_render_supplier_qty_field( $slot ) {
 			<?php endif; ?>
 		</label>
 		<p class="description"><?php esc_html_e( 'Якщо в XML є quantity / stock_quantity — записати її в WooCommerce.', 'factorial2000-catalog-sync' ); ?></p>
+	</div>
+	<?php
+}
+
+/**
+ * «Додавати нові товари з вигрузки» checkbox of a supplier card.
+ *
+ * @param string $slot Slot number, or __INDEX__ for the JS template.
+ * @return void
+ */
+function f2000cs_render_supplier_import_missing_field( $slot ) {
+	$num    = absint( $slot );
+	$on     = $num ? get_option( 'f2000cs_import_missing_' . $num, '0' ) : '0';
+	$name   = 'f2000cs_import_missing_' . $slot;
+	$is_pro = f2000cs_is_pro();
+	?>
+	<div class="f2000cs-supplier-card__field<?php echo $is_pro ? '' : ' f2000cs-pro-feature'; ?>" <?php echo $is_pro ? '' : 'data-pro-tip="' . esc_attr__( 'Відкривається в Pro версії', 'factorial2000-catalog-sync' ) . '"'; ?>>
+		<input type="hidden" name="<?php echo esc_attr( $name ); ?>" value="0">
+		<label>
+			<input type="checkbox" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" value="1" <?php checked( $on, '1' ); ?> <?php disabled( ! $is_pro ); ?>>
+			<?php esc_html_e( 'Додавати нові товари й варіації з вигрузки', 'factorial2000-catalog-sync' ); ?>
+			<?php
+			echo f2000cs_tip_html( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes.
+				__( 'Під час автооновлення товари з XML, яких ще нема на сайті, додаються самі: новий розмір чи колір наявного товару — як його варіація, решта — як нові товари зі статусом «Приватний» (їх видно лише в адмінці, опублікуйте після перевірки). Лише ті, що є в наявності; до 50 груп за прогін. Видалений вами товар більше не додається.', 'factorial2000-catalog-sync' )
+			);
+			?>
+			<?php if ( ! $is_pro ) : ?>
+				<span class="f2000cs-pro-badge"><?php esc_html_e( 'Pro', 'factorial2000-catalog-sync' ); ?></span>
+			<?php endif; ?>
+		</label>
+		<p class="description"><?php esc_html_e( 'Нові товари — у статусі «Приватний», нові варіації — одразу до наявних товарів.', 'factorial2000-catalog-sync' ); ?></p>
 	</div>
 	<?php
 }
