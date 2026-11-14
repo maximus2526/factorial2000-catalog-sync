@@ -82,7 +82,9 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-feed.php';
 		require_once F2000CS_PATH . 'includes/marketplace/class-prom-variations.php';
 		require_once F2000CS_PATH . 'includes/marketplace/class-prom-categories.php';
+		require_once F2000CS_PATH . 'includes/marketplace/class-prom-values.php';
 		require_once F2000CS_PATH . 'includes/marketplace/class-prom-recommendations.php';
+		require_once F2000CS_PATH . 'includes/marketplace/class-prom-term-values.php';
 		require_once F2000CS_PATH . 'includes/marketplace/class-prom-feed.php';
 		require_once F2000CS_PATH . 'includes/marketplace/class-google-merchant-feed.php';
 		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-form.php';
@@ -93,7 +95,9 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-job.php';
 		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-cli.php';
 		require_once F2000CS_PATH . 'admin/prom-category-field.php';
+		require_once F2000CS_PATH . 'admin/class-prom-term-values-admin.php';
 		require_once F2000CS_PATH . 'admin/page-marketplaces.php';
+		\F2000CS\Prom_Term_Values_Admin::init();
 	}
 	require_once F2000CS_PATH . 'admin/premium-upsell.php';
 

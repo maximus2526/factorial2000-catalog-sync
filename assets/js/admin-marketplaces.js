@@ -307,6 +307,7 @@
 				$select.selectWoo({
 					width: '100%',
 					allowClear: true,
+					dropdownParent: $dialog,
 					placeholder: $select.data('placeholder') || 'Наш атрибут',
 					tags: true,
 					createTag: function (params) {
@@ -316,7 +317,47 @@
 					}
 				});
 			});
+
+			$dialog.off('select2:open.f2000cs').on('select2:open.f2000cs', 'select.f2000cs-mp-attr-select', function () {
+				var $select = $(this);
+				var instance = $select.data('select2');
+
+				if (!instance || !instance.$dropdown || !instance.$dropdown.length) {
+					return;
+				}
+
+				window.setTimeout(function () {
+					var anchorRect = instance.$container[0].getBoundingClientRect();
+					var dialogRect = $dialog[0].getBoundingClientRect();
+					var dropHeight = instance.$dropdown.find('.select2-dropdown').outerHeight() || 0;
+					var openAbove = dropHeight > 0 && (window.innerHeight - anchorRect.bottom) < (dropHeight + 8) && anchorRect.top > (dropHeight + 8);
+					var top = openAbove ? anchorRect.top - dialogRect.top - dropHeight : anchorRect.bottom - dialogRect.top;
+
+					instance.$dropdown.toggleClass('f2000cs-select2--above', openAbove);
+					instance.$dropdown.css({
+						position: 'absolute',
+						top: top + 'px',
+						left: (anchorRect.left - dialogRect.left) + 'px',
+						zIndex: 1000000
+					});
+					instance.$dropdown[0].style.setProperty('width', anchorRect.width + 'px', 'important');
+					instance.$dropdown.find('.select2-dropdown').each(function () {
+						this.style.setProperty('width', anchorRect.width + 'px', 'important');
+						this.style.setProperty('z-index', '1000000', 'important');
+					});
+				}, 0);
+			});
 		}
+
+		$dialog.find('.f2000cs-modal__body').off('scroll.f2000cs').on('scroll.f2000cs', function () {
+			$dialog.find('select.f2000cs-mp-attr-select').each(function () {
+				var instance = $(this).data('select2');
+
+				if (instance) {
+					instance.close();
+				}
+			});
+		});
 
 		$dialog.off('change.f2000cs', 'select.f2000cs-mp-attr-select').on('change.f2000cs', 'select.f2000cs-mp-attr-select', function () {
 			var $row = $(this).closest('[data-f2000cs-prom-row]');

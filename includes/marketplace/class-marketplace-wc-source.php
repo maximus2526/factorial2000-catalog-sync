@@ -260,6 +260,7 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 			$row[ "Attribute {$i} name" ]     = $attr['name'];
 			$row[ "Attribute {$i} value(s)" ] = $attr['value'];
 			$row[ "Attribute {$i} visible" ]  = $attr['visible'];
+			$row[ "Attribute {$i} term_ids" ] = $attr['term_ids'] ?? '';
 		}
 
 		return $row;
@@ -325,8 +326,8 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 	 * <param> elements, so the size suffix is not repeated in <name> and
 	 * <name_ua>. Other attributes stay in the title.
 	 *
-	 * @param \WC_Product $variation Variation.
-	 * @param \WC_Product $parent_product Parent product.
+	 * @param \WC_Product                                                $variation Variation.
+	 * @param \WC_Product                                                $parent_product Parent product.
 	 * @param array<int, array{name:string,value:string,visible:string}> $attributes Variation attributes.
 	 * @return string
 	 */
@@ -589,13 +590,15 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 				continue;
 			}
 
-			$values = array();
+			$values   = array();
+			$term_ids = array();
 
 			if ( $attribute->is_taxonomy() ) {
 				$name = (string) wc_attribute_label( $attribute->get_name() );
 
 				foreach ( (array) $attribute->get_terms() as $term ) {
-					$values[] = (string) $term->name;
+					$values[]   = (string) $term->name;
+					$term_ids[] = (string) $term->term_id;
 				}
 			} else {
 				$name = (string) $attribute->get_name();
@@ -606,9 +609,10 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 			}
 
 			$out[] = array(
-				'name'    => $name,
-				'value'   => implode( ', ', $values ),
-				'visible' => $attribute->get_visible() ? '1' : '0',
+				'name'     => $name,
+				'value'    => implode( ', ', $values ),
+				'visible'  => $attribute->get_visible() ? '1' : '0',
+				'term_ids' => implode( ',', $term_ids ),
 			);
 		}
 
@@ -641,21 +645,25 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 				continue;
 			}
 
+			$term_id = '';
+
 			if ( taxonomy_exists( (string) $key ) ) {
 				$name = (string) wc_attribute_label( (string) $key );
 				$term = get_term_by( 'slug', $value, (string) $key );
 
 				if ( $term && ! is_wp_error( $term ) ) {
-					$value = (string) $term->name;
+					$value   = (string) $term->name;
+					$term_id = (string) $term->term_id;
 				}
 			} else {
 				$name = $custom[ (string) $key ] ?? (string) $key;
 			}
 
 			$out[] = array(
-				'name'    => $name,
-				'value'   => $value,
-				'visible' => '1',
+				'name'     => $name,
+				'value'    => $value,
+				'visible'  => '1',
+				'term_ids' => $term_id,
 			);
 		}
 

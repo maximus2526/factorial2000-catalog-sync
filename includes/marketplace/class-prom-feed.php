@@ -720,6 +720,47 @@ class Prom_Feed extends Marketplace_Feed {
 	}
 
 	/**
+	 * Reduce a possibly multi-brand vendor to a single registered brand.
+	 *
+	 * Prom rejects unknown combined values like "Kiborg, Militex", so a
+	 * product may need one brand: Militex wins over Kiborg, Kiborg wins over
+	 * the rest, and placeholders ("Без бренду") are dropped.
+	 *
+	 * @param string $vendor Raw vendor string.
+	 * @return string
+	 */
+	public static function single_vendor( $vendor ): string {
+		$parts = array_filter( array_map( 'trim', preg_split( '/\s*,\s*/u', (string) $vendor ) ) );
+
+		if ( count( $parts ) <= 1 ) {
+			return Marketplace_Text::clean( (string) $vendor );
+		}
+
+		$drop   = array( 'без бренду', 'без бренда', 'невідомий виробник', 'невідомий', 'неизвестный производитель', 'неизвестный' );
+		$brands = array();
+
+		foreach ( $parts as $part ) {
+			if ( ! in_array( Marketplace_Text::lower( $part ), $drop, true ) ) {
+				$brands[] = $part;
+			}
+		}
+
+		if ( array() === $brands ) {
+			return '';
+		}
+
+		foreach ( array( 'militex', 'kiborg' ) as $preferred ) {
+			foreach ( $brands as $brand ) {
+				if ( Marketplace_Text::lower( $brand ) === $preferred ) {
+					return $brand;
+				}
+			}
+		}
+
+		return $brands[0];
+	}
+
+	/**
 	 * Brand as it must appear in Prom (aliases, default).
 	 *
 	 * @param string              $extracted Brand from the product.
@@ -727,7 +768,7 @@ class Prom_Feed extends Marketplace_Feed {
 	 * @return string
 	 */
 	public static function apply_vendor_for_prom( $extracted, array $settings ): string {
-		$v       = Marketplace_Text::clean( $extracted );
+		$v       = self::single_vendor( $extracted );
 		$aliases = self::parse_pairs( (string) ( $settings['vendor_aliases'] ?? '' ) );
 		$default = Marketplace_Text::clean( $settings['default_vendor'] ?? '' );
 
@@ -1057,7 +1098,7 @@ class Prom_Feed extends Marketplace_Feed {
 			$params = Prom_Variations::collect_params( $row, false );
 		}
 
-		$params = Prom_Recommendations::apply_params( $params, $portal, $settings );
+		$params = Prom_Recommendations::apply_params( $params, $portal, $settings, $row, $parent_row );
 
 		$seen = array();
 
@@ -1490,28 +1531,10 @@ class Prom_Feed extends Marketplace_Feed {
 			}
 		}
 
-		if ( $parent_row ) {
-			$baseline_main = array();
-
-			foreach ( $main_params as $pair ) {
-				$nk = Prom_Variations::normalized_attr_key( $pair[0] );
-
-				if ( '' !== $nk ) {
-					$baseline_main[ $nk ] = Marketplace_Text::clean( $pair[1] );
-				}
-			}
-
-			foreach ( $slot_entries as $i => $entry ) {
-				if ( isset( $full_by_vid[ $entry[0] ] ) ) {
-					$slot_entries[ $i ] = array(
-						$entry[0],
-						$entry[1],
-						Prom_Variations::drop_baseline_only_if_non_empty( $full_by_vid[ $entry[0] ], $baseline_main ),
-					);
-				}
-			}
-		}
-
+		// NOTE: variation offers keep their full aligned param sets on purpose.
+		// Dropping values equal to the main offer produced groups whose members
+		// were built on different characteristics ({Колір} vs {Колір, Розмір}),
+		// and Prom rejects such groups entirely. Uniform sets are required.
 		$main_entry = null;
 
 		if ( null !== $main_idx ) {

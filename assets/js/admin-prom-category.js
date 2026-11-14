@@ -65,9 +65,10 @@
 			},
 			ajax: {
 				url: cfg.ajaxUrl,
+				type: 'GET',
 				dataType: 'json',
 				delay: 250,
-				cache: true,
+				cache: false,
 				data: function (params) {
 					return { action: 'f2000cs_prom_category_search', nonce: cfg.nonce, q: params.term || '' };
 				},

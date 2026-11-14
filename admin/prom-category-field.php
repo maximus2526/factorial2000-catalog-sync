@@ -68,7 +68,16 @@ function f2000cs_prom_category_ajax_search() {
 		wp_send_json_error( array( 'message' => __( 'Недостатньо прав.', 'factorial2000-catalog-sync' ) ) );
 	}
 
-	$query = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
+	// Select2/selectWoo may send the search term as GET or POST depending on its
+	// transport configuration; accept both so typing always searches.
+	$raw_query = '';
+	foreach ( array( $_REQUEST, $_GET, $_POST ) as $source ) {
+		if ( isset( $source['q'] ) ) {
+			$raw_query = wp_unslash( $source['q'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce is checked above.
+			break;
+		}
+	}
+	$query = sanitize_text_field( is_scalar( $raw_query ) ? (string) $raw_query : '' );
 
 	wp_send_json_success( Prom_Categories::search( $query, 30 ) );
 }
@@ -153,9 +162,11 @@ add_action( 'save_post_product', 'f2000cs_prom_category_save' );
  */
 function f2000cs_prom_category_enqueue( $hook ) {
 	$hook       = (string) $hook;
-	$on_product = in_array( $hook, array( 'post.php', 'post-new.php' ), true ) && function_exists( 'get_current_screen' ) && get_current_screen() && 'product' === get_current_screen()->post_type;
+	$screen     = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+	$on_product = in_array( $hook, array( 'post.php', 'post-new.php' ), true ) && $screen && 'product' === $screen->post_type;
+	$on_term    = in_array( $hook, array( 'term.php', 'edit-tags.php' ), true ) && $screen && 0 === strpos( (string) $screen->taxonomy, 'pa_' );
 
-	if ( false === strpos( $hook, 'f2000cs-marketplaces' ) && ! $on_product ) {
+	if ( false === strpos( $hook, 'f2000cs-marketplaces' ) && ! $on_product && ! $on_term ) {
 		return;
 	}
 

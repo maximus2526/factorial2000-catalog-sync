@@ -445,7 +445,7 @@ class Prom_Recommendations {
 	 * @param array<string,mixed>                  $settings Feed settings.
 	 * @return array<int, array{0:string,1:string}>
 	 */
-	public static function apply_params( array $params, $portal, array $settings ): array {
+	public static function apply_params( array $params, $portal, array $settings, $row = null, $parent_row = null ): array {
 		$portal = Prom_Categories::sanitize_id( $portal );
 		$map    = self::map_from_settings( $settings );
 
@@ -453,15 +453,19 @@ class Prom_Recommendations {
 			return $params;
 		}
 
-		$site    = self::site_attributes();
-		$targets = array();
+		$site     = self::site_attributes();
+		$term_ids = self::row_term_ids( $row, $parent_row );
+		$targets  = array();
 
 		foreach ( $map[ $portal ] as $prom_name => $site_key ) {
 			$label = self::site_label( $site_key, $site );
 			$norm  = self::normalize( $label );
 
 			if ( '' !== $norm ) {
-				$targets[ $norm ][] = (string) $prom_name;
+				$targets[ $norm ][] = array(
+					'name' => (string) $prom_name,
+					'site' => (string) $site_key,
+				);
 			}
 		}
 
@@ -482,12 +486,20 @@ class Prom_Recommendations {
 			$norm      = self::normalize( $site_name );
 
 			if ( isset( $targets[ $norm ] ) ) {
-				foreach ( $targets[ $norm ] as $prom_name ) {
-					$key = Marketplace_Text::lower( $prom_name ) . "\x1f" . Marketplace_Text::lower( $value );
+				foreach ( $targets[ $norm ] as $target ) {
+					$prom_name = (string) $target['name'];
+					$ids       = isset( $term_ids[ $norm ] ) ? $term_ids[ $norm ] : array();
+					$mapped    = Prom_Term_Values::resolve( (string) $target['site'], $value, $portal, $ids, $prom_name );
+
+					if ( '' === $mapped ) {
+						continue;
+					}
+
+					$key = Marketplace_Text::lower( $prom_name ) . "\x1f" . Marketplace_Text::lower( $mapped );
 
 					if ( ! isset( $seen[ $key ] ) ) {
 						$seen[ $key ] = true;
-						$out[]        = array( $prom_name, $value );
+						$out[]        = array( $prom_name, $mapped );
 					}
 				}
 
@@ -499,6 +511,43 @@ class Prom_Recommendations {
 			if ( ! isset( $seen[ $key ] ) ) {
 				$seen[ $key ] = true;
 				$out[]        = $pair;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Term ids of the row attributes, keyed by normalized site label.
+	 *
+	 * @param array<string,string>|null $row        Row.
+	 * @param array<string,string>|null $parent_row Parent row.
+	 * @return array<string, array<int,int>>
+	 */
+	private static function row_term_ids( $row, $parent_row ): array {
+		$out = array();
+
+		foreach ( array_filter( array( $row, $parent_row ) ) as $source ) {
+			for ( $idx = 1; $idx <= 13; $idx++ ) {
+				$name = self::normalize( $source[ "Attribute {$idx} name" ] ?? '' );
+				$ids  = (string) ( $source[ "Attribute {$idx} term_ids" ] ?? '' );
+
+				if ( '' === $name || '' === $ids ) {
+					continue;
+				}
+
+				$ids = array_values(
+					array_filter(
+						array_map( 'intval', preg_split( '/[\s,]+/', $ids ) ),
+						static function ( $id ) {
+							return $id > 0;
+						}
+					)
+				);
+
+				if ( array() !== $ids ) {
+					$out[ $name ] = $ids;
+				}
 			}
 		}
 

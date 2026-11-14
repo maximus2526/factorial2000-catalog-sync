@@ -353,6 +353,24 @@ final class F2000CS_Unit_PromCategoriesTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * Select2 can send q in POST; the AJAX endpoint must accept it.
+	 *
+	 * @return void
+	 */
+	public function test_ajax_search_accepts_post_q(): void {
+		$_GET          = array();
+		$_POST['q']    = 'жіночі куртки';
+
+		try {
+			f2000cs_prom_category_ajax_search();
+			$this->fail( 'A JSON response was expected' );
+		} catch ( F2000CS_JsonResponseException $e ) {
+			$this->assertTrue( $e->success );
+			$this->assertSame( '31302', $e->data[0]['id'] );
+		}
+	}
+
+	/**
 	 * AJAX search returns matches; a bad nonce is refused.
 	 *
 	 * @return void
