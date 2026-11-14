@@ -198,6 +198,87 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * Offers that matched no product go to the missing-offers importer (without prefix),
+	 * and its counts land in the short report.
+	 *
+	 * @return void
+	 */
+	public function test_not_found_offers_are_handed_to_the_importer() {
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs_' );
+		file_put_contents(
+			$tmp,
+			'<?xml version="1.0"?><yml_catalog><shop><offers>' .
+			'<offer id="50297" available="true" group_id="21461381"><price>600</price></offer>' .
+			'</offers></shop></yml_catalog>'
+		);
+		update_option( 'f2000cs_telegram_token_id', '123:abc' );
+		update_option( 'f2000cs_telegram_user_ids', '111' );
+
+		$seen     = array();
+		$importer = function ( $result, $args ) use ( &$seen ) {
+			$seen = $args;
+			return array(
+				'products'   => 1,
+				'variations' => 2,
+				'left'       => 3,
+			);
+		};
+		add_filter( 'f2000cs_import_missing_offers', $importer, 10, 2 );
+
+		$updater = new XML_Stock_Updater( $tmp, 'VT_' );
+		$updater->set_slot( 3 );
+		$updater->update_products_stock_status();
+
+		remove_filter( 'f2000cs_import_missing_offers', $importer );
+		unlink( $tmp );
+
+		$this->assertSame( 3, $seen['slot'] );
+		$this->assertSame( 'VT_', $seen['sku_prefix'] );
+		$this->assertSame( array( '50297' ), $seen['skus'] );
+
+		$all = '';
+		foreach ( F2000CS_Test_State::$http_posts as $post ) {
+			$all .= $post['args']['body']['text'] . "\n";
+		}
+		$this->assertStringContainsString( 'Нові з вигрузки: товарів 1 (приватні) · варіацій 2 · у черзі ще 3', $all );
+	}
+
+	/**
+	 * A feed URL that matches no supplier slot never imports anything.
+	 *
+	 * @return void
+	 */
+	public function test_updater_without_slot_does_not_import() {
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs_' );
+		file_put_contents( $tmp, '<?xml version="1.0"?><yml_catalog><shop><offers><offer id="1" available="true"><price>1</price></offer></offers></shop></yml_catalog>' );
+
+		$called   = false;
+		$importer = function ( $result ) use ( &$called ) {
+			$called = true;
+			return $result;
+		};
+		add_filter( 'f2000cs_import_missing_offers', $importer );
+
+		( new XML_Stock_Updater( $tmp, 'VT_' ) )->update_products_stock_status();
+
+		remove_filter( 'f2000cs_import_missing_offers', $importer );
+		unlink( $tmp );
+
+		$this->assertFalse( $called );
+	}
+
+	/**
+	 * The stock updater of a supplier slot knows its slot.
+	 *
+	 * @return void
+	 */
+	public function test_factory_sets_the_slot() {
+		$updater = f2000cs_make_stock_updater( 3, 'x.xml', 'VT_' );
+
+		$this->assertSame( 3, F2000CS_Test_Reflection::get( $updater, 'slot' ) );
+	}
+
+	/**
 	 * An XML file without offers produces the "no data" message.
 	 *
 	 * @return void
@@ -292,6 +373,44 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 		$this->assertTrue( $result );
 		$this->assertSame( array( array( 'ID' => 42, 'post_status' => 'publish' ) ), F2000CS_Test_State::$updated_posts );
 		$this->assertEmpty( get_post_meta( 42, XML_Stock_Updater::AUTO_DRAFT_META, true ), 'The marker must be cleared after republishing' );
+	}
+
+	/**
+	 * A private product (e.g. imported by cron for review) goes back to private, not to publish.
+	 *
+	 * @return void
+	 */
+	public function test_returned_private_product_stays_private() {
+		update_post_meta( 43, XML_Stock_Updater::AUTO_DRAFT_META, 1700000000 );
+		update_post_meta( 43, XML_Stock_Updater::AUTO_DRAFT_FROM_META, 'private' );
+
+		$updater = new XML_Stock_Updater( 'x.xml', 'P_' );
+		F2000CS_Test_Reflection::invoke( $updater, 'maybe_republish_product', array( $this->fake_product( 43, 'draft' ) ) );
+
+		$this->assertSame( array( array( 'ID' => 43, 'post_status' => 'private' ) ), F2000CS_Test_State::$updated_posts );
+		$this->assertEmpty( get_post_meta( 43, XML_Stock_Updater::AUTO_DRAFT_FROM_META, true ) );
+	}
+
+	/**
+	 * Drafting a vanished product remembers the status it had.
+	 *
+	 * @return void
+	 */
+	public function test_drafting_remembers_the_previous_status() {
+		F2000CS_Test_State::$products[44] = new class() {
+			public function get_type() {
+				return 'simple';
+			}
+
+			public function get_status() {
+				return 'private';
+			}
+		};
+
+		$updater = new XML_Stock_Updater( 'x.xml', 'P_' );
+		F2000CS_Test_Reflection::invoke( $updater, 'convert_missing_products_to_draft', array( array( (object) array( 'ID' => 44 ) ) ) );
+
+		$this->assertSame( 'private', get_post_meta( 44, XML_Stock_Updater::AUTO_DRAFT_FROM_META, true ) );
 	}
 
 	/**

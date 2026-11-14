@@ -86,6 +86,16 @@ if ( ! function_exists( 'f2000cs_render_supplier_qty_field' ) ) {
 	function f2000cs_render_supplier_qty_field( $slot ) {} // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Same signature as the Pro version.
 }
 
+if ( ! function_exists( 'f2000cs_render_supplier_import_missing_field' ) ) {
+	/**
+	 * Supplier card «import missing offers» option (Pro only, nothing in the free build).
+	 *
+	 * @param string $slot Slot number or __INDEX__.
+	 * @return void
+	 */
+	function f2000cs_render_supplier_import_missing_field( $slot ) {} // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Same signature as the Pro version.
+}
+
 if ( ! function_exists( 'f2000cs_interval_render' ) ) {
 	/**
 	 * Update interval (free build: once a day).

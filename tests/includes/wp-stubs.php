@@ -224,6 +224,41 @@ final class F2000CS_Test_State {
 	public static $updated_posts = array();
 
 	/**
+	 * Terms by taxonomy and name for get_term_by( 'name' ) (objects with term_id, slug).
+	 *
+	 * @var array<string, array<string, object>>
+	 */
+	public static $terms = array();
+
+	/**
+	 * Object terms set through wp_set_object_terms(): list of [object_id, terms, taxonomy, append].
+	 *
+	 * @var array<int, array>
+	 */
+	public static $object_terms = array();
+
+	/**
+	 * Parent IDs by post ID for wp_get_post_parent_id().
+	 *
+	 * @var array<int, int>
+	 */
+	public static $post_parents = array();
+
+	/**
+	 * Product IDs whose product_type is 'variable' (for has_term()).
+	 *
+	 * @var array<int, bool>
+	 */
+	public static $variable_products = array();
+
+	/**
+	 * Arguments of every wp_insert_post() call.
+	 *
+	 * @var array<int, array>
+	 */
+	public static $inserted_posts = array();
+
+	/**
 	 * Reset all state between tests.
 	 *
 	 * Hook registrations are kept: they are installed once at bootstrap
@@ -268,6 +303,11 @@ final class F2000CS_Test_State {
 		self::$post_types          = array();
 		self::$post_meta           = array();
 		self::$updated_posts       = array();
+		self::$terms               = array();
+		self::$object_terms        = array();
+		self::$post_parents        = array();
+		self::$variable_products   = array();
+		self::$inserted_posts      = array();
 
 		// Mirror a fresh WP request: no stale globals from previous tests.
 		unset( $GLOBALS['product'] );
@@ -1450,6 +1490,10 @@ if ( ! function_exists( 'get_term_by' ) ) {
 	 * @return object|false
 	 */
 	function get_term_by( $field, $value, $taxonomy = '' ) {
+		if ( 'name' === $field && isset( F2000CS_Test_State::$terms[ $taxonomy ][ (string) $value ] ) ) {
+			return F2000CS_Test_State::$terms[ $taxonomy ][ (string) $value ];
+		}
+
 		return false;
 	}
 }
@@ -1463,7 +1507,46 @@ if ( ! function_exists( 'wp_set_object_terms' ) ) {
 	 * @return array
 	 */
 	function wp_set_object_terms( $object_id, $terms, $taxonomy, $append = false ) {
+		F2000CS_Test_State::$object_terms[] = array( (int) $object_id, (array) $terms, $taxonomy, (bool) $append );
+
 		return (array) $terms;
+	}
+}
+
+if ( ! function_exists( 'has_term' ) ) {
+	/**
+	 * @param string|array $term     Term.
+	 * @param string       $taxonomy Taxonomy.
+	 * @param int          $post     Post ID.
+	 * @return bool
+	 */
+	function has_term( $term = '', $taxonomy = '', $post = null ) {
+		return 'product_type' === $taxonomy && 'variable' === $term && ! empty( F2000CS_Test_State::$variable_products[ (int) $post ] );
+	}
+}
+
+if ( ! function_exists( 'wp_get_post_parent_id' ) ) {
+	/**
+	 * @param int $post Post ID.
+	 * @return int
+	 */
+	function wp_get_post_parent_id( $post = null ) {
+		return (int) ( F2000CS_Test_State::$post_parents[ (int) $post ] ?? 0 );
+	}
+}
+
+if ( ! function_exists( 'wp_insert_post' ) ) {
+	/**
+	 * Records the call and returns a new ID (1000+).
+	 *
+	 * @param array $postarr  Post data.
+	 * @param bool  $wp_error Whether to return WP_Error.
+	 * @return int
+	 */
+	function wp_insert_post( $postarr, $wp_error = false ) {
+		F2000CS_Test_State::$inserted_posts[] = $postarr;
+
+		return 1000 + count( F2000CS_Test_State::$inserted_posts );
 	}
 }
 
