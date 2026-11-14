@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Factorial2000 Catalog Sync for Prom.ua
- * Description:       Імпорт і синхронізація товарів WooCommerce з XML постачальників (YML/Prom.ua): оновлення наявності й цін за розкладом, імпорт простих і варіативних товарів з фото, атрибутами й категоріями, SKU-префікси, конвертація валют, Telegram-сповіщення. Pro: кілька постачальників, часті оновлення, коригування цін і кількість, оновлення окремих полів, обробка зображень, редактор вигрузок XML, вигрузка товарів сайту на Prom.ua з автооновленням. Free назавжди + Pro-тріал 14 днів без карти.
+ * Description:       Р†РјРїРѕСЂС‚ С– СЃРёРЅС…СЂРѕРЅС–Р·Р°С†С–СЏ С‚РѕРІР°СЂС–РІ WooCommerce Р· XML РїРѕСЃС‚Р°С‡Р°Р»СЊРЅРёРєС–РІ (YML/Prom.ua): РѕРЅРѕРІР»РµРЅРЅСЏ РЅР°СЏРІРЅРѕСЃС‚С– Р№ С†С–РЅ Р·Р° СЂРѕР·РєР»Р°РґРѕРј, С–РјРїРѕСЂС‚ РїСЂРѕСЃС‚РёС… С– РІР°СЂС–Р°С‚РёРІРЅРёС… С‚РѕРІР°СЂС–РІ Р· С„РѕС‚Рѕ, Р°С‚СЂРёР±СѓС‚Р°РјРё Р№ РєР°С‚РµРіРѕСЂС–СЏРјРё, SKU-РїСЂРµС„С–РєСЃРё, РєРѕРЅРІРµСЂС‚Р°С†С–СЏ РІР°Р»СЋС‚, Telegram-СЃРїРѕРІС–С‰РµРЅРЅСЏ. Pro: РєС–Р»СЊРєР° РїРѕСЃС‚Р°С‡Р°Р»СЊРЅРёРєС–РІ, С‡Р°СЃС‚С– РѕРЅРѕРІР»РµРЅРЅСЏ, РєРѕСЂРёРіСѓРІР°РЅРЅСЏ С†С–РЅ С– РєС–Р»СЊРєС–СЃС‚СЊ, РѕРЅРѕРІР»РµРЅРЅСЏ РѕРєСЂРµРјРёС… РїРѕР»С–РІ, РѕР±СЂРѕР±РєР° Р·РѕР±СЂР°Р¶РµРЅСЊ, СЂРµРґР°РєС‚РѕСЂ РІРёРіСЂСѓР·РѕРє XML, РІРёРіСЂСѓР·РєР° С‚РѕРІР°СЂС–РІ СЃР°Р№С‚Сѓ РЅР° Prom.ua Р· Р°РІС‚РѕРѕРЅРѕРІР»РµРЅРЅСЏРј. Free РЅР°Р·Р°РІР¶РґРё + Pro-С‚СЂС–Р°Р» 14 РґРЅС–РІ Р±РµР· РєР°СЂС‚Рё.
  * Version:           0.7.6
  * Requires at least: 5.8
  * Requires PHP:      7.4
@@ -12,7 +12,7 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       factorial2000-catalog-sync
  *
- * @fs_premium_only /includes/pro-features.php, /admin/pro-settings.php, /includes/class-image-processor.php, /includes/class-xml-editor.php, /includes/class-xml-export-filter.php, /includes/trait-xml-rebuilder.php, /includes/parsers/class-fields-updater.php, /includes/parsers/class-missing-offers-importer.php, /admin/xml-editor.php, /admin/images-settings.php, /admin/page-export.php, /assets/js/admin-xml-editor.js, /includes/marketplace/, /admin/page-marketplaces.php, /assets/js/admin-marketplaces.js, /admin/prom-category-field.php, /assets/js/admin-prom-category.js
+ * @fs_premium_only /includes/pro-features.php, /admin/pro-settings.php, /includes/class-image-processor.php, /includes/class-xml-editor.php, /includes/class-xml-export-filter.php, /includes/trait-xml-rebuilder.php, /includes/parsers/class-fields-updater.php, /includes/parsers/class-missing-offers-importer.php, /admin/xml-editor.php, /admin/images-settings.php, /admin/page-export.php, /assets/js/admin-xml-editor.js, /includes/marketplace/, /admin/page-marketplaces.php, /assets/js/admin-marketplaces.js, /admin/prom-category-field.php, /admin/class-prom-term-values-admin.php, /assets/js/admin-prom-category.js, /assets/js/admin-prom-term-values.js
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -36,7 +36,7 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 	/*
 	 * The other build is running, so this file's own activation hook (below) is
 	 * never registered. Freemius deactivates the other build on activation, which
-	 * clears the stock cron through its deactivation hook — schedule it again.
+	 * clears the stock cron through its deactivation hook вЂ” schedule it again.
 	 * Registered after set_basename(), so it runs after the Freemius hook.
 	 */
 	if ( function_exists( 'f2000cs_activate' ) ) {
@@ -157,7 +157,7 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 
 		echo '<div class="notice notice-error"><p>';
 		echo '<strong>Factorial2000 Catalog Sync:</strong> ';
-		echo esc_html__( 'Цей плагін потребує встановленого та активного WooCommerce.', 'factorial2000-catalog-sync' );
+		echo esc_html__( 'Р¦РµР№ РїР»Р°РіС–РЅ РїРѕС‚СЂРµР±СѓС” РІСЃС‚Р°РЅРѕРІР»РµРЅРѕРіРѕ С‚Р° Р°РєС‚РёРІРЅРѕРіРѕ WooCommerce.', 'factorial2000-catalog-sync' );
 		echo '</p></div>';
 	}
 
@@ -195,7 +195,7 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 	function f2000cs_check_resources() {
 		if ( get_transient( 'f2000cs_activated' ) ) {
 			echo '<div class="notice notice-success is-dismissible">';
-			echo '<p><strong>Factorial2000 Catalog Sync:</strong> ' . esc_html__( 'Плагін активовано. Налаштуйте параметри, щоб розпочати оновлення наявності.', 'factorial2000-catalog-sync' ) . '</p>';
+			echo '<p><strong>Factorial2000 Catalog Sync:</strong> ' . esc_html__( 'РџР»Р°РіС–РЅ Р°РєС‚РёРІРѕРІР°РЅРѕ. РќР°Р»Р°С€С‚СѓР№С‚Рµ РїР°СЂР°РјРµС‚СЂРё, С‰РѕР± СЂРѕР·РїРѕС‡Р°С‚Рё РѕРЅРѕРІР»РµРЅРЅСЏ РЅР°СЏРІРЅРѕСЃС‚С–.', 'factorial2000-catalog-sync' ) . '</p>';
 			echo '</div>';
 			delete_transient( 'f2000cs_activated' );
 		}
@@ -210,7 +210,7 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 
 		if ( ! f2000cs_is_configured() && 'f2000cs-update' === $current_page ) {
 			echo '<div class="notice notice-warning">';
-			echo '<p><strong>Factorial2000 Catalog Sync:</strong> ' . esc_html__( 'Вкажіть URL XML, щоб розпочати оновлення наявності.', 'factorial2000-catalog-sync' ) . '</p>';
+			echo '<p><strong>Factorial2000 Catalog Sync:</strong> ' . esc_html__( 'Р’РєР°Р¶С–С‚СЊ URL XML, С‰РѕР± СЂРѕР·РїРѕС‡Р°С‚Рё РѕРЅРѕРІР»РµРЅРЅСЏ РЅР°СЏРІРЅРѕСЃС‚С–.', 'factorial2000-catalog-sync' ) . '</p>';
 			echo '</div>';
 		}
 	}
@@ -239,7 +239,7 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 				function () use ( $missing ) {
 					echo '<div class="notice notice-error">';
 					echo '<p><strong>Factorial2000 Catalog Sync:</strong> ' .
-					esc_html__( 'Потрібні такі розширення PHP: ', 'factorial2000-catalog-sync' ) .
+					esc_html__( 'РџРѕС‚СЂС–Р±РЅС– С‚Р°РєС– СЂРѕР·С€РёСЂРµРЅРЅСЏ PHP: ', 'factorial2000-catalog-sync' ) .
 					esc_html( implode( ', ', $missing ) ) . '</p>';
 					echo '</div>';
 				}
