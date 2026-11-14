@@ -71,6 +71,7 @@ function f2000cs_uninstall_cleanup() {
 	delete_option( 'f2000cs_sku_prefix' );
 
 	delete_metadata( 'user', 0, 'f2000cs_last_import', '', true );
+	delete_metadata( 'term', 0, '_f2000cs_prom_value_map', '', true );
 
 	// Remove leftover transients created during import sessions
 	delete_transient( 'f2000cs_import_variations_temp' );
