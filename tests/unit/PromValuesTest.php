@@ -52,4 +52,25 @@ final class F2000CS_Unit_PromValuesTest extends F2000CS_Unit_TestCase {
 		$this->assertNull( F2000CS\Prom_Values::is_official( '30807', 'Невідомий атрибут', 'Чорний' ) );
 		$this->assertNull( F2000CS\Prom_Values::is_official( '999999', 'Колір', 'Чорний' ) );
 	}
+
+	/**
+	 * The bundled list must not push control characters into a feed.
+	 *
+	 * @return void
+	 */
+	public function test_bundled_values_have_no_control_characters() {
+		$bad = array();
+
+		foreach ( Prom_Values::all() as $category => $rows ) {
+			foreach ( $rows as $row ) {
+				foreach ( $row as $field => $value ) {
+					if ( preg_match( '/[\x00-\x1F\x7F]/', (string) $value ) ) {
+						$bad[] = $category . '/' . $row['value_id'] . '/' . $field;
+					}
+				}
+			}
+		}
+
+		$this->assertSame( array(), $bad );
+	}
 }

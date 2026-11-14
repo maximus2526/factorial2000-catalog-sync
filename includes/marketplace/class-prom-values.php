@@ -59,6 +59,15 @@ class Prom_Values {
 				continue;
 			}
 
+			// Values come from a scraped list; a stray carriage return would reach
+			// the Prom feed and break the official value match. Normalise it here.
+			$parts = array_map(
+				static function ( $part ) {
+					return trim( str_replace( "\r", ' ', (string) $part ) );
+				},
+				$parts
+			);
+
 			list( $category_id, $attribute_id, $attribute_uk, $attribute_ru, $value_id, $value_uk, $value_ru ) = $parts;
 
 			if ( '' === $category_id || '' === $value_id || ( '' === $value_uk && '' === $value_ru ) ) {
