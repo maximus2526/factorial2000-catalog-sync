@@ -12,7 +12,7 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       factorial2000-catalog-sync
  *
- * @fs_premium_only /includes/pro-features.php, /admin/pro-settings.php, /includes/class-image-processor.php, /includes/class-xml-editor.php, /includes/class-xml-export-filter.php, /includes/trait-xml-rebuilder.php, /includes/parsers/class-fields-updater.php, /includes/parsers/class-missing-offers-importer.php, /admin/xml-editor.php, /admin/images-settings.php, /admin/page-export.php, /assets/js/admin-xml-editor.js, /includes/marketplace/, /admin/page-marketplaces.php, /assets/js/admin-marketplaces.js, /admin/prom-category-field.php, /admin/class-prom-term-values-admin.php, /assets/js/admin-prom-category.js, /assets/js/admin-prom-term-values.js
+ * @fs_premium_only /includes/pro-features.php, /admin/pro-settings.php, /includes/class-image-processor.php, /includes/class-buy-on-prom.php, /assets/css/buy-on-prom.css, /includes/class-xml-editor.php, /includes/class-xml-export-filter.php, /includes/trait-xml-rebuilder.php, /includes/parsers/class-fields-updater.php, /includes/parsers/class-missing-offers-importer.php, /admin/xml-editor.php, /admin/images-settings.php, /admin/page-export.php, /assets/js/admin-xml-editor.js, /includes/marketplace/, /admin/page-marketplaces.php, /assets/js/admin-marketplaces.js, /admin/prom-category-field.php, /admin/class-prom-term-values-admin.php, /assets/js/admin-prom-category.js, /assets/js/admin-prom-term-values.js
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -73,6 +73,8 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 		require_once F2000CS_PATH . 'includes/class-xml-export-filter.php';
 		require_once F2000CS_PATH . 'includes/class-xml-editor.php';
 		require_once F2000CS_PATH . 'includes/class-image-processor.php';
+		require_once F2000CS_PATH . 'includes/class-buy-on-prom.php';
+		\F2000CS\Buy_On_Prom::init();
 		require_once F2000CS_PATH . 'admin/xml-editor.php';
 		require_once F2000CS_PATH . 'admin/images-settings.php';
 		require_once F2000CS_PATH . 'admin/page-export.php';

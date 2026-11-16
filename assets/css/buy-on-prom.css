@@ -1,0 +1,43 @@
+/**
+ * «Купити на Prom» button (shortcode [f2000cs_buy_on_prom]).
+ *
+ * WoodMart classes can be added at placement via the "class" attribute,
+ * e.g. [f2000cs_buy_on_prom class="btn btn-color-primary"].
+ */
+
+.f2000cs-buy-on-prom {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 12px 20px;
+	border-radius: 4px;
+	background: #6d28d9;
+	color: #fff;
+	font-weight: 600;
+	text-decoration: none;
+	line-height: 1.2;
+	transition: background 0.2s ease;
+}
+
+.f2000cs-buy-on-prom:hover,
+.f2000cs-buy-on-prom:focus {
+	background: #5b21b6;
+	color: #fff;
+	text-decoration: none;
+}
+
+.f2000cs-buy-on-prom__icon {
+	display: inline-flex;
+	flex: none;
+}
+
+.f2000cs-buy-on-prom__icon svg {
+	display: block;
+}
+
+@media (max-width: 767px) {
+	.f2000cs-buy-on-prom {
+		width: 100%;
+	}
+}

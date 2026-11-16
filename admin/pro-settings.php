@@ -1,7 +1,7 @@
 <?php
 /**
- * Pro settings UI: supplier stock quantity field, update interval, variable low-instock rule, Import page stock quantity option and the
- * «Оновити окремі поля» tab with its AJAX handler.
+ * Pro settings UI: supplier stock quantity field, update interval, variable low-instock rule, «Купити на Prom» button settings,
+ * Import page stock quantity option and the «Оновити окремі поля» tab with its AJAX handler.
  *
  * Premium-only file (listed in @fs_premium_only of the main plugin file). The
  * free build renders placeholders from admin/premium-upsell.php instead.
@@ -31,6 +31,14 @@ function f2000cs_register_pro_settings() {
 	}
 
 	register_setting( 'f2000cs_settings', 'f2000cs_hide_variable_low_instock', $flag_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_buy_on_prom_enabled', $flag_args );
+	register_setting(
+		'f2000cs_settings',
+		'f2000cs_buy_on_prom_shop',
+		array(
+			'sanitize_callback' => array( '\F2000CS\Buy_On_Prom', 'sanitize_shop' ),
+		)
+	);
 	register_setting(
 		'f2000cs_settings',
 		'f2000cs_variable_low_instock_max',
@@ -74,6 +82,80 @@ function f2000cs_register_pro_schedule_fields() {
 	);
 }
 add_action( 'f2000cs_register_schedule_fields', 'f2000cs_register_pro_schedule_fields' );
+
+/**
+ * «Кнопка “Купити на Prom”» section (Pro build).
+ *
+ * @return void
+ */
+function f2000cs_register_buy_on_prom_fields() {
+	add_settings_section(
+		'f2000cs_section_buy_on_prom',
+		__( 'Кнопка «Купити на Prom»', 'factorial2000-catalog-sync' ),
+		'f2000cs_section_buy_on_prom_intro',
+		'f2000cs'
+	);
+	add_settings_field(
+		'f2000cs_buy_on_prom_enabled',
+		f2000cs_with_tip(
+			__( 'Увімкнути кнопку', 'factorial2000-catalog-sync' ),
+			__( 'Вмикає шорткод [f2000cs_buy_on_prom]. За замовчуванням вимкнено.', 'factorial2000-catalog-sync' )
+		),
+		'f2000cs_buy_on_prom_enabled_render',
+		'f2000cs',
+		'f2000cs_section_buy_on_prom'
+	);
+	add_settings_field(
+		'f2000cs_buy_on_prom_shop',
+		f2000cs_with_tip(
+			__( 'Домен магазину на Prom', 'factorial2000-catalog-sync' ),
+			__( 'Наприклад: prom.ua або myshop.prom.ua. Посилання завжди ведуть на українську версію: https://домен/ua/p{ID}-{slug}.html.', 'factorial2000-catalog-sync' )
+		),
+		'f2000cs_buy_on_prom_shop_render',
+		'f2000cs',
+		'f2000cs_section_buy_on_prom'
+	);
+}
+add_action( 'f2000cs_register_buy_on_prom_fields', 'f2000cs_register_buy_on_prom_fields' );
+
+/**
+ * Intro under «Кнопка “Купити на Prom”»: short what & how.
+ *
+ * @return void
+ */
+function f2000cs_section_buy_on_prom_intro() {
+	echo '<p class="description">' . esc_html__( 'Кнопка веде зі сторінки товару на той самий товар у вашому магазині на Prom.ua. Як увімкнути: 1) вкажіть домен магазину; 2) увімкніть кнопку; 3) у картці товару (блок «Prom.ua — кнопка») вкажіть ID товару на Prom; 4) вставте шорткод [f2000cs_buy_on_prom] у single product layout. Без ID кнопка не показується.', 'factorial2000-catalog-sync' ) . '</p>';
+}
+
+/**
+ * Toggle the «Купити на Prom» button. Off by default.
+ *
+ * @return void
+ */
+function f2000cs_buy_on_prom_enabled_render() {
+	$val = get_option( 'f2000cs_buy_on_prom_enabled', '0' );
+	?>
+	<input type="hidden" name="f2000cs_buy_on_prom_enabled" value="0">
+	<label>
+		<input type="checkbox" name="f2000cs_buy_on_prom_enabled" value="1" <?php checked( $val, '1' ); ?>>
+		<?php esc_html_e( 'Показувати кнопку «Купити на Prom» (шорткод [f2000cs_buy_on_prom])', 'factorial2000-catalog-sync' ); ?>
+	</label>
+	<p class="description"><?php esc_html_e( 'За замовчуванням вимкнено. Товари без ID на Prom кнопку не показують.', 'factorial2000-catalog-sync' ); ?></p>
+	<?php
+}
+
+/**
+ * Prom shop domain field.
+ *
+ * @return void
+ */
+function f2000cs_buy_on_prom_shop_render() {
+	$shop = get_option( 'f2000cs_buy_on_prom_shop', '' );
+	?>
+	<input type="text" name="f2000cs_buy_on_prom_shop" value="<?php echo esc_attr( $shop ); ?>" placeholder="<?php esc_attr_e( 'myshop.prom.ua', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
+	<p class="description"><?php esc_html_e( 'Тільки домен, без https://. Посилання завжди ведуть на українську версію картки: https://домен/ua/p{ID}-{slug}.html.', 'factorial2000-catalog-sync' ); ?></p>
+	<?php
+}
 
 /**
  * «Оновлювати кількість товарів» checkbox of a supplier card.

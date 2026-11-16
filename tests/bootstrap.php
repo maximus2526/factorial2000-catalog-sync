@@ -70,6 +70,7 @@ require_once __DIR__ . '/../includes/marketplace/interface-marketplace-unit-sour
 require_once __DIR__ . '/../includes/marketplace/class-marketplace-wc-source.php';
 require_once __DIR__ . '/../includes/marketplace/class-marketplace-job.php';
 require_once __DIR__ . '/../includes/class-frontend-display.php';
+require_once __DIR__ . '/../includes/class-buy-on-prom.php';
 
 if ( ! defined( 'F2000CS_VERSION' ) ) {
 	define( 'F2000CS_VERSION', '0.7.6' );

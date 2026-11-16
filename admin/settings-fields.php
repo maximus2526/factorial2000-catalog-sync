@@ -155,6 +155,11 @@ function f2000cs_settings_init() {
 		'f2000cs_section_schedule'
 	);
 
+	/**
+	 * Register the «Купити на Prom» section (Pro build).
+	 */
+	do_action( 'f2000cs_register_buy_on_prom_fields' );
+
 	add_settings_section(
 		'f2000cs_section_telegram',
 		__( 'Telegram-сповіщення', 'factorial2000-catalog-sync' ),
