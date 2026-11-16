@@ -193,6 +193,11 @@ add_action( 'admin_init', 'f2000cs_enable_license_key_on_free_build', 20 );
  * @return bool
  */
 function f2000cs_is_paying() {
+	// Dev/testing: preview the Free experience without deactivating a real license.
+	if ( defined( 'F2000CS_FORCE_FREE' ) && F2000CS_FORCE_FREE ) {
+		return false;
+	}
+
 	$fs = f2000cs_fs();
 
 	return $fs && method_exists( $fs, 'is_paying' ) && $fs->is_paying();
@@ -268,6 +273,10 @@ function f2000cs_is_pro() {
 		$is_pro = false;
 	}
 
+	if ( defined( 'F2000CS_FORCE_FREE' ) && F2000CS_FORCE_FREE ) {
+		$is_pro = false;
+	}
+
 	/**
 	 * Filter Pro unlock status (trial included).
 	 *
@@ -301,21 +310,127 @@ function f2000cs_premium_build_missing_notice() {
 		return;
 	}
 
-	$fs  = f2000cs_fs();
-	$url = ( $fs && method_exists( $fs, 'get_account_url' ) ) ? $fs->get_account_url() : '';
+	// The Update page's trial countdown already carries the download prompt.
+	if ( f2000cs_is_fs_trial() && false !== strpos( $id, 'f2000cs-update' ) && false === strpos( $id, 'f2000cs-update-' ) ) {
+		return;
+	}
+
+	$fs           = f2000cs_fs();
+	$account_url  = ( $fs && method_exists( $fs, 'get_account_url' ) ) ? $fs->get_account_url() : '';
+	$download_url = ( ( f2000cs_is_paying() || f2000cs_is_fs_trial() ) && $fs && method_exists( $fs, '_get_latest_download_local_url' ) )
+		? (string) $fs->_get_latest_download_local_url()
+		: '';
+	$on_trial     = f2000cs_is_fs_trial();
 	?>
-	<div class="notice notice-warning">
-		<p>
-			<strong>Factorial2000 Catalog Sync:</strong>
-			<?php esc_html_e( 'Ліцензія, тріал або збережені Pro-налаштування (оновлення кількості) є, але встановлена безкоштовна версія плагіна. Кількість (і статус товарів із керованою кількістю) не оновлюється, поки не встановлено Pro. Pro-функції (кілька постачальників, часті оновлення, оновлення кількості, маркетплейси, редактор вигрузок, оновлення полів, обробка зображень) працюють лише в Pro-збірці. Завантажте та встановіть Pro-версію зі сторінки акаунта Freemius.', 'factorial2000-catalog-sync' ); ?>
-			<?php if ( '' !== $url ) : ?>
-				<a href="<?php echo esc_url( $url ); ?>"><?php esc_html_e( 'Відкрити акаунт', 'factorial2000-catalog-sync' ); ?></a>
+	<div class="notice notice-error f2000cs-pro-download-notice" style="border-left-width:6px;padding:12px 16px;background:#fff8e5;">
+		<p style="font-size:15px;margin:0 0 6px;">
+			<strong>
+				<?php
+				echo esc_html(
+					$on_trial
+						? __( '⚠ Pro-тріал активовано, але Pro-функції ще НЕ працюють', 'factorial2000-catalog-sync' )
+						: __( '⚠ Pro-ліцензія є, але Pro-функції ще НЕ працюють', 'factorial2000-catalog-sync' )
+				);
+				?>
+			</strong>
+		</p>
+		<p style="margin:0 0 10px;">
+			<?php esc_html_e( 'Зараз встановлена безкоштовна версія плагіна. Щоб працювали функції Pro (кілька постачальників, часті оновлення, оновлення кількості, маркетплейси, редактор вигрузок, оновлення полів, обробка зображень), завантажте Pro-збірку й встановіть її: Плагіни → Додати новий → Завантажити плагін. Налаштування збережуться.', 'factorial2000-catalog-sync' ); ?>
+		</p>
+		<p style="margin:0;">
+			<?php if ( '' !== $download_url ) : ?>
+				<a class="button button-primary button-hero" href="<?php echo esc_url( $download_url ); ?>"><?php esc_html_e( '⬇ Завантажити Pro-версію', 'factorial2000-catalog-sync' ); ?></a>
+			<?php endif; ?>
+			<?php if ( '' !== $account_url ) : ?>
+				<a class="button" style="margin-left:8px;vertical-align:middle;" href="<?php echo esc_url( $account_url ); ?>"><?php esc_html_e( 'Відкрити Account', 'factorial2000-catalog-sync' ); ?></a>
 			<?php endif; ?>
 		</p>
 	</div>
 	<?php
 }
 add_action( 'admin_notices', 'f2000cs_premium_build_missing_notice' );
+
+/**
+ * Freemius Account page: readable tags + a visible "download Pro" block.
+ *
+ * @return void
+ */
+function f2000cs_account_page_extras() {
+	$fs = f2000cs_fs();
+	if ( ! $fs || ! method_exists( $fs, 'add_action' ) ) {
+		return;
+	}
+
+	$fs->add_action( 'after_account_details', 'f2000cs_render_account_download_box' );
+}
+add_action( 'f2000cs_fs_loaded', 'f2000cs_account_page_extras' );
+
+/**
+ * Inline CSS for the Freemius Account page (theme admin styles wash out tags).
+ *
+ * @return void
+ */
+function f2000cs_account_page_styles() {
+	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+	if ( ! $screen || false === strpos( (string) $screen->id, 'f2000cs-update-account' ) ) {
+		return;
+	}
+	?>
+	<style>
+		#fs_account label.fs-tag,#fs_account span.fs-tag{color:#fff!important;font-weight:600;font-size:12px;line-height:12px;padding:5px 8px;border-radius:3px;text-shadow:none}
+		#fs_account label.fs-tag.fs-warn,#fs_account span.fs-tag.fs-warn{background:#b26200!important}
+		#fs_account label.fs-tag.fs-success,#fs_account span.fs-tag.fs-success{background:#1e7e34!important}
+		#fs_account label.fs-tag.fs-error{background:#c62828!important}
+		#fs_account_details .button-group{display:inline-flex;flex-wrap:wrap;margin-top:8px}
+		.f2000cs-account-download{max-width:800px;margin:16px 0;padding:16px 20px;background:#fff8e5;border:1px solid #f0c36d;border-left:6px solid #dba617;box-sizing:border-box}
+		.f2000cs-account-download h3{margin:0 0 6px;font-size:16px}
+		.f2000cs-account-download p{margin:0 0 12px}
+	</style>
+	<?php
+}
+add_action( 'admin_head', 'f2000cs_account_page_styles' );
+
+/**
+ * "Download Pro" block under the Freemius account details (license or trial).
+ *
+ * @return void
+ */
+function f2000cs_render_account_download_box() {
+	if ( ! f2000cs_is_paying() && ! f2000cs_is_fs_trial() ) {
+		return;
+	}
+
+	$fs  = f2000cs_fs();
+	$url = ( $fs && method_exists( $fs, '_get_latest_download_local_url' ) ) ? (string) $fs->_get_latest_download_local_url() : '';
+	if ( '' === $url ) {
+		return;
+	}
+
+	$installed = f2000cs_has_premium_code();
+	?>
+	<div class="f2000cs-account-download">
+		<h3>
+			<?php
+			echo esc_html(
+				$installed
+					? __( 'Pro-збірка встановлена', 'factorial2000-catalog-sync' )
+					: __( '⚠ Щоб працювали Pro-функції, завантажте Pro-версію', 'factorial2000-catalog-sync' )
+			);
+			?>
+		</h3>
+		<p>
+			<?php
+			echo esc_html(
+				$installed
+					? __( 'Pro-функції вже працюють. Завантажте архів, якщо потрібно перевстановити плагін або поставити його на інший сайт.', 'factorial2000-catalog-sync' )
+					: __( 'Зараз стоїть безкоштовна версія — тріал або ліцензія самі по собі Pro не вмикають. Завантажте архів і встановіть його: Плагіни → Додати новий → Завантажити плагін. Налаштування збережуться.', 'factorial2000-catalog-sync' )
+			);
+			?>
+		</p>
+		<a class="button button-primary button-hero" href="<?php echo esc_url( $url ); ?>"><?php esc_html_e( '⬇ Завантажити Pro-версію', 'factorial2000-catalog-sync' ); ?></a>
+	</div>
+	<?php
+}
 
 /**
  * Max new supplier slots for messaging / Free plan.
@@ -772,11 +887,6 @@ function f2000cs_render_trial_countdown() {
 
 	$ends = f2000cs_get_trial_ends_at();
 
-	// A trial on the free build unlocks nothing until the Pro build is installed;
-	// f2000cs_premium_build_missing_notice() says so instead of a countdown.
-	if ( $ends > time() && ! f2000cs_has_premium_code() ) {
-		return;
-	}
 
 	if ( $ends <= time() ) {
 		if ( ! f2000cs_is_pro() ) {
@@ -784,6 +894,7 @@ function f2000cs_render_trial_countdown() {
 			echo esc_html__( 'Зараз у вас безкоштовна версія: 1 постачальник (плюс уже збережені під час тріалу) і 3 оновлення наявності на добу.', 'factorial2000-catalog-sync' );
 			echo ' <a href="' . esc_url( f2000cs_get_upgrade_url() ) . '">' . esc_html__( 'Дивитись Pro', 'factorial2000-catalog-sync' ) . '</a>';
 			echo '</p></div>';
+			f2000cs_render_trial_offer();
 			f2000cs_render_pro_plans_panel();
 		}
 		return;
@@ -811,9 +922,74 @@ function f2000cs_render_trial_countdown() {
 	echo ' — ' . esc_html__( 'повний доступ як у Pro. Після тріалу обмеження Free повернуться.', 'factorial2000-catalog-sync' );
 	echo ' <a href="' . esc_url( f2000cs_get_upgrade_url() ) . '">' . esc_html__( 'Оформити Pro', 'factorial2000-catalog-sync' ) . '</a>';
 	echo '</p>';
+
+	// A trial on the free build unlocks nothing until the Pro build is installed.
+	if ( ! f2000cs_has_premium_code() ) {
+		$fs           = f2000cs_fs();
+		$download_url = ( $fs && method_exists( $fs, '_get_latest_download_local_url' ) ) ? (string) $fs->_get_latest_download_local_url() : '';
+
+		echo '<p><strong>' . esc_html__( '⚠ Щоб Pro-функції працювали, завантажте й встановіть Pro-збірку', 'factorial2000-catalog-sync' ) . '</strong> — ';
+		echo esc_html__( 'Плагіни → Додати новий → Завантажити плагін. Налаштування збережуться.', 'factorial2000-catalog-sync' ) . '</p>';
+		if ( '' !== $download_url ) {
+			echo '<p><a class="button button-primary" href="' . esc_url( $download_url ) . '">' . esc_html__( '⬇ Завантажити Pro-версію', 'factorial2000-catalog-sync' ) . '</a></p>';
+		}
+	}
 	echo '</div>';
 
 	f2000cs_render_pro_plans_panel( true );
+}
+
+/**
+ * Freemius trial start URL when this site can still start a trial, or ''.
+ *
+ * @return string
+ */
+function f2000cs_get_available_trial_url() {
+	$fs = f2000cs_fs();
+	if ( ! $fs || f2000cs_is_paying() || f2000cs_is_fs_trial() ) {
+		return '';
+	}
+
+	if ( method_exists( $fs, 'is_trial_utilized' ) && $fs->is_trial_utilized() ) {
+		return '';
+	}
+
+	if ( method_exists( $fs, 'has_trial_plan' ) && ! $fs->has_trial_plan() ) {
+		return '';
+	}
+
+	// Skipped opt-in (anonymous): Freemius does not register the pricing/trial
+	// page, so a trial link 403s ("not allowed to access this page"). Send the
+	// admin through the opt-in screen first; Freemius then offers the trial.
+	if ( method_exists( $fs, 'is_registered' ) && ! $fs->is_registered() ) {
+		if ( method_exists( $fs, 'is_anonymous' ) && $fs->is_anonymous() && method_exists( $fs, 'get_reconnect_url' ) ) {
+			return (string) $fs->get_reconnect_url( array( 'trial' => 'true' ) );
+		}
+
+		return method_exists( $fs, 'get_activation_url' )
+			? (string) $fs->get_activation_url( array( 'trial' => 'true' ) )
+			: '';
+	}
+
+	return method_exists( $fs, 'get_trial_url' ) ? (string) $fs->get_trial_url() : '';
+}
+
+/**
+ * "Start free Pro trial" call to action for Free sites that never used the trial.
+ *
+ * @return void
+ */
+function f2000cs_render_trial_offer() {
+	$url = f2000cs_get_available_trial_url();
+	if ( '' === $url ) {
+		return;
+	}
+
+	echo '<div class="notice notice-success f2000cs-trial-offer"><p>';
+	echo '<strong>' . esc_html__( 'Спробуйте Pro безкоштовно 14 днів', 'factorial2000-catalog-sync' ) . '</strong> — ';
+	echo esc_html__( 'без банківської карти. Усі Pro-функції: необмежено постачальників, часті оновлення, кількість, маркетплейси.', 'factorial2000-catalog-sync' );
+	echo ' <a class="button button-primary" href="' . esc_url( $url ) . '">' . esc_html__( 'Активувати тріал', 'factorial2000-catalog-sync' ) . '</a>';
+	echo '</p></div>';
 }
 
 /**
@@ -834,13 +1010,13 @@ function f2000cs_render_pro_plans_panel( $compact = false ) {
 	$on_trial = f2000cs_is_pro();
 
 	$cta_monthly  = $on_trial
-		? __( 'Залишитись · місяць', 'factorial2000-catalog-sync' )
+		? __( 'Перейти на Pro · місяць', 'factorial2000-catalog-sync' )
 		: __( 'Оформити на місяць', 'factorial2000-catalog-sync' );
 	$cta_yearly   = $on_trial
-		? __( 'Залишитись · рік', 'factorial2000-catalog-sync' )
+		? __( 'Перейти на Pro · рік', 'factorial2000-catalog-sync' )
 		: __( 'Оформити на рік', 'factorial2000-catalog-sync' );
 	$cta_lifetime = $on_trial
-		? __( 'Залишитись · назавжди', 'factorial2000-catalog-sync' )
+		? __( 'Перейти на Pro · назавжди', 'factorial2000-catalog-sync' )
 		: __( 'Купити назавжди', 'factorial2000-catalog-sync' );
 
 	$pro_features = array(

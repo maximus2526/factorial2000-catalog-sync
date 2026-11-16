@@ -275,14 +275,24 @@ smoke_check( 'trial: Pro only in the Pro build', f2000cs_is_pro() === $pro );
 smoke_check( 'trial: end date read', f2000cs_get_trial_ends_at() > time() );
 $html = smoke_capture( 'f2000cs_render_trial_countdown' );
 smoke_check(
-	'trial: countdown ' . ( $pro ? 'shown' : 'hidden on the free build' ),
-	( false !== strpos( $html, 'f2000cs-trial-countdown' ) ) === $pro
+	'trial: countdown shown',
+	false !== strpos( $html, 'f2000cs-trial-countdown' )
 );
-$html = smoke_capture( 'f2000cs_premium_build_missing_notice' );
 smoke_check(
-	'trial: «install Pro» notice ' . ( $pro ? 'absent' : 'shown' ),
+	'trial: download prompt ' . ( $pro ? 'absent' : 'shown' ) . ' in countdown',
+	( false !== strpos( $html, 'Pro-збірку' ) ) === ! $pro
+);
+smoke_check(
+	'trial: no duplicate build notice on the Update page',
+	'' === trim( smoke_capture( 'f2000cs_premium_build_missing_notice' ) )
+);
+$screen->id = 'dashboard';
+$html       = smoke_capture( 'f2000cs_premium_build_missing_notice' );
+smoke_check(
+	'trial: «install Pro» notice ' . ( $pro ? 'absent' : 'shown' ) . ' elsewhere',
 	( false !== strpos( $html, 'example.org/account' ) ) === ! $pro
 );
+$screen->id = 'catalog-sync_page_f2000cs-update';
 smoke_check( 'trial: effective interval', f2000cs_get_effective_update_interval() === ( $pro ? '5_minute' : 'daily' ) );
 smoke_check( 'trial: supplier slots', f2000cs_can_add_supplier_slot() === $pro );
 

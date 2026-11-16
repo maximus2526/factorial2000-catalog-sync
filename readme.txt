@@ -5,7 +5,7 @@ Tags: woocommerce, prom-ua, xml-import, stock-sync, marketplace
 Requires at least: 5.8
 Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 0.7.6
+Stable tag: 0.7.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -188,6 +188,9 @@ This service is provided by Freemius. Terms of Service: https://freemius.com/ter
 
 == Upgrade Notice ==
 
+= 0.7.7 =
+Free 14-day Pro trial (no card) can be started right from the plugin, plus new Pro stock-sync and Prom feed options. Pro users: update the Pro build from your Freemius account.
+
 = 0.7.6 =
 The Prom feed can add a fake discount: the current price stays, and `<oldprice>` is raised by the percentage you set. Works only with «Не передавати знижки — лише основну ціну». Pro users: update the Pro build from your Freemius account.
 
@@ -210,6 +213,19 @@ Large Prom feeds (over 180 MB) are now split into several links automatically, a
 Pro features moved to a separate Pro build. If you use a Pro license, stock quantity updates or the marketplace feed, install the Pro version from your Freemius account before updating. Price adjustment now works in the Free version too.
 
 == Changelog ==
+
+= 0.7.7 =
+New:
+* Free plan shows a «Спробуйте Pro безкоштовно 14 днів» block with an «Активувати тріал» button (no card required). Sites that skipped the Freemius opt-in are sent through the connect screen first instead of an «not allowed to access this page» error.
+* Trial or license on the free build: the trial countdown, the admin notice and the Freemius Account page now show a clear «Завантажити Pro-версію» download button, and say that Pro features need the Pro build. The prompt disappears once the Pro build is installed.
+* (Pro) Stock sync option per supplier «Додавати нові товари й варіації з вигрузки»: in-stock feed offers missing on the site are created as new variations or products (private, for review), up to 50 groups per run.
+* (Pro) Prom feed: official Prom values per category with an editor on attribute term screens, recommended Prom characteristics modal.
+Improved:
+* Freemius Account page: readable status badges and aligned plan buttons.
+* Trial pricing buttons read «Перейти на Pro» instead of «Залишитись».
+* (Pro) Prom feed: variation names no longer repeat the size, combined brands resolve to one vendor, variation parameter sets stay aligned so Prom accepts them.
+Fixed:
+* (Pro) Stray carriage returns in Prom values could reach the feed.
 
 = 0.7.6 =
 New:
