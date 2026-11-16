@@ -124,7 +124,7 @@ add_action( 'f2000cs_register_buy_on_prom_fields', 'f2000cs_register_buy_on_prom
  * @return void
  */
 function f2000cs_section_buy_on_prom_intro() {
-	echo '<p class="description">' . esc_html__( 'Кнопка веде зі сторінки товару на той самий товар у вашому магазині на Prom.ua. Як увімкнути: 1) вкажіть домен магазину; 2) увімкніть кнопку; 3) у картці товару (блок «Prom.ua — кнопка») вкажіть ID товару на Prom; 4) вставте шорткод [f2000cs_buy_on_prom] у single product layout. Без ID кнопка не показується.', 'factorial2000-catalog-sync' ) . '</p>';
+	echo '<p class="description">' . esc_html__( 'Кнопка веде зі сторінки товару на той самий товар у вашому магазині на Prom.ua. Як увімкнути: 1) вкажіть домен магазину; 2) увімкніть кнопку; 3) у кожному товарі в метабоксі «Prom.ua — кнопка» заповніть числовий ID цього товару на Prom; 4) вставте шорткод [f2000cs_buy_on_prom] у single product layout. ID зберігається в метаполі товару, тому його треба заповнити для кожного товару окремо — без ID кнопка на сторінці товару не показується.', 'factorial2000-catalog-sync' ) . '</p>';
 }
 
 /**
