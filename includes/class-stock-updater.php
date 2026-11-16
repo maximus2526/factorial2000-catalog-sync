@@ -81,6 +81,13 @@ class XML_Stock_Updater {
 	private $skip_price_updates = false;
 
 	/**
+	 * Whether the supplier's <oldprice> is ignored: it becomes the regular price, no sale is written.
+	 *
+	 * @var bool
+	 */
+	private $ignore_discounts = false;
+
+	/**
 	 * Whether to update stock quantity from XML (quantity / stock_quantity).
 	 *
 	 * @var bool
@@ -173,8 +180,9 @@ class XML_Stock_Updater {
 	 * @param bool   $update_stock_qty Whether to update stock quantity from XML.
 	 * @param bool   $keep_managed_status Leave the stock status of products with managed
 	 *                                    stock alone (their quantity is not updated either).
+	 * @param bool   $ignore_discounts    Use <oldprice> as the regular price and create no sale.
 	 */
-	public function __construct( $xml_url, $sku_prefix = '', $skip_price_updates = false, $price_adjust = array(), $update_stock_qty = false, $keep_managed_status = false ) {
+	public function __construct( $xml_url, $sku_prefix = '', $skip_price_updates = false, $price_adjust = array(), $update_stock_qty = false, $keep_managed_status = false, $ignore_discounts = false ) {
 		$this->xml_url            = $xml_url;
 		$this->telegram_token_id  = get_option( 'f2000cs_telegram_token_id', '' );
 		$this->telegram_user_ids  = array_map( 'trim', explode( ',', get_option( 'f2000cs_telegram_user_ids', '' ) ) );
@@ -183,6 +191,7 @@ class XML_Stock_Updater {
 		$this->update_stock_qty   = (bool) $update_stock_qty;
 
 		$this->keep_managed_status = (bool) $keep_managed_status;
+		$this->ignore_discounts    = (bool) $ignore_discounts;
 
 		$price_adjust = wp_parse_args(
 			$price_adjust,
@@ -268,6 +277,7 @@ class XML_Stock_Updater {
 			'Старт оновлення наявності: ' . f2000cs_telegram_feed_label( $this->xml_url )
 			. ( '' !== $this->sku_prefix ? ' · префікс ' . $this->sku_prefix : '' )
 			. ( $this->skip_price_updates ? ' (ціни не оновлюються)' : '' )
+			. ( $this->ignore_discounts ? ' (знижки постачальника не завантажуються)' : '' )
 			. ( $this->update_stock_qty ? ' (кількість оновлюється)' : '' )
 		);
 
@@ -642,6 +652,14 @@ class XML_Stock_Updater {
 								$old_price = round( $old_price * $rate, 2 );
 							}
 						}
+					}
+
+					// «Do not load supplier discounts»: the old price becomes the regular
+					// one and no sale is written. Only a valid current price is collapsed,
+					// so a malformed offer without <price> is left for the update to skip.
+					if ( $this->ignore_discounts && $price > 0 && $old_price > $price ) {
+						$price     = $old_price;
+						$old_price = 0;
 					}
 
 					if ( ! $this->skip_price_updates && $this->price_adjust_value > 0 ) {

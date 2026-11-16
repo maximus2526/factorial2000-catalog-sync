@@ -238,6 +238,51 @@ final class F2000CS_Unit_MissingOffersImporterTest extends F2000CS_Unit_TestCase
 		$this->assertEqualsWithDelta( 597.0, $importer->simple_data['50297']['price'], 0.001 );
 	}
 
+	public function test_ignore_discounts_uses_oldprice_for_new_products(): void {
+		$importer = new F2000CS_MissingOffersImporterSpy( $this->path, 'VT_', 3, array(), false, false, true );
+		$offer    = F2000CS_Test_Reflection::invoke(
+			$importer,
+			'prepare_offer_data',
+			array(
+				array(
+					'price'     => 600.0,
+					'old_price' => 800.0,
+				),
+			)
+		);
+
+		$this->assertEqualsWithDelta( 800.0, $offer['price'], 0.001, 'The old price is the price for the new product' );
+		$this->assertEmpty( $offer['old_price'], 'No sale is left for the product' );
+	}
+
+	public function test_ignore_discounts_adjusts_the_oldprice_for_new_products(): void {
+		$importer = new F2000CS_MissingOffersImporterSpy(
+			$this->path,
+			'VT_',
+			3,
+			array(
+				'type'  => 'markup',
+				'value' => 10,
+			),
+			false,
+			false,
+			true
+		);
+		$offer    = F2000CS_Test_Reflection::invoke(
+			$importer,
+			'prepare_offer_data',
+			array(
+				array(
+					'price'     => 600.0,
+					'old_price' => 800.0,
+				),
+			)
+		);
+
+		$this->assertEqualsWithDelta( 880.0, $offer['price'], 0.001, 'The markup applies to the old price' );
+		$this->assertEmpty( $offer['old_price'] );
+	}
+
 	public function test_nothing_to_do_without_offers(): void {
 		$importer = $this->importer();
 

@@ -774,6 +774,14 @@ function f2000cs_register_pro_option_guards() {
 			10,
 			2
 		);
+		add_filter(
+			'pre_update_option_f2000cs_ignore_discounts_' . $i,
+			function ( $value, $old_value ) use ( $index ) {
+				return f2000cs_guard_extra_supplier_option( $value, $old_value, $index, 'skip' );
+			},
+			10,
+			2
+		);
 	}
 }
 add_action( 'admin_init', 'f2000cs_register_pro_option_guards', 1 );
@@ -788,6 +796,7 @@ function f2000cs_register_missing_post_preservers() {
 		'f2000cs_url',
 		'f2000cs_sku_prefix_1',
 		'f2000cs_skip_price_1',
+		'f2000cs_ignore_discounts_1',
 		'f2000cs_price_adjust_type_1',
 		'f2000cs_price_adjust_direction_1',
 		'f2000cs_price_adjust_value_1',
@@ -801,6 +810,7 @@ function f2000cs_register_missing_post_preservers() {
 		$keys[] = 'f2000cs_url_' . $i;
 		$keys[] = 'f2000cs_sku_prefix_' . $i;
 		$keys[] = 'f2000cs_skip_price_' . $i;
+		$keys[] = 'f2000cs_ignore_discounts_' . $i;
 		$keys[] = 'f2000cs_price_adjust_type_' . $i;
 		$keys[] = 'f2000cs_price_adjust_direction_' . $i;
 		$keys[] = 'f2000cs_price_adjust_value_' . $i;
@@ -878,7 +888,6 @@ function f2000cs_render_trial_countdown() {
 	}
 
 	$ends = f2000cs_get_trial_ends_at();
-
 
 	if ( $ends <= time() ) {
 		if ( ! f2000cs_is_pro() ) {

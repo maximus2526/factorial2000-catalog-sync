@@ -635,6 +635,18 @@ function f2000cs_supplier_skip_price( $index ) {
 }
 
 /**
+ * Whether the supplier's discount (<oldprice>) must be ignored on this sync.
+ *
+ * When on, the old price becomes the regular price and no sale is created.
+ *
+ * @param int $index Supplier slot 1+.
+ * @return bool
+ */
+function f2000cs_supplier_ignores_discounts( $index ) {
+	return f2000cs_option_is_on( 'f2000cs_ignore_discounts_' . absint( $index ) );
+}
+
+/**
  * Whether the slot saved «update stock quantity» but, with a license or trial in force,
  * the quantities are not updated because the Pro build is not installed.
  *
@@ -686,7 +698,8 @@ function f2000cs_make_stock_updater( $index, $xml_url, $sku_prefix = null ) {
 		f2000cs_supplier_skip_price( $index ),
 		f2000cs_get_price_adjust_settings( $index ),
 		$update_qty,
-		f2000cs_supplier_qty_frozen( $index, $update_qty )
+		f2000cs_supplier_qty_frozen( $index, $update_qty ),
+		f2000cs_supplier_ignores_discounts( $index )
 	);
 	$updater->set_slot( $index );
 
@@ -875,7 +888,7 @@ function f2000cs_get_supplier_option_register_max() {
 	if ( ! empty( $_POST ) && is_array( $_POST ) ) {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Only inspecting keys to register settings before save.
 		foreach ( array_keys( $_POST ) as $key ) {
-			if ( preg_match( '/^f2000cs_(?:url|sku_prefix|skip_price|update_stock_qty|import_missing|price_adjust_(?:type|direction|value))_(\d+)$/', (string) $key, $m ) ) {
+			if ( preg_match( '/^f2000cs_(?:url|sku_prefix|skip_price|ignore_discounts|update_stock_qty|import_missing|price_adjust_(?:type|direction|value))_(\d+)$/', (string) $key, $m ) ) {
 				$max = max( $max, absint( $m[1] ) );
 			}
 		}

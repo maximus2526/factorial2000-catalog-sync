@@ -5,7 +5,7 @@ Tags: woocommerce, prom-ua, xml-import, stock-sync, marketplace
 Requires at least: 5.8
 Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 0.7.7
+Stable tag: 0.7.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,7 @@ Everything below is in the plugin you download from WordPress.org, with no time 
 * Automatic stock status and price updates for one supplier, once a day, plus 3 manual runs a day
 * SKU prefix per supplier, so the plugin only touches its own products
 * Price adjustment per supplier: markup, margin or a fixed amount
+* Per-supplier option «Не завантажувати знижки постачальника»: the feed's `<oldprice>` becomes the regular price and no sale is created
 * Currency conversion from the feed's `<currencies>` / `currencyId`
 * Products that disappear from the supplier feed are drafted (variations are set out of stock); they come back when the supplier lists them again. A broken or empty feed is never trusted: it sets that supplier's products out of stock instead of publishing wrong data
 * Telegram notifications with import and sync reports
@@ -213,6 +214,10 @@ Large Prom feeds (over 180 MB) are now split into several links automatically, a
 Pro features moved to a separate Pro build. If you use a Pro license, stock quantity updates or the marketplace feed, install the Pro version from your Freemius account before updating. Price adjustment now works in the Free version too.
 
 == Changelog ==
+
+= 0.7.8 =
+New:
+* Per-supplier option «Не завантажувати знижки постачальника (oldprice як звичайна ціна)»: the stock sync writes `<oldprice>` as the regular price and creates no sale, and the price adjustment is calculated from the old price. It also covers products added by the missing-offers import. A sale the shop owner scheduled with an end date ahead is never touched. Off by default.
 
 = 0.7.7 =
 Free:

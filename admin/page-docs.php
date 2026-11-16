@@ -300,6 +300,7 @@ function f2000cs_docs_page() {
 						<h3><?php esc_html_e( 'Ціна та кількість', 'factorial2000-catalog-sync' ); ?></h3>
 						<ul>
 							<li><strong><?php esc_html_e( 'Не змінювати ціни…', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'під час оновлення наявності оновлюється лише наявність (і кількість, якщо увімкнено), ціни з XML не перезаписуються.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Не завантажувати знижки постачальника…', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'якщо в XML є oldprice, він стає звичайною ціною, а sale price не створюється; коригування ціни рахується від oldprice. Діє окремо для кожного постачальника. Запланована вами акція з датою закінчення не змінюється.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Оновлювати кількість товарів', 'factorial2000-catalog-sync' ); ?></strong> <span class="f2000cs-pro-badge">Pro</span> — <?php esc_html_e( 'якщо в XML є quantity / stock_quantity / qty_stock — записує залишок у WooCommerce. Без опції оновлюється лише «є / немає в наявності».', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 					</div>
@@ -356,7 +357,7 @@ function f2000cs_docs_page() {
 						<h3><?php esc_html_e( 'Що оновлює оновлення наявності', 'factorial2000-catalog-sync' ); ?></h3>
 						<ul>
 							<li><?php esc_html_e( 'Наявність («в наявності» / «немає в наявності») за атрибутом available у offer.', 'factorial2000-catalog-sync' ); ?></li>
-							<li><?php esc_html_e( 'Ціни (якщо не увімкнено «не змінювати ціни»), з урахуванням коригування Pro.', 'factorial2000-catalog-sync' ); ?></li>
+							<li><?php esc_html_e( 'Ціни (якщо не увімкнено «не змінювати ціни»), з урахуванням коригування. З опцією «не завантажувати знижки постачальника» замість акційної ціни записується oldprice.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'Кількість на складі — Pro-опція; теги quantity, stock_quantity або qty_stock.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'vendorCode — у метаполе менеджера, якщо воно ще порожнє.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>

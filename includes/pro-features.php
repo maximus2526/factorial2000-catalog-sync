@@ -94,7 +94,8 @@ function f2000cs_pro_import_missing_offers( $result, $args ) {
 			$slot,
 			f2000cs_get_price_adjust_settings( $slot ),
 			f2000cs_supplier_skip_price( $slot ),
-			f2000cs_supplier_updates_stock_qty( $slot )
+			f2000cs_supplier_updates_stock_qty( $slot ),
+			f2000cs_supplier_ignores_discounts( $slot )
 		);
 
 		return $importer->import_missing( (array) $args['skus'], $limit, (float) ( $args['deadline'] ?? 0 ) );

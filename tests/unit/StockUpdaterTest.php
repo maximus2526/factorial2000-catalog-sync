@@ -661,6 +661,34 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 			public function get_sale_price() {
 				return (string) get_post_meta( $this->id, '_sale_price', true );
 			}
+
+			/**
+			 * @return string
+			 */
+			public function get_status() {
+				return 'publish';
+			}
+
+			/**
+			 * @return string
+			 */
+			public function get_stock_status() {
+				return (string) get_post_meta( $this->id, '_stock_status', true );
+			}
+
+			/**
+			 * @return string
+			 */
+			public function get_type() {
+				return $this->parent_id ? 'variation' : 'simple';
+			}
+
+			/**
+			 * @return bool
+			 */
+			public function managing_stock() {
+				return false;
+			}
 		};
 	}
 
@@ -685,6 +713,140 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 		$this->assertSame( '', (string) get_post_meta( 21, '_sale_price', true ), 'The sale price must be removed' );
 		$this->assertSame( '100.00', get_post_meta( 21, '_price', true ), 'The active price must be the regular price again' );
 		$this->assertSame( '100.00', get_post_meta( 21, '_regular_price', true ) );
+	}
+
+	/**
+	 * With «ignore supplier discounts» the old price becomes the regular one and no sale is created.
+	 *
+	 * @return void
+	 */
+	public function test_ignore_discounts_uses_oldprice_as_regular_price() {
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs_' );
+		file_put_contents(
+			$tmp,
+			'<?xml version="1.0"?><yml_catalog><shop><offers>' .
+			'<offer id="1" available="true"><price>80</price><oldprice>100</oldprice></offer>' .
+			'</offers></shop></yml_catalog>'
+		);
+
+		$updater = new XML_Stock_Updater( $tmp, '', false, array(), false, false, true );
+		$updates = F2000CS_Test_Reflection::invoke( $updater, 'extract_data_from_xml' );
+
+		unlink( $tmp );
+
+		$this->assertEqualsWithDelta( 100.0, $updates['1']['price'], 0.001, 'The old price is the price to charge' );
+		$this->assertEqualsWithDelta( 0.0, $updates['1']['old_price'], 0.001, 'No sale is left to write' );
+	}
+
+	/**
+	 * The price adjustment is applied to the old price, which becomes the regular price.
+	 *
+	 * @return void
+	 */
+	public function test_ignore_discounts_applies_adjustment_to_oldprice() {
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs_' );
+		file_put_contents(
+			$tmp,
+			'<?xml version="1.0"?><yml_catalog><shop><offers>' .
+			'<offer id="1" available="true"><price>80</price><oldprice>100</oldprice></offer>' .
+			'</offers></shop></yml_catalog>'
+		);
+
+		$updater = new XML_Stock_Updater( $tmp, '', false, array( 'type' => 'markup', 'value' => 10 ), false, false, true );
+		$updates = F2000CS_Test_Reflection::invoke( $updater, 'extract_data_from_xml' );
+
+		unlink( $tmp );
+
+		$this->assertEqualsWithDelta( 110.0, $updates['1']['price'], 0.001, 'Markup is calculated from the old price' );
+		$this->assertEqualsWithDelta( 0.0, $updates['1']['old_price'], 0.001 );
+	}
+
+	/**
+	 * A malformed offer without a current price never borrows the old price.
+	 *
+	 * @return void
+	 */
+	public function test_ignore_discounts_keeps_zero_price_offers_untouched() {
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs_' );
+		file_put_contents(
+			$tmp,
+			'<?xml version="1.0"?><yml_catalog><shop><offers>' .
+			'<offer id="1" available="true"><price>0</price><oldprice>100</oldprice></offer>' .
+			'</offers></shop></yml_catalog>'
+		);
+
+		$updater = new XML_Stock_Updater( $tmp, '', false, array(), false, false, true );
+		$updates = F2000CS_Test_Reflection::invoke( $updater, 'extract_data_from_xml' );
+
+		unlink( $tmp );
+
+		$this->assertEqualsWithDelta( 0.0, $updates['1']['price'], 0.001, 'Without a current price the offer is not written' );
+		$this->assertEqualsWithDelta( 100.0, $updates['1']['old_price'], 0.001 );
+	}
+
+	/**
+	 * The per-supplier option is wired through the stock updater factory.
+	 *
+	 * @return void
+	 */
+	public function test_supplier_option_ignore_discounts_runs_through_factory() {
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs_' );
+		file_put_contents(
+			$tmp,
+			'<?xml version="1.0"?><yml_catalog><shop><offers>' .
+			'<offer id="1" available="true"><price>80</price><oldprice>100</oldprice></offer>' .
+			'</offers></shop></yml_catalog>'
+		);
+
+		update_option( 'f2000cs_ignore_discounts_1', '1' );
+		update_post_meta( 50, '_regular_price', '100.00' );
+		update_post_meta( 50, '_sale_price', '80.00' );
+		update_post_meta( 50, '_price', '80.00' );
+		update_post_meta( 50, '_stock_status', 'instock' );
+
+		F2000CS_Test_State::$products[50] = $this->meta_priced_product( 50 );
+		$GLOBALS['wpdb']->results_queue   = array( array( (object) array( 'sku' => '1', 'ID' => 50 ) ) );
+
+		f2000cs_make_stock_updater( 1, $tmp )->update_products_stock_status();
+
+		unlink( $tmp );
+
+		$this->assertSame( '100.00', get_post_meta( 50, '_regular_price', true ) );
+		$this->assertSame( '', (string) get_post_meta( 50, '_sale_price', true ), 'The supplier sale is gone' );
+		$this->assertSame( '100.00', get_post_meta( 50, '_price', true ) );
+	}
+
+	/**
+	 * A sale the owner scheduled in the product editor survives the discount-free sync.
+	 *
+	 * @return void
+	 */
+	public function test_ignore_discounts_keeps_the_owner_scheduled_sale() {
+		$tmp = tempnam( sys_get_temp_dir(), 'f2000cs_' );
+		file_put_contents(
+			$tmp,
+			'<?xml version="1.0"?><yml_catalog><shop><offers>' .
+			'<offer id="1" available="true"><price>80</price><oldprice>100</oldprice></offer>' .
+			'</offers></shop></yml_catalog>'
+		);
+
+		update_option( 'f2000cs_ignore_discounts_1', '1' );
+		update_post_meta( 51, '_regular_price', '100.00' );
+		update_post_meta( 51, '_sale_price', '70.00' );
+		update_post_meta( 51, '_price', '70.00' );
+		update_post_meta( 51, '_sale_price_dates_to', (string) ( time() + DAY_IN_SECONDS ) );
+		update_post_meta( 51, '_stock_status', 'instock' );
+
+		F2000CS_Test_State::$products[51] = $this->meta_priced_product( 51 );
+		$GLOBALS['wpdb']->results_queue   = array( array( (object) array( 'sku' => '1', 'ID' => 51 ) ) );
+
+		f2000cs_make_stock_updater( 1, $tmp )->update_products_stock_status();
+
+		unlink( $tmp );
+
+		$this->assertSame( '70.00', get_post_meta( 51, '_sale_price', true ), 'The owner promotion is not replaced' );
+		$this->assertSame( '70.00', get_post_meta( 51, '_price', true ) );
+		$this->assertSame( '100.00', get_post_meta( 51, '_regular_price', true ) );
 	}
 
 	/**

@@ -295,6 +295,28 @@ final class F2000CS_Unit_LicensingTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * The per-supplier discount option is registered in the Free guards:
+	 * a new extra slot is Pro-only and a missing POST value keeps the stored one.
+	 *
+	 * @return void
+	 */
+	public function test_ignore_discounts_option_guards() {
+		unset( F2000CS_Test_State::$hooks['f2000cs_is_pro'] );
+		add_filter( 'f2000cs_is_pro', '__return_false' );
+
+		$hooks = F2000CS_Test_State::$hooks;
+		f2000cs_register_pro_option_guards();
+
+		$guarded   = apply_filters( 'pre_update_option_f2000cs_ignore_discounts_2', '1', '0' );
+		$preserved = apply_filters( 'pre_update_option_f2000cs_ignore_discounts_1', null, '1' );
+
+		F2000CS_Test_State::$hooks = $hooks;
+
+		$this->assertSame( '0', $guarded, 'A new extra supplier slot is Pro-only on Free' );
+		$this->assertSame( '1', $preserved, 'A missing POST value must not wipe the saved setting' );
+	}
+
+	/**
 	 * Pro-only option updates always keep the previous value.
 	 *
 	 * @return void

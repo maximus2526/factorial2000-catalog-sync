@@ -340,6 +340,25 @@ final class F2000CS_Unit_FunctionsTest extends F2000CS_Unit_TestCase {
 
 		update_option( 'f2000cs_url_12', 'http://x.test/f.xml' );
 		$this->assertSame( 12, f2000cs_get_supplier_option_register_max() );
+
+		$_POST['f2000cs_ignore_discounts_14'] = '1';
+		$this->assertSame( 14, f2000cs_get_supplier_option_register_max(), 'The new per-supplier option registers its slot' );
+		unset( $_POST['f2000cs_ignore_discounts_14'] );
+	}
+
+	/**
+	 * Uninstall removes the per-supplier discount option.
+	 *
+	 * @return void
+	 */
+	public function test_uninstall_removes_ignore_discounts_options() {
+		update_option( 'f2000cs_ignore_discounts_1', '1' );
+		update_option( 'f2000cs_ignore_discounts_7', '1' );
+
+		f2000cs_uninstall_cleanup();
+
+		$this->assertFalse( get_option( 'f2000cs_ignore_discounts_1' ) );
+		$this->assertFalse( get_option( 'f2000cs_ignore_discounts_7' ) );
 	}
 
 	// ---- f2000cs_parse_available -------------------------------------------

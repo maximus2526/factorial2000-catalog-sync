@@ -141,12 +141,26 @@ final class F2000CS_Unit_AdminSmokeTest extends F2000CS_Unit_TestCase {
 
 		$registered = F2000CS_Test_State::$registered_settings['f2000cs_settings'] ?? array();
 
-		$core = array( 'f2000cs_url', 'f2000cs_sku_prefix_1', 'f2000cs_update_interval',
-			'f2000cs_show_vendor_code', 'f2000cs_telegram_token_id', 'f2000cs_telegram_user_ids' );
+		$core = array( 'f2000cs_url', 'f2000cs_sku_prefix_1', 'f2000cs_skip_price_1',
+			'f2000cs_ignore_discounts_1', 'f2000cs_update_interval', 'f2000cs_show_vendor_code',
+			'f2000cs_telegram_token_id', 'f2000cs_telegram_user_ids' );
 
 		foreach ( $core as $option ) {
 			$this->assertContains( $option, $registered, "Core option {$option} must be registered" );
 		}
+	}
+
+	public function test_supplier_card_renders_ignore_discounts_option(): void {
+		update_option( 'f2000cs_ignore_discounts_1', '1' );
+
+		$html = $this->capture(
+			static function () {
+				f2000cs_render_supplier_card( 1 );
+			}
+		);
+
+		$this->assertStringContainsString( 'name="f2000cs_ignore_discounts_1"', $html );
+		$this->assertMatchesRegularExpression( '/name="f2000cs_ignore_discounts_1"[^>]*value="1"[^>]*checked/', $html );
 	}
 
 	public function test_settings_includes_pro_options(): void {

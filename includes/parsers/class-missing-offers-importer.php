@@ -53,19 +53,28 @@ class Missing_Offers_Importer extends XML_Parser {
 	private bool $skip_price;
 
 	/**
+	 * Whether the feed's <oldprice> is used as the regular price (no sale).
+	 *
+	 * @var bool
+	 */
+	private bool $ignore_discounts;
+
+	/**
 	 * @param string $file_path        Local copy of the feed.
 	 * @param string $sku_prefix       Slot SKU prefix.
 	 * @param int    $slot             Supplier slot 1+.
 	 * @param array  $price_adjust     Slot price adjustment.
 	 * @param bool   $skip_price       «Do not change prices» of the slot.
 	 * @param bool   $import_stock_qty Write quantities (the slot updates them).
+	 * @param bool   $ignore_discounts Use <oldprice> as the regular price, create no sale.
 	 */
-	public function __construct( string $file_path, string $sku_prefix, int $slot, array $price_adjust = array(), bool $skip_price = false, bool $import_stock_qty = false ) {
+	public function __construct( string $file_path, string $sku_prefix, int $slot, array $price_adjust = array(), bool $skip_price = false, bool $import_stock_qty = false, bool $ignore_discounts = false ) {
 		parent::__construct( $file_path, false, $sku_prefix, false, $import_stock_qty, true );
 
-		$this->slot         = $slot;
-		$this->price_adjust = $price_adjust;
-		$this->skip_price   = $skip_price;
+		$this->slot             = $slot;
+		$this->price_adjust     = $price_adjust;
+		$this->skip_price       = $skip_price;
+		$this->ignore_discounts = $ignore_discounts;
 
 		$this->set_product_status( 'private' );
 	}
@@ -77,6 +86,13 @@ class Missing_Offers_Importer extends XML_Parser {
 	 * @return array
 	 */
 	protected function prepare_offer_data( array $offer_data ): array {
+		if ( $this->ignore_discounts
+			&& (float) ( $offer_data['price'] ?? 0 ) > 0
+			&& (float) ( $offer_data['old_price'] ?? 0 ) > (float) $offer_data['price'] ) {
+			$offer_data['price']     = (float) $offer_data['old_price'];
+			$offer_data['old_price'] = 0;
+		}
+
 		if ( $this->skip_price || (float) ( $this->price_adjust['value'] ?? 0 ) <= 0 ) {
 			return $offer_data;
 		}

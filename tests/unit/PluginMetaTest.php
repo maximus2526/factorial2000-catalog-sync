@@ -194,7 +194,8 @@ final class F2000CS_Unit_PluginMetaTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
-	 * Text domain must match the plugin folder name (translation loading).
+	 * Text domain must be the plugin slug. The checkout folder may be named
+	 * after the GitHub repository instead of the wp.org plugin slug.
 	 *
 	 * @return void
 	 */
@@ -202,7 +203,11 @@ final class F2000CS_Unit_PluginMetaTest extends F2000CS_Unit_TestCase {
 		preg_match( '/Text Domain:\s*([a-z0-9-]+)/', $this->main_file, $match );
 
 		$this->assertSame( 'factorial2000-catalog-sync', $match[1] ?? '' );
-		$this->assertSame( 'factorial2000-catalog-sync', basename( $this->root ) );
+		$this->assertContains(
+			basename( $this->root ),
+			array( 'factorial2000-catalog-sync', 'prom-xml-importer' ),
+			'The checkout folder must be the plugin slug or the GitHub repository name'
+		);
 	}
 
 	/**

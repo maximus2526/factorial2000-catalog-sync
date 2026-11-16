@@ -73,7 +73,7 @@ require_once __DIR__ . '/../includes/class-frontend-display.php';
 require_once __DIR__ . '/../includes/class-buy-on-prom.php';
 
 if ( ! defined( 'F2000CS_VERSION' ) ) {
-	define( 'F2000CS_VERSION', '0.7.6' );
+	define( 'F2000CS_VERSION', '0.7.8' );
 }
 
 if ( ! defined( 'F2000CS_DB_VERSION' ) ) {

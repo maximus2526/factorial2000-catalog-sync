@@ -307,6 +307,19 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * «Do not load supplier discounts» is a per-slot checkbox, off by default.
+	 *
+	 * @return void
+	 */
+	public function test_ignore_discounts_only_by_the_flag() {
+		$this->assertFalse( f2000cs_supplier_ignores_discounts( 1 ) );
+
+		update_option( 'f2000cs_ignore_discounts_1', 'on' );
+		$this->assertTrue( f2000cs_supplier_ignores_discounts( 1 ) );
+		$this->assertFalse( f2000cs_supplier_ignores_discounts( 2 ), 'Other slots are unaffected' );
+	}
+
+	/**
 	 * A slot that saved «update quantity» keeps managed-stock statuses while quantities are not updated.
 	 *
 	 * @return void

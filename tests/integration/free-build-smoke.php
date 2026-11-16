@@ -176,6 +176,14 @@ if ( ! function_exists( 'register_deactivation_hook' ) ) {
 	 */
 	function register_deactivation_hook() {}
 }
+if ( ! function_exists( 'add_shortcode' ) ) {
+	/**
+	 * @param string   $tag      Shortcode tag.
+	 * @param callable $callback Render callback.
+	 * @return void
+	 */
+	function add_shortcode( $tag, $callback ) {}
+}
 
 $pass = 0;
 $fail = 0;

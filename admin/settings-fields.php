@@ -37,6 +37,7 @@ function f2000cs_settings_init() {
 	register_setting( 'f2000cs_settings', 'f2000cs_url', $url_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_sku_prefix_1', $text_args );
 	register_setting( 'f2000cs_settings', 'f2000cs_skip_price_1', $skip_price_args );
+	register_setting( 'f2000cs_settings', 'f2000cs_ignore_discounts_1', $skip_price_args );
 
 	$slot_max = function_exists( 'f2000cs_get_supplier_option_register_max' )
 		? f2000cs_get_supplier_option_register_max()
@@ -46,6 +47,7 @@ function f2000cs_settings_init() {
 		register_setting( 'f2000cs_settings', 'f2000cs_url_' . $i, $url_args );
 		register_setting( 'f2000cs_settings', 'f2000cs_sku_prefix_' . $i, $text_args );
 		register_setting( 'f2000cs_settings', 'f2000cs_skip_price_' . $i, $skip_price_args );
+		register_setting( 'f2000cs_settings', 'f2000cs_ignore_discounts_' . $i, $skip_price_args );
 	}
 
 	for ( $i = 1; $i <= $slot_max; $i++ ) {
@@ -384,24 +386,29 @@ function f2000cs_render_supplier_card( $index, $as_template = false ) {
 		$url      = '';
 		$prefix   = '';
 		$skip     = '0';
+		$ignore   = '0';
 	} elseif ( $is_first ) {
 		$url_name = 'f2000cs_url';
 		$url_id   = 'f2000cs_url';
 		$url      = get_option( 'f2000cs_url', '' );
 		$prefix   = get_option( 'f2000cs_sku_prefix_1', '' );
 		$skip     = get_option( 'f2000cs_skip_price_1', '0' );
+		$ignore   = get_option( 'f2000cs_ignore_discounts_1', '0' );
 	} else {
 		$url_name = 'f2000cs_url_' . $num;
 		$url_id   = 'f2000cs_url_' . $num;
 		$url      = get_option( 'f2000cs_url_' . $num, '' );
 		$prefix   = get_option( 'f2000cs_sku_prefix_' . $num, '' );
 		$skip     = get_option( 'f2000cs_skip_price_' . $num, '0' );
+		$ignore   = get_option( 'f2000cs_ignore_discounts_' . $num, '0' );
 	}
 
 	$prefix_name = $is_tpl ? 'f2000cs_sku_prefix___INDEX__' : 'f2000cs_sku_prefix_' . $num;
 	$prefix_id   = $prefix_name;
 	$skip_name   = $is_tpl ? 'f2000cs_skip_price___INDEX__' : 'f2000cs_skip_price_' . $num;
 	$skip_id     = $skip_name;
+	$ignore_name = $is_tpl ? 'f2000cs_ignore_discounts___INDEX__' : 'f2000cs_ignore_discounts_' . $num;
+	$ignore_id   = $ignore_name;
 
 	$card_cls = 'f2000cs-supplier-card' . ( $is_first ? ' f2000cs-supplier-card--primary' : '' );
 	?>
@@ -450,6 +457,20 @@ function f2000cs_render_supplier_card( $index, $as_template = false ) {
 					<input type="checkbox" name="<?php echo esc_attr( $skip_name ); ?>" id="<?php echo esc_attr( $skip_id ); ?>" value="1" <?php checked( $skip, '1' ); ?>>
 					<?php esc_html_e( 'Не змінювати ціни при оновленні цього постачальника', 'factorial2000-catalog-sync' ); ?>
 				</label>
+			</div>
+
+			<div class="f2000cs-supplier-card__field">
+				<input type="hidden" name="<?php echo esc_attr( $ignore_name ); ?>" value="0">
+				<label>
+					<input type="checkbox" name="<?php echo esc_attr( $ignore_name ); ?>" id="<?php echo esc_attr( $ignore_id ); ?>" value="1" <?php checked( $ignore, '1' ); ?>>
+					<?php esc_html_e( 'Не завантажувати знижки постачальника (oldprice як звичайна ціна)', 'factorial2000-catalog-sync' ); ?>
+					<?php
+					echo f2000cs_tip_html( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes.
+						__( 'Якщо в XML є oldprice, він записується як звичайна ціна, а sale price не створюється. Діє окремо для кожного постачальника. Запланована вами акція з датою закінчення не змінюється.', 'factorial2000-catalog-sync' )
+					);
+					?>
+				</label>
+				<p class="description"><?php esc_html_e( 'Ціна з oldprice без знижки; знижка постачальника не показується покупцям.', 'factorial2000-catalog-sync' ); ?></p>
 			</div>
 
 			<?php f2000cs_render_supplier_qty_field( $slot ); ?>
