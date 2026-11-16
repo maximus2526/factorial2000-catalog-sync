@@ -189,7 +189,7 @@ This service is provided by Freemius. Terms of Service: https://freemius.com/ter
 == Upgrade Notice ==
 
 = 0.7.7 =
-Free 14-day Pro trial (no card) can be started right from the plugin, plus new Pro stock-sync and Prom feed options. Pro users: update the Pro build from your Freemius account.
+Clearer Pro trial and download prompts, plus new Pro stock-sync and Prom feed options. Pro users: update the Pro build from your Freemius account.
 
 = 0.7.6 =
 The Prom feed can add a fake discount: the current price stays, and `<oldprice>` is raised by the percentage you set. Works only with «Не передавати знижки — лише основну ціну». Pro users: update the Pro build from your Freemius account.
@@ -216,8 +216,7 @@ Pro features moved to a separate Pro build. If you use a Pro license, stock quan
 
 = 0.7.7 =
 Free:
-* New «Спробуйте Pro безкоштовно 14 днів» block with an «Активувати тріал» button (no card required). Sites that skipped the Freemius opt-in are sent through the connect screen first instead of a «not allowed to access this page» error.
-* With an active trial or license on the free build, the trial countdown, the admin notice and the Freemius Account page show a clear «Завантажити Pro-версію» button and explain that Pro features need the Pro build. The prompt disappears once the Pro build is installed.
+* With an active trial or license on the free build, the trial countdown, the admin notice and the Freemius Account page explain that Pro features need the Pro build and link to the download. The prompt disappears once the Pro build is installed.
 * Freemius Account page: readable status badges and aligned plan buttons.
 * Trial pricing buttons read «Перейти на Pro» instead of «Залишитись».
 
