@@ -121,7 +121,7 @@ The plugin on WordPress.org is fully working and has no locked features: import,
 
 = Is there a free Pro trial? =
 
-Yes: 14 days, no credit card. Install the Pro build from your Freemius account when the trial starts. After it ends, the Free plugin keeps working with its normal limits.
+Yes: 14 days, no credit card. The trial needs the site to be connected to Freemius (the «Так, увімкнути» opt-in screen; if you skipped it, use «Opt in» on the Plugins page). Freemius shows the «Почати безкоштовний тріал» notice 24 hours after you connect, so new users are not shown an offer before they have tried the plugin. You do not have to wait: open the plugin menu → «Оновити до Pro» and press «Start my free trial». Install the Pro build from your Freemius account when the trial starts. After it ends, the Free plugin keeps working with its normal limits.
 
 = Does this plugin require WooCommerce? =
 

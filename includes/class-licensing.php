@@ -969,7 +969,7 @@ function f2000cs_render_pro_plans_panel( $compact = false ) {
 		<div class="f2000cs-pro-plans__intro">
 			<strong><?php esc_html_e( 'Тарифи', 'factorial2000-catalog-sync' ); ?></strong>
 			<?php if ( ! $compact ) : ?>
-				<span><?php esc_html_e( 'Оберіть план під свій каталог. Pro можна спробувати 14 днів без карти.', 'factorial2000-catalog-sync' ); ?></span>
+				<span><?php esc_html_e( 'Оберіть план під свій каталог. Pro можна спробувати 14 днів без карти: кнопка тріалу є в меню «Оновити до Pro» (сайт має бути підключений до Freemius), а нагадування про тріал з’являється через 24 години після підключення.', 'factorial2000-catalog-sync' ); ?></span>
 			<?php else : ?>
 				<span><?php esc_html_e( 'Тріал 14 днів без карти — повний Pro.', 'factorial2000-catalog-sync' ); ?></span>
 			<?php endif; ?>

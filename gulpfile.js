@@ -212,6 +212,26 @@ function stripPremiumFiles( dir ) {
 }
 
 /**
+ * Rewrite the fs_dynamic_init() config the way the Freemius free-build
+ * processor does. The wp.org SVN hook rejects a commit whose config still
+ * looks premium («contains the Pro version of the Freemius SDK»).
+ *
+ * @param {string} dir Plugin folder.
+ */
+function freeSdkConfig( dir ) {
+	const file = path.join( dir, 'includes', 'class-licensing.php' );
+	let src = fs.readFileSync( file, 'utf8' );
+	src = src
+		.replace( /'is_premium'(\s*)=>\s*f2000cs_has_premium_code\(\),/, "'is_premium'$1=> false," )
+		.replace( /^[ \t]*'has_premium_version'\s*=>\s*true,\r?\n/m, '' )
+		.replace( /^[ \t]*'wp_org_gatekeeper'\s*=>.*\r?\n/m, '' );
+	if ( /has_premium_version'|wp_org_gatekeeper|'is_premium'\s*=>\s*f2000cs/.test( src ) ) {
+		throw new Error( 'freeSdkConfig: premium Freemius config left in ' + file );
+	}
+	fs.writeFileSync( file, src );
+}
+
+/**
  * Build the WordPress.org SVN layout: svn/trunk, svn/tags/<version>,
  * svn/assets plus a README with the commit commands.
  */
@@ -231,6 +251,8 @@ async function makeSvnLayout() {
 	// wordpress.org must not host premium code: strip it from the SVN copies.
 	stripPremiumFiles( trunkDir );
 	stripPremiumFiles( tagDir );
+	freeSdkConfig( trunkDir );
+	freeSdkConfig( tagDir );
 
 	fs.writeFileSync(
 		path.join( svnDir, 'README.txt' ),
