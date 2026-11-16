@@ -215,17 +215,17 @@ Pro features moved to a separate Pro build. If you use a Pro license, stock quan
 == Changelog ==
 
 = 0.7.7 =
-New:
-* Free plan shows a «Спробуйте Pro безкоштовно 14 днів» block with an «Активувати тріал» button (no card required). Sites that skipped the Freemius opt-in are sent through the connect screen first instead of an «not allowed to access this page» error.
-* Trial or license on the free build: the trial countdown, the admin notice and the Freemius Account page now show a clear «Завантажити Pro-версію» download button, and say that Pro features need the Pro build. The prompt disappears once the Pro build is installed.
-* (Pro) Stock sync option per supplier «Додавати нові товари й варіації з вигрузки»: in-stock feed offers missing on the site are created as new variations or products (private, for review), up to 50 groups per run.
-* (Pro) Prom feed: official Prom values per category with an editor on attribute term screens, recommended Prom characteristics modal.
-Improved:
+Free:
+* New «Спробуйте Pro безкоштовно 14 днів» block with an «Активувати тріал» button (no card required). Sites that skipped the Freemius opt-in are sent through the connect screen first instead of a «not allowed to access this page» error.
+* With an active trial or license on the free build, the trial countdown, the admin notice and the Freemius Account page show a clear «Завантажити Pro-версію» button and explain that Pro features need the Pro build. The prompt disappears once the Pro build is installed.
 * Freemius Account page: readable status badges and aligned plan buttons.
 * Trial pricing buttons read «Перейти на Pro» instead of «Залишитись».
-* (Pro) Prom feed: variation names no longer repeat the size, combined brands resolve to one vendor, variation parameter sets stay aligned so Prom accepts them.
-Fixed:
-* (Pro) Stray carriage returns in Prom values could reach the feed.
+
+Pro:
+* New stock sync option per supplier «Додавати нові товари й варіації з вигрузки»: in-stock feed offers missing on the site are created as new variations or products (private, for review), up to 50 groups per run.
+* Prom feed: official Prom values per category with an editor on attribute term screens, and a recommended Prom characteristics modal.
+* Prom feed: variation names no longer repeat the size, combined brands resolve to one vendor, and variation parameter sets stay aligned so Prom accepts them.
+* Fixed: stray carriage returns in Prom values could reach the feed.
 
 = 0.7.6 =
 New:
