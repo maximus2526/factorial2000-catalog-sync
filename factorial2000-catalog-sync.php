@@ -97,10 +97,12 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-wc-source.php';
 		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-job.php';
 		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-cli.php';
+		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-fields.php';
 		require_once F2000CS_PATH . 'admin/prom-category-field.php';
 		require_once F2000CS_PATH . 'admin/class-prom-term-values-admin.php';
 		require_once F2000CS_PATH . 'admin/page-marketplaces.php';
 		\F2000CS\Prom_Term_Values_Admin::init();
+		\F2000CS\Marketplace_Fields::init();
 	}
 	require_once F2000CS_PATH . 'admin/premium-upsell.php';
 
