@@ -23,7 +23,7 @@ It does three jobs:
 
 1. **Import products from a supplier feed.** Give it an XML/YML link (a Prom.ua export, a supplier price list, OneBox and similar) and it creates WooCommerce products: simple and variable products with names, descriptions, pictures, attributes, categories, weight, barcode and dimensions.
 2. **Keep stock and prices in sync.** A scheduled job (WP-Cron) reads the feed again and updates availability and prices, so the shop does not sell what the supplier no longer has. A Telegram report tells you what changed.
-3. **Publish your catalog to a marketplace (Pro).** Today that is **Prom.ua**: the plugin builds a Prom-compatible YML feed from your WooCommerce products at a permanent private link, and Prom imports it from that link. The Marketplaces page is built so that other marketplaces (for example Rozetka and Hotline) can be added later; they are planned and are not available yet.
+3. **Publish your catalog to a marketplace (Pro).** Today that is **Prom.ua**, **ROZETKA** and **Google Merchant Center**: the plugin builds a feed from your WooCommerce products at a permanent private link, and the marketplace imports it from that link. Hotline is planned.
 
 = What you get for free =
 
@@ -114,7 +114,7 @@ Yes, in Pro. Open **Синхронізація каталогу → Маркет
 
 = Which marketplaces are supported? =
 
-Prom.ua (Pro). The Marketplaces page is designed to hold more marketplaces; Rozetka and Hotline are planned and not available yet.
+Prom.ua, ROZETKA and Google Merchant Center (Pro). Hotline is planned.
 
 = What is free and what is paid? =
 

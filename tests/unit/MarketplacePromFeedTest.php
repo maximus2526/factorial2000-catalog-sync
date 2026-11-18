@@ -19,6 +19,7 @@ use F2000CS\Marketplace_Storage;
 use F2000CS\Marketplace_Text;
 use F2000CS\Marketplace_Unit_Source;
 use F2000CS\Prom_Feed;
+use F2000CS\Rozetka_Feed;
 use F2000CS\Prom_Variations;
 
 /**
@@ -1090,14 +1091,15 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 	public function test_registry_and_extension_point() {
 		$this->assertArrayHasKey( 'prom', Marketplace_Registry::all() );
 		$this->assertInstanceOf( Prom_Feed::class, Marketplace_Registry::get( 'prom' ) );
-		$this->assertNull( Marketplace_Registry::get( 'rozetka' ) );
+		$this->assertInstanceOf( Rozetka_Feed::class, Marketplace_Registry::get( 'rozetka' ), 'ROZETKA is built in' );
+		$this->assertNull( Marketplace_Registry::get( 'epicentr' ) );
 
-		$rozetka = new class() extends Marketplace_Feed {
+		$epicentr = new class() extends Marketplace_Feed {
 			public function id(): string {
-				return 'rozetka';
+				return 'epicentr';
 			}
 			public function label(): string {
-				return 'Rozetka';
+				return 'Epicentr';
 			}
 			public function fields(): array {
 				return array( 'shop_name' => array( 'type' => 'text', 'default' => 'X' ) );
@@ -1116,14 +1118,14 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		Marketplace_Registry::reset();
 		add_filter(
 			'f2000cs_marketplace_feeds',
-			static function ( $feeds ) use ( $rozetka ) {
-				$feeds[ $rozetka->id() ] = $rozetka;
+			static function ( $feeds ) use ( $epicentr ) {
+				$feeds[ $epicentr->id() ] = $epicentr;
 
 				return $feeds;
 			}
 		);
 
-		$this->assertSame( array( 'prom', 'google', 'rozetka' ), array_keys( Marketplace_Registry::all() ) );
+		$this->assertSame( array( 'prom', 'google', 'rozetka', 'epicentr' ), array_keys( Marketplace_Registry::all() ) );
 	}
 
 	/**
