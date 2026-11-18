@@ -977,6 +977,27 @@ if ( ! function_exists( 'wp_remote_post' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_remote_retrieve_header' ) ) {
+	/**
+	 * @param array|WP_Error $response Response.
+	 * @param string         $header   Header name.
+	 * @return string
+	 */
+	function wp_remote_retrieve_header( $response, $header ) {
+		if ( ! is_array( $response ) || empty( $response['headers'] ) ) {
+			return '';
+		}
+
+		foreach ( (array) $response['headers'] as $name => $value ) {
+			if ( strtolower( (string) $name ) === strtolower( (string) $header ) ) {
+				return (string) $value;
+			}
+		}
+
+		return '';
+	}
+}
+
 if ( ! function_exists( 'wp_remote_retrieve_response_code' ) ) {
 	/**
 	 * @param array|WP_Error $response Response.

@@ -1133,6 +1133,63 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * A download shorter than its Content-Length is a cut transfer: the feed counts as
+	 * unreachable (stock kept), not as broken (everything out of stock).
+	 *
+	 * @return void
+	 */
+	public function test_short_download_is_an_unreachable_feed() {
+		update_post_meta( 11, '_stock_status', 'instock' );
+		update_post_meta( 12, '_stock_status', 'instock' );
+		$url  = $this->unreachable_url();
+		$body = '<?xml version="1.0"?><yml_catalog><shop><offers><offer id="1" available="true"><price>10</price></offer><offer id="2" avail';
+
+		F2000CS_Test_State::$http_get_responses[ $url ] = array(
+			'response' => array( 'code' => 200 ),
+			'headers'  => array( 'Content-Length' => (string) ( strlen( $body ) + 5000 ) ),
+			'body'     => $body,
+		);
+
+		$all = $this->run_unreachable( $url, $this->supplier_rows() );
+
+		$this->assertStringContainsString( 'обірване завантаження', $all );
+		$this->assertSame( 'instock', get_post_meta( 11, '_stock_status', true ) );
+		$this->assertSame( 'instock', get_post_meta( 12, '_stock_status', true ) );
+	}
+
+	/**
+	 * A compressed transfer is not compared with Content-Length (the length is of the
+	 * compressed body), and a full download passes the check.
+	 *
+	 * @return void
+	 */
+	public function test_content_length_check_skips_compressed_and_full_downloads() {
+		$body = '<?xml version="1.0"?><yml_catalog><shop><offers><offer id="1" available="true"><price>10</price></offer></offers></shop></yml_catalog>';
+
+		foreach ( array(
+			'gzip' => array( 'Content-Length' => '10', 'Content-Encoding' => 'gzip' ),
+			'full' => array( 'Content-Length' => (string) strlen( $body ) ),
+		) as $case => $headers ) {
+			$url = $this->unreachable_url();
+
+			F2000CS_Test_State::$http_get_responses[ $url ] = array(
+				'response' => array( 'code' => 200 ),
+				'headers'  => $headers,
+				'body'     => $body,
+			);
+
+			$updater = new XML_Stock_Updater( $url, 'SUP_' );
+			$ok      = F2000CS_Test_Reflection::invoke( $updater, 'prepare_feed_source' );
+
+			$this->assertTrue( $ok, $case . ': the download is accepted' );
+			$temp = F2000CS_Test_Reflection::get( $updater, 'feed_temp' );
+			if ( $temp && file_exists( $temp ) ) {
+				unlink( $temp );
+			}
+		}
+	}
+
+	/**
 	 * A feed that cannot be downloaded keeps the current stock and only alerts.
 	 *
 	 * @return void
@@ -1436,6 +1493,49 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 		$this->assertStringContainsString( 'вже виконується', $all );
 		$this->assertStringNotContainsString( 'У вигрузці:', $all );
 		$this->assertNotFalse( get_option( 'f2000cs_sync_lock_' . md5( $url ) ), 'The other run keeps its lock' );
+	}
+
+	/**
+	 * A run releases only its own lock: when a newer run took the lock over (after the
+	 * TTL), the old run's end leaves that lock alone.
+	 *
+	 * @return void
+	 */
+	public function test_run_releases_only_its_own_lock() {
+		$updater = new XML_Stock_Updater( 'https://supplier.test/own-lock.xml', 'SUP_' );
+		$option  = 'f2000cs_sync_lock_' . md5( 'https://supplier.test/own-lock.xml' );
+
+		$this->assertTrue( F2000CS_Test_Reflection::invoke( $updater, 'acquire_run_lock' ) );
+		$this->assertStringContainsString( '|', (string) get_option( $option ), 'The lock holds «time|token»' );
+
+		update_option( $option, time() . '|newer-run' );
+		F2000CS_Test_Reflection::invoke( $updater, 'release_run_lock' );
+
+		$this->assertSame( time() . '|newer-run', get_option( $option ), 'The newer run keeps its lock' );
+
+		delete_option( $option );
+		$this->assertTrue( F2000CS_Test_Reflection::invoke( $updater, 'acquire_run_lock' ) );
+		F2000CS_Test_Reflection::invoke( $updater, 'release_run_lock' );
+		$this->assertFalse( get_option( $option ), 'Its own lock is released' );
+	}
+
+	/**
+	 * A second updater of the same feed cannot take a fresh lock.
+	 *
+	 * @return void
+	 */
+	public function test_second_updater_cannot_take_a_held_lock() {
+		$url = 'https://supplier.test/held.xml';
+		$a   = new XML_Stock_Updater( $url, 'SUP_' );
+		$b   = new XML_Stock_Updater( $url, 'SUP_' );
+
+		$this->assertTrue( F2000CS_Test_Reflection::invoke( $a, 'acquire_run_lock' ) );
+		$this->assertFalse( F2000CS_Test_Reflection::invoke( $b, 'acquire_run_lock' ) );
+
+		F2000CS_Test_Reflection::invoke( $b, 'release_run_lock' );
+		$this->assertNotFalse( get_option( 'f2000cs_sync_lock_' . md5( $url ) ), 'The run without the lock releases nothing' );
+
+		F2000CS_Test_Reflection::invoke( $a, 'release_run_lock' );
 	}
 
 	/**

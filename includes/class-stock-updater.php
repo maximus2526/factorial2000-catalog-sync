@@ -179,6 +179,13 @@ class XML_Stock_Updater {
 	private $price_adjust_max_share = 5.0;
 
 	/**
+	 * Token of the run lock this run holds ('' when none).
+	 *
+	 * @var string
+	 */
+	private $run_lock_token = '';
+
+	/**
 	 * Supplier slot of this feed (0 = a URL that matches no slot).
 	 *
 	 * @var int
@@ -394,7 +401,7 @@ class XML_Stock_Updater {
 
 			$this->cleanup_resources();
 			$this->send_report( microtime( true ) - $start_time );
-			delete_option( $this->run_lock_option() );
+			$this->release_run_lock();
 		}
 	}
 
@@ -689,6 +696,25 @@ class XML_Stock_Updater {
 			return false;
 		}
 
+		// A connection that closes early can leave a cut file behind an HTTP 200 (non-cURL
+		// transports do not report it). Compare with Content-Length when the body was not
+		// compressed in transit, and treat a short file as an unreachable feed, not a broken one.
+		$expected = (int) wp_remote_retrieve_header( $response, 'content-length' );
+		$encoding = (string) wp_remote_retrieve_header( $response, 'content-encoding' );
+		$received = (int) filesize( $temp );
+
+		if ( $expected > 0 && ( '' === $encoding || 'identity' === strtolower( $encoding ) ) && $received < $expected ) {
+			wp_delete_file( $temp );
+
+			$reason = sprintf( 'обірване завантаження: %d з %d байт', $received, $expected );
+
+			$this->feed_unreachable = true;
+			$this->feed_error       = 'не вдалося завантажити вигрузку (' . $reason . ')';
+			$this->send_telegram_message( 'Помилка завантаження XML: ' . $reason );
+
+			return false;
+		}
+
 		$this->feed_source = $temp;
 		$this->feed_temp   = $temp;
 
@@ -854,34 +880,84 @@ class XML_Stock_Updater {
 	}
 
 	/**
+	 * Read the run lock straight from the database (not from this process' option cache),
+	 * so a lock written by another process is seen.
+	 *
+	 * @return string Stored value («started|token»), '' when there is none.
+	 */
+	private function read_run_lock() {
+		$option = $this->run_lock_option();
+
+		if ( function_exists( 'wp_cache_delete' ) ) {
+			wp_cache_delete( $option, 'options' );
+			wp_cache_delete( 'notoptions', 'options' );
+		}
+
+		$value = get_option( $option, '' );
+
+		return is_scalar( $value ) ? (string) $value : '';
+	}
+
+	/**
 	 * Take the run lock of this feed. A lock older than the TTL belongs to a run that died
 	 * (fatal error, killed process) and is taken over.
+	 *
+	 * The lock holds «start time|token». add_option() is not atomic (two runs can both
+	 * write it), so after writing, the lock is read back: only the run whose token is
+	 * stored goes on.
 	 *
 	 * @return bool Whether this run may go on.
 	 */
 	private function acquire_run_lock() {
 		$option = $this->run_lock_option();
+		$token  = time() . '|' . wp_generate_password( 12, false );
 
-		if ( add_option( $option, time(), '', false ) ) {
-			return true;
+		if ( ! add_option( $option, $token, '', false ) ) {
+			/**
+			 * Seconds after which a run lock is considered stale.
+			 *
+			 * @param int    $ttl Lock lifetime.
+			 * @param string $url Feed URL.
+			 */
+			$ttl     = (int) apply_filters( 'f2000cs_sync_lock_ttl', 2 * HOUR_IN_SECONDS, $this->xml_url );
+			$started = (int) $this->read_run_lock();
+
+			if ( $started > 0 && time() - $started < $ttl ) {
+				return false;
+			}
+
+			delete_option( $option );
+
+			if ( ! add_option( $option, $token, '', false ) ) {
+				return false;
+			}
 		}
 
-		/**
-		 * Seconds after which a run lock is considered stale.
-		 *
-		 * @param int    $ttl Lock lifetime.
-		 * @param string $url Feed URL.
-		 */
-		$ttl     = (int) apply_filters( 'f2000cs_sync_lock_ttl', 2 * HOUR_IN_SECONDS, $this->xml_url );
-		$started = (int) get_option( $option, 0 );
-
-		if ( $started > 0 && time() - $started < $ttl ) {
+		if ( $this->read_run_lock() !== $token ) {
 			return false;
 		}
 
-		delete_option( $option );
+		$this->run_lock_token = $token;
 
-		return add_option( $option, time(), '', false );
+		return true;
+	}
+
+	/**
+	 * Release the run lock, but only if it is still this run's: a run that outlived the
+	 * TTL must not delete the lock a newer run has taken over.
+	 *
+	 * @return void
+	 */
+	private function release_run_lock() {
+		if ( '' === $this->run_lock_token ) {
+			return;
+		}
+
+		if ( $this->read_run_lock() === $this->run_lock_token ) {
+			delete_option( $this->run_lock_option() );
+		}
+
+		$this->run_lock_token = '';
 	}
 
 	/**
