@@ -932,6 +932,24 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * Without a main offer (the parent is not published) the variations still share one
+	 * group on Prom: identical ones are left out there too.
+	 *
+	 * @return void
+	 */
+	public function test_duplicate_variation_dropped_without_main_offer() {
+		$unit = $this->group_unit( array( 'M1' => 'M', 'M2' => 'M', 'L' => 'L' ) );
+
+		$unit['parent']['Published'] = '0';
+
+		$res = $this->process( $unit );
+
+		$this->assertStringNotContainsString( '<vendorCode>P-100</vendorCode>', $res['xml'], 'No main offer' );
+		$this->assertSame( 2, substr_count( $res['xml'], '<offer ' ), 'M and L only' );
+		$this->assertSame( 1, $res['reasons']['duplicate_variations']['count'] ?? 0 );
+	}
+
+	/**
 	 * Of two identical variations the one in stock is kept.
 	 *
 	 * @return void

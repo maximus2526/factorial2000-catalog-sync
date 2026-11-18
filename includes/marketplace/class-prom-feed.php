@@ -1444,10 +1444,12 @@ class Prom_Feed extends Marketplace_Feed {
 	 * @param array<string,mixed>                        $res         Unit result (by reference).
 	 * @param array|null                                 $main_entry  Main variation entry (by reference): an
 	 *                                                                identical variation in stock replaces one that is not.
+	 * @param bool                                       $with_main   Whether a main offer with $main_params is exported
+	 *                                                                (a variation equal to it is a duplicate too).
 	 * @return array<int,array{0:string,1:array,2:array}> Entries without duplicates.
 	 */
-	private function without_duplicate_variations( $parent_row, array $main_params, array $entries, array &$res, &$main_entry = null ): array {
-		$seen = array( Prom_Variations::effective_param_signature( $main_params, $main_params ) => -1 );
+	private function without_duplicate_variations( $parent_row, array $main_params, array $entries, array &$res, &$main_entry = null, bool $with_main = true ): array {
+		$seen = $with_main ? array( Prom_Variations::effective_param_signature( $main_params, $main_params ) => -1 ) : array();
 		$kept = array();
 
 		foreach ( $entries as $entry ) {
@@ -1613,6 +1615,11 @@ class Prom_Feed extends Marketplace_Feed {
 		// variations stay on Prom. Nothing is invented to tell duplicates apart.
 		if ( $try_parent ) {
 			$slot_entries = $this->without_duplicate_variations( $parent_row, $main_params, $slot_entries, $res, $main_entry );
+		} elseif ( '' !== $gid && count( $slot_entries ) > 1 ) {
+			// No main offer (the parent cannot be published), but the variations still share
+			// one group_id on Prom: identical ones would get the whole group rejected.
+			$no_main      = null;
+			$slot_entries = $this->without_duplicate_variations( $parent_row, array(), $slot_entries, $res, $no_main, false );
 		}
 
 		if ( $try_parent ) {
