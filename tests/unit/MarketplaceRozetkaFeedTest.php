@@ -261,6 +261,37 @@ final class F2000CS_Unit_MarketplaceRozetkaFeedTest extends F2000CS_Unit_TestCas
 	}
 
 	/**
+	 * A combined brand is reduced to one, like in the Prom feed.
+	 *
+	 * @return void
+	 */
+	public function test_combined_vendor_is_one_brand() {
+		$offer = $this->offers( $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Brands' => 'Без бренду, Kiborg' ) ) ) ) )->offer[0];
+
+		$this->assertSame( 'Kiborg', (string) $offer->vendor );
+	}
+
+	/**
+	 * «Article in name» appends the SKU to both names.
+	 *
+	 * @return void
+	 */
+	public function test_article_in_name() {
+		$this->settings['article_in_name'] = '1';
+
+		$offer = $this->offers( $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row() ) ) )->offer[0];
+
+		$this->assertSame( 'Куртка (SKU-10)', (string) $offer->name );
+		$this->assertSame( 'Куртка (SKU-10)', (string) $offer->name_ua );
+
+		$long  = str_repeat( 'Д', 300 );
+		$offer = $this->offers( $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Name' => $long ) ) ) ) )->offer[0];
+
+		$this->assertSame( 255, mb_strlen( (string) $offer->name ), 'Still within 255 characters' );
+		$this->assertStringEndsWith( ' (SKU-10)', (string) $offer->name, 'The article survives the cut' );
+	}
+
+	/**
 	 * The offer id keeps Latin letters and digits only, with the prefix.
 	 *
 	 * @return void

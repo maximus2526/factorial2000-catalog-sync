@@ -163,6 +163,14 @@ class Rozetka_Feed extends Marketplace_Feed {
 				'description' => __( 'У <price> іде звичайна ціна товару, <price_old> не додається, навіть якщо на сайті діє акція. ROZETKA вимагає, щоб ціна не була вищою, ніж на вашому сайті.', 'factorial2000-catalog-sync' ),
 				'default'     => '0',
 			),
+			'article_in_name'        => array(
+				'group'       => 'products',
+				'type'        => 'checkbox',
+				'label'       => __( 'Артикул у назві', 'factorial2000-catalog-sync' ),
+				'checkbox'    => __( 'Додавати артикул у кінці назви: «Куртка … (SKU-10)»', 'factorial2000-catalog-sync' ),
+				'description' => __( 'ROZETKA вимагає, щоб назви в прайс-листі не повторювались. Різновиди одного товару розрізняються розміром і кольором самі, а однакові назви різних товарів (наприклад, товар продубльований на сайті) розрізнить лише артикул. Так оформлено й офіційний приклад ROZETKA.', 'factorial2000-catalog-sync' ),
+				'default'     => '0',
+			),
 			'default_stock_quantity' => array(
 				'group'       => 'products',
 				'type'        => 'number',
@@ -531,7 +539,8 @@ class Rozetka_Feed extends Marketplace_Feed {
 		}
 
 		// Brand (required).
-		$vendor = Marketplace_Text::clean( Prom_Feed::extract_vendor( $row, $parent_row ) );
+		// One brand: «Без бренду, Kiborg» → «Kiborg», like the Prom feed.
+		$vendor = Prom_Feed::single_vendor( Prom_Feed::extract_vendor( $row, $parent_row ) );
 
 		if ( '' === $vendor ) {
 			$vendor = Marketplace_Text::clean( Marketplace_Form::resolve( (string) $settings['default_brand'] ) );
@@ -573,8 +582,17 @@ class Rozetka_Feed extends Marketplace_Feed {
 			}
 		}
 
-		$name    = self::truncate( '' !== $name ? $name : $name_ua, self::MAX_NAME );
-		$name_ua = self::truncate( '' !== $name_ua ? $name_ua : $name, self::MAX_NAME );
+		$name    = '' !== $name ? $name : $name_ua;
+		$name_ua = '' !== $name_ua ? $name_ua : $name;
+
+		if ( '1' === (string) $settings['article_in_name'] && '' !== $sku ) {
+			$suffix  = ' (' . $sku . ')';
+			$name    = self::truncate( $name, self::MAX_NAME - mb_strlen( $suffix ) ) . $suffix;
+			$name_ua = self::truncate( $name_ua, self::MAX_NAME - mb_strlen( $suffix ) ) . $suffix;
+		}
+
+		$name    = self::truncate( $name, self::MAX_NAME );
+		$name_ua = self::truncate( $name_ua, self::MAX_NAME );
 
 		// Description (required): HTML in CDATA, the name when the product has none.
 		$raw_description = Prom_Feed::pick_raw_description( $row, $parent_row );
