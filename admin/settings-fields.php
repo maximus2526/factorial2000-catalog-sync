@@ -529,7 +529,7 @@ function f2000cs_allow_insecure_ssl_render() {
 function f2000cs_telegram_user_ids_render() {
 	$user_ids = get_option( 'f2000cs_telegram_user_ids', '' );
 	?>
-	<input type="text" name="f2000cs_telegram_user_ids" value="<?php echo esc_attr( $user_ids ); ?>" placeholder="<?php esc_attr_e( '123456789, 987654321', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
+	<input type="text" name="f2000cs_telegram_user_ids" value="<?php echo esc_attr( $user_ids ); ?>" placeholder="<?php esc_attr_e( '123456789, 987654321', 'factorial2000-catalog-sync' ); ?>" class="f2000cs-input-wide">
 	<p class="description"><?php esc_html_e( 'ID чатів, куди надсилати сповіщення (через кому для кількох). Свій числовий ID дізнаєтесь у боті @userinfobot. Спершу напишіть своєму боту /start, інакше повідомлення не дійде.', 'factorial2000-catalog-sync' ); ?></p>
 	<?php
 }
@@ -537,7 +537,7 @@ function f2000cs_telegram_user_ids_render() {
 function f2000cs_telegram_token_id_render() {
 	$token_id = get_option( 'f2000cs_telegram_token_id', '' );
 	?>
-	<input type="text" name="f2000cs_telegram_token_id" value="<?php echo esc_attr( $token_id ); ?>" placeholder="<?php esc_attr_e( '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
+	<input type="text" name="f2000cs_telegram_token_id" value="<?php echo esc_attr( $token_id ); ?>" placeholder="<?php esc_attr_e( '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz', 'factorial2000-catalog-sync' ); ?>" class="f2000cs-input-wide">
 	<p class="description"><?php esc_html_e( 'Токен бота отримаєте у @BotFather: надішліть /newbot, задайте ім\'я — і скопіюйте рядок виду 1234567890:ABCdef... Без токена Telegram-сповіщення не надсилаються.', 'factorial2000-catalog-sync' ); ?></p>
 	<?php
 }
@@ -600,13 +600,13 @@ function f2000cs_render_supplier_price_adjust( $slot ) {
 					<?php esc_html_e( 'Відняти', 'factorial2000-catalog-sync' ); ?>
 				</label>
 			</span>
-			<input type="number" name="<?php echo esc_attr( $val_name ); ?>" id="<?php echo esc_attr( $val_name ); ?>" value="<?php echo esc_attr( $value ); ?>" min="0" step="0.01" style="width: 100px;">
+			<input type="number" name="<?php echo esc_attr( $val_name ); ?>" id="<?php echo esc_attr( $val_name ); ?>" value="<?php echo esc_attr( $value ); ?>" min="0" step="0.01" class="f2000cs-input-number">
 			<span class="f2000cs-price-adjust__unit" id="<?php echo esc_attr( $unit_id ); ?>"><?php echo esc_html( 'fixed' === $type ? $currency : '%' ); ?></span>
 		</div>
 		<div class="f2000cs-price-adjust__max-share" id="<?php echo esc_attr( $share_name . '_wrap' ); ?>">
 			<label for="<?php echo esc_attr( $share_name ); ?>">
 				<?php esc_html_e( 'Віднімати не більше', 'factorial2000-catalog-sync' ); ?>
-				<input type="number" name="<?php echo esc_attr( $share_name ); ?>" id="<?php echo esc_attr( $share_name ); ?>" value="<?php echo esc_attr( (string) $max_share ); ?>" min="0" max="100" step="0.01" style="width: 80px;">
+				<input type="number" name="<?php echo esc_attr( $share_name ); ?>" id="<?php echo esc_attr( $share_name ); ?>" value="<?php echo esc_attr( (string) $max_share ); ?>" min="0" max="100" step="0.01" class="f2000cs-input-number f2000cs-input-number--sm">
 				<?php esc_html_e( '% ціни', 'factorial2000-catalog-sync' ); ?>
 			</label>
 			<?php

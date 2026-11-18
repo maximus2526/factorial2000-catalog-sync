@@ -1,0 +1,236 @@
+/* =========================================================================
+   Documentation page
+   ========================================================================= */
+
+.f2000cs-docs-page {
+	max-width: 1400px;
+}
+
+.f2000cs-docs-layout {
+	display: grid;
+	grid-template-columns: 240px minmax(0, 1fr);
+	gap: 24px;
+	align-items: start;
+	margin-top: 8px;
+}
+
+/* ---- Sidebar ---- */
+
+.f2000cs-docs-nav {
+	position: sticky;
+	top: 52px;
+	max-height: calc(100vh - 80px);
+	overflow-y: auto;
+	background: var(--f2000cs-white);
+	border: 1px solid var(--f2000cs-border);
+	border-radius: 6px;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+	padding: 8px 0;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.f2000cs-docs-nav__list,
+.f2000cs-docs-nav__sublist {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.f2000cs-docs-nav__sublist {
+	border-left: 2px dotted var(--f2000cs-border-light);
+	margin-left: 14px;
+}
+
+.f2000cs-docs-nav__item {
+	display: block;
+	padding: 5px 12px;
+	color: var(--f2000cs-text);
+	text-decoration: none;
+	border-radius: 0;
+	transition: background 0.15s, color 0.15s;
+	border-left: 2px solid transparent;
+}
+
+.f2000cs-docs-nav__item:hover {
+	background: var(--f2000cs-blue-bg);
+	color: var(--f2000cs-blue);
+}
+
+.f2000cs-docs-nav__item.is-active {
+	background: #edf4fd;
+	color: var(--f2000cs-blue);
+	font-weight: 600;
+	border-left-color: var(--f2000cs-blue);
+}
+
+.f2000cs-docs-nav__item.is-parent {
+	font-weight: 600;
+	color: var(--f2000cs-text);
+}
+
+.f2000cs-docs-nav__sublist .f2000cs-docs-nav__item {
+	padding: 4px 12px;
+	font-size: 12px;
+	font-weight: 400;
+}
+
+/* ---- Content ---- */
+
+.f2000cs-docs-content {
+	min-width: 0;
+}
+
+.f2000cs-docs-section {
+	margin-bottom: 28px;
+}
+
+.f2000cs-docs-section__title {
+	margin: 0 0 16px;
+	padding: 0 0 10px;
+	font-size: 22px;
+	font-weight: 500;
+	color: var(--f2000cs-text);
+	border-bottom: 2px solid var(--f2000cs-border-light);
+}
+
+.f2000cs-docs-card {
+	background: var(--f2000cs-white);
+	border: 1px solid var(--f2000cs-border);
+	border-radius: 6px;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+	padding: 16px 20px;
+	margin-bottom: 16px;
+}
+
+.f2000cs-docs-card h3 {
+	margin: 0 0 10px;
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--f2000cs-text);
+}
+
+.f2000cs-docs-card p {
+	margin: 0 0 10px;
+	font-size: 13px;
+	line-height: 1.65;
+	color: var(--f2000cs-text);
+}
+
+.f2000cs-docs-card p:last-child {
+	margin-bottom: 0;
+}
+
+.f2000cs-docs-card ul,
+.f2000cs-docs-card ol {
+	margin: 6px 0 10px;
+	padding-left: 20px;
+	font-size: 13px;
+	line-height: 1.65;
+}
+
+.f2000cs-docs-card li {
+	margin-bottom: 4px;
+}
+
+.f2000cs-docs-card ul ul {
+	margin: 2px 0 2px 16px;
+}
+
+.f2000cs-docs-card code {
+	background: var(--f2000cs-bg-light);
+	padding: 1px 6px;
+	border-radius: var(--f2000cs-radius-sm);
+	font-size: 12px;
+}
+
+/* Numbered steps */
+
+.f2000cs-docs-steps {
+	counter-reset: step;
+	list-style: none;
+	padding-left: 0;
+}
+
+.f2000cs-docs-steps li {
+	counter-increment: step;
+	padding: 12px 12px 12px 44px;
+	margin-bottom: 8px;
+	background: var(--f2000cs-bg-subtle);
+	border-radius: var(--f2000cs-radius);
+	position: relative;
+}
+
+.f2000cs-docs-steps li::before {
+	content: counter(step);
+	position: absolute;
+	left: 8px;
+	top: 10px;
+	width: 26px;
+	height: 26px;
+	background: var(--f2000cs-blue);
+	color: var(--f2000cs-white);
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 26px;
+	text-align: center;
+	border-radius: 50%;
+}
+
+/* Code / schema examples */
+
+.f2000cs-docs-code {
+	margin: 8px 0 0;
+	padding: 12px 14px;
+	overflow: auto;
+	max-height: 480px;
+	background: var(--f2000cs-bg-header);
+	border: 1px solid var(--f2000cs-border-light);
+	border-radius: var(--f2000cs-radius);
+	font-size: 12px;
+	line-height: 1.45;
+	white-space: pre;
+}
+
+/* Note boxes */
+
+.f2000cs-docs-note {
+	margin: 12px 0 0;
+	padding: 10px 14px;
+	background: var(--f2000cs-blue-bg);
+	border-left: 3px solid var(--f2000cs-blue);
+	border-radius: 0 var(--f2000cs-radius) var(--f2000cs-radius) 0;
+	font-size: 12px;
+	line-height: 1.6;
+}
+
+.f2000cs-docs-note p {
+	margin: 0;
+	font-size: 12px;
+}
+
+.f2000cs-docs-note p:last-child {
+	margin-bottom: 0;
+}
+
+.f2000cs-docs-note--warn {
+	background: var(--f2000cs-warning-bg);
+	border-left-color: var(--f2000cs-warning);
+}
+
+/* Responsive: stack below 783px */
+
+@media (max-width: 782px) {
+	.f2000cs-docs-layout {
+		grid-template-columns: 1fr;
+	}
+
+	.f2000cs-docs-nav {
+		position: static;
+		max-height: none;
+	}
+
+	.f2000cs-docs-section__title {
+		font-size: 18px;
+	}
+}

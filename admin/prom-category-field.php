@@ -201,15 +201,11 @@ function f2000cs_prom_category_enqueue( $hook ) {
 		)
 	);
 
-	wp_register_style( 'f2000cs-admin-prom-category', false, array(), F2000CS_VERSION );
-	wp_enqueue_style( 'f2000cs-admin-prom-category' );
-	wp_add_inline_style(
+	wp_enqueue_style(
 		'f2000cs-admin-prom-category',
-		'.f2000cs-prom-cat-wrap{display:block;min-width:260px;max-width:100%}'
-		. '#f2000cs-prom-category .f2000cs-prom-cat-wrap{min-width:0}'
-		. '.f2000cs-prom-cat-wrap .select2-container{width:100%!important}'
-		. '.f2000cs-prom-cat-opt small{opacity:.7;margin-left:6px}'
-		. '.f2000cs-prom-cat-unknown{color:#b32d2e}'
+		F2000CS_URL . 'assets/css/admin-prom-category.css',
+		array(),
+		f2000cs_asset_version( 'assets/css/admin-prom-category.css' )
 	);
 }
 add_action( 'admin_enqueue_scripts', 'f2000cs_prom_category_enqueue', 20 );

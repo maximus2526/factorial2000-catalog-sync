@@ -152,7 +152,7 @@ function f2000cs_buy_on_prom_enabled_render() {
 function f2000cs_buy_on_prom_shop_render() {
 	$shop = get_option( 'f2000cs_buy_on_prom_shop', '' );
 	?>
-	<input type="text" name="f2000cs_buy_on_prom_shop" value="<?php echo esc_attr( $shop ); ?>" placeholder="<?php esc_attr_e( 'myshop.prom.ua', 'factorial2000-catalog-sync' ); ?>" style="width: 100%;">
+	<input type="text" name="f2000cs_buy_on_prom_shop" value="<?php echo esc_attr( $shop ); ?>" placeholder="<?php esc_attr_e( 'myshop.prom.ua', 'factorial2000-catalog-sync' ); ?>" class="f2000cs-input-wide">
 	<p class="description"><?php esc_html_e( 'Тільки домен, без https://. Посилання завжди ведуть на українську версію картки: https://домен/ua/p{ID}-{slug}.html.', 'factorial2000-catalog-sync' ); ?></p>
 	<?php
 }
@@ -291,7 +291,7 @@ function f2000cs_variable_low_instock_max_render() {
 	$is_pro = f2000cs_is_pro();
 	?>
 	<div class="<?php echo $is_pro ? '' : 'f2000cs-pro-feature'; ?>" <?php echo $is_pro ? '' : 'data-pro-tip="' . esc_attr__( 'Відкривається в Pro версії', 'factorial2000-catalog-sync' ) . '"'; ?>>
-		<input type="number" name="f2000cs_variable_low_instock_max" value="<?php echo esc_attr( $max ); ?>" min="0" step="1" style="width: 80px;" <?php disabled( ! $is_pro ); ?>>
+		<input type="number" name="f2000cs_variable_low_instock_max" value="<?php echo esc_attr( $max ); ?>" min="0" step="1" class="f2000cs-input-number f2000cs-input-number--sm" <?php disabled( ! $is_pro ); ?>>
 		<?php if ( ! $is_pro ) : ?>
 			<span class="f2000cs-pro-badge"><?php esc_html_e( 'Pro', 'factorial2000-catalog-sync' ); ?></span>
 		<?php endif; ?>

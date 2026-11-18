@@ -163,13 +163,13 @@ function f2000cs_marketplace_render_brand_pairs( string $key, array $field, $val
 	<?php if ( count( $brands ) > 8 ) : ?>
 		<p><input type="search" class="regular-text f2000cs-mp-brand-filter" placeholder="<?php esc_attr_e( 'Пошук бренду…', 'factorial2000-catalog-sync' ); ?>"></p>
 	<?php endif; ?>
-	<div style="max-height:420px;overflow:auto;max-width:720px;border:1px solid #c3c4c7">
+	<div class="f2000cs-mp-scroll">
 		<table class="widefat striped f2000cs-mp-pairs f2000cs-mp-brand-table" data-key="<?php echo esc_attr( $key ); ?>">
 			<thead>
 				<tr>
 					<th><?php echo esc_html( (string) ( $field['left_label'] ?? '' ) ); ?></th>
 					<th><?php echo esc_html( (string) ( $field['right_label'] ?? '' ) ); ?></th>
-					<th style="width:40px"></th>
+					<th class="f2000cs-mp-col-narrow"></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -217,12 +217,12 @@ function f2000cs_marketplace_render_pairs( string $key, array $field, $value ): 
 
 	$suggest = f2000cs_marketplace_brand_suggestions( Marketplace_Form::text_to_rows( (string) $value ) );
 	?>
-	<table class="widefat striped f2000cs-mp-pairs" data-key="<?php echo esc_attr( $key ); ?>" style="max-width:720px">
+	<table class="widefat striped f2000cs-mp-pairs" data-key="<?php echo esc_attr( $key ); ?>">
 		<thead>
 			<tr>
 				<th><?php echo esc_html( (string) ( $field['left_label'] ?? '' ) ); ?></th>
 				<th><?php echo esc_html( (string) ( $field['right_label'] ?? '' ) ); ?></th>
-				<th style="width:40px"></th>
+				<th class="f2000cs-mp-col-narrow"></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -256,13 +256,13 @@ function f2000cs_marketplace_render_category_map( string $key, array $field, $va
 	} else {
 		?>
 		<p><input type="search" class="regular-text f2000cs-mp-cat-filter" placeholder="<?php esc_attr_e( 'Пошук категорії…', 'factorial2000-catalog-sync' ); ?>"></p>
-		<div style="max-height:420px;overflow:auto;max-width:960px;border:1px solid #c3c4c7">
+		<div class="f2000cs-mp-scroll f2000cs-mp-scroll--wide">
 			<table class="widefat striped f2000cs-mp-cat-table">
 				<thead>
 					<tr>
 						<th><?php esc_html_e( 'Категорія магазину', 'factorial2000-catalog-sync' ); ?></th>
-						<th style="width:70px"><?php esc_html_e( 'Товарів', 'factorial2000-catalog-sync' ); ?></th>
-						<th style="width:50%"><?php esc_html_e( 'Категорія Prom', 'factorial2000-catalog-sync' ); ?></th>
+						<th class="f2000cs-mp-col-count"><?php esc_html_e( 'Товарів', 'factorial2000-catalog-sync' ); ?></th>
+						<th class="f2000cs-mp-col-half"><?php esc_html_e( 'Категорія Prom', 'factorial2000-catalog-sync' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -291,7 +291,7 @@ function f2000cs_marketplace_render_category_map( string $key, array $field, $va
 	}
 	?>
 	<p class="description"><?php echo f2000cs_prom_category_reference_link(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in the helper. ?></p>
-	<details style="margin-top:8px">
+	<details class="f2000cs-mp-details">
 		<summary><?php esc_html_e( 'Свої правила (для досвідчених)', 'factorial2000-catalog-sync' ); ?></summary>
 		<textarea name="mp_extra[<?php echo esc_attr( $key ); ?>]" rows="3" class="large-text code" placeholder="кросівки=1234567"><?php echo esc_textarea( $split['extra'] ); ?></textarea>
 		<p class="description"><?php esc_html_e( 'По одному правилу в рядку: частина шляху категорії=номер Prom, наприклад «одяг>куртки=1234567». Спрацьовує перше правило, що збіглося.', 'factorial2000-catalog-sync' ); ?></p>
@@ -712,8 +712,8 @@ function f2000cs_marketplaces_page() {
 				?>
 									"><?php echo esc_html( $item->label() ); ?></a>
 			<?php endforeach; ?>
-			<span class="nav-tab" style="opacity:.55;cursor:default"><?php esc_html_e( 'Rozetka — незабаром', 'factorial2000-catalog-sync' ); ?></span>
-			<span class="nav-tab" style="opacity:.55;cursor:default"><?php esc_html_e( 'Hotline — незабаром', 'factorial2000-catalog-sync' ); ?></span>
+			<span class="nav-tab f2000cs-mp-tab-soon"><?php esc_html_e( 'Rozetka — незабаром', 'factorial2000-catalog-sync' ); ?></span>
+			<span class="nav-tab f2000cs-mp-tab-soon"><?php esc_html_e( 'Hotline — незабаром', 'factorial2000-catalog-sync' ); ?></span>
 		</h2>
 
 		<?php
@@ -749,7 +749,7 @@ function f2000cs_marketplaces_page() {
 			</div>
 		<?php endif; ?>
 
-		<div class="card" style="max-width:none">
+		<div class="card f2000cs-mp-card">
 			<h2><?php echo esc_html( $feed->label() ); ?></h2>
 			<p class="description"><?php echo esc_html( $feed->description() ); ?></p>
 
@@ -760,7 +760,7 @@ function f2000cs_marketplaces_page() {
 						<?php if ( $info['exists'] ) : ?>
 							<?php $many = count( $info['parts'] ) > 1; ?>
 							<?php foreach ( $info['parts'] as $part ) : ?>
-								<p style="margin:0 0 6px">
+								<p class="f2000cs-mp-link-line">
 									<input type="text" class="large-text code" readonly value="<?php echo esc_attr( $part['url'] ); ?>" onclick="this.select()">
 								</p>
 							<?php endforeach; ?>
@@ -842,7 +842,7 @@ function f2000cs_marketplaces_page() {
 									</p>
 								<?php endif; ?>
 							<?php else : ?>
-								<span style="color:#b32d2e"><?php echo esc_html( (string) ( $result['message'] ?? '' ) ); ?></span>
+								<span class="f2000cs-mp-error"><?php echo esc_html( (string) ( $result['message'] ?? '' ) ); ?></span>
 							<?php endif; ?>
 							<?php f2000cs_marketplace_render_skip_reasons( $feed, (array) ( $result['reasons'] ?? array() ) ); ?>
 						<?php else : ?>
@@ -861,7 +861,7 @@ function f2000cs_marketplaces_page() {
 						<?php esc_html_e( 'Скорочення очікуване — опублікувати', 'factorial2000-catalog-sync' ); ?>
 					</button>
 				<?php endif; ?>
-				<span class="f2000cs-mp-progress" aria-live="polite" style="margin-left:10px"></span>
+				<span class="f2000cs-mp-progress" aria-live="polite"></span>
 			</p>
 		</div>
 
@@ -1110,54 +1110,11 @@ function f2000cs_marketplace_enqueue( $hook ) {
 	}
 
 	// Nested tables live inside .form-table cells, whose th/td rules (200px headers, big padding) would otherwise leak into them.
-	wp_register_style( 'f2000cs-admin-marketplaces', false, array(), F2000CS_VERSION );
-	wp_enqueue_style( 'f2000cs-admin-marketplaces' );
-	wp_add_inline_style(
+	wp_enqueue_style(
 		'f2000cs-admin-marketplaces',
-		'.f2000cs-marketplaces .form-table td table{margin:0}'
-		. '.f2000cs-marketplaces .form-table td table th,.f2000cs-marketplaces .form-table td table td{width:auto;padding:8px 10px;vertical-align:middle;line-height:1.4}'
-		. '.f2000cs-marketplaces .form-table td table input[type=text]{width:100%;max-width:none}'
-		. '.f2000cs-marketplaces .f2000cs-mp-pairs .select2-container{width:100%!important;min-width:180px}'
-		. '.f2000cs-marketplaces .form-table td .f2000cs-mp-cat-table input[type=text]{width:140px}'
-		. '.f2000cs-marketplaces .f2000cs-mp-cat-table .f2000cs-prom-cat-wrap{display:block}'
-		. '.f2000cs-marketplaces .f2000cs-mp-pairs,.f2000cs-marketplaces .f2000cs-mp-cat-table{table-layout:auto}'
-		. '.f2000cs-marketplaces .f2000cs-mp-custom{margin-left:6px;vertical-align:middle}'
-		. '.f2000cs-marketplaces .f2000cs-mp-custom[hidden]{display:none}'
-		. '.f2000cs-marketplaces .form-table td select{max-width:100%}'
-		. '.f2000cs-marketplaces .form-table td details textarea{margin-top:6px}'
-		. '.f2000cs-marketplaces .card{padding:0.7em 2em 1em}'
-		. '.f2000cs-marketplaces .f2000cs-prom-summary{color:#646970;margin-left:8px}'
-		. '.f2000cs-marketplaces dialog.f2000cs-prom-attrs-dialog{width:min(1120px,94vw);max-height:88vh;padding:0;border:1px solid #c3c4c7;border-radius:4px;box-shadow:0 12px 40px rgba(0,0,0,.28);overflow:visible}'
-		. '.f2000cs-marketplaces dialog.f2000cs-prom-attrs-dialog[open]{display:flex;flex-direction:column}'
-		. '.f2000cs-marketplaces dialog.f2000cs-prom-attrs-dialog::backdrop{background:rgba(0,0,0,.45)}'
-		. '.f2000cs-marketplaces .f2000cs-modal__head{display:flex;flex:0 0 auto;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #dcdcde;border-radius:3px 3px 0 0;background:#f6f7f7}'
-		. '.f2000cs-marketplaces .f2000cs-modal__head h2{margin:0;font-size:18px;line-height:1.3}'
-		. '.f2000cs-marketplaces .f2000cs-modal__close{font-size:26px;line-height:1;text-decoration:none;color:#646970;cursor:pointer}'
-		. '.f2000cs-marketplaces .f2000cs-modal__body{flex:1 1 auto;min-height:0;padding:14px 18px;overflow:auto}'
-		. '.f2000cs-marketplaces .f2000cs-modal__body>p:first-child{margin-top:0}'
-		. '.f2000cs-marketplaces .f2000cs-modal__foot{display:flex;flex:0 0 auto;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-top:1px solid #dcdcde;border-radius:0 0 3px 3px;background:#f6f7f7}'
-		. '.f2000cs-marketplaces .f2000cs-prom-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0}'
-		. '.f2000cs-marketplaces .f2000cs-prom-toolbar .f2000cs-prom-search{min-width:240px;max-width:360px}'
-		. '.f2000cs-marketplaces .f2000cs-prom-table-wrap{overflow:auto;max-height:56vh;border:1px solid #dcdcde}'
-		. '.f2000cs-marketplaces .f2000cs-prom-attrs-table{margin:0;table-layout:fixed}'
-		. '.f2000cs-marketplaces .f2000cs-prom-attrs-table th{position:sticky;top:0;z-index:1;background:#f6f7f7;font-weight:600}'
-		. '.f2000cs-marketplaces .f2000cs-prom-attrs-table th:first-child{width:28%}'
-		. '.f2000cs-marketplaces .f2000cs-prom-attrs-table th:last-child{width:110px}'
-		. '.f2000cs-marketplaces .f2000cs-prom-attrs-table td{vertical-align:middle}'
-		. '.f2000cs-marketplaces .f2000cs-prom-group td{background:#f0f6fc;border-top:1px solid #c3c4c7;font-weight:600}'
-		. '.f2000cs-marketplaces .f2000cs-prom-group:first-child td{border-top:0}'
-		. '.f2000cs-marketplaces .f2000cs-prom-count{color:#646970;font-weight:400;margin-left:6px}'
-		. '.f2000cs-marketplaces .f2000cs-prom-status{display:inline-block;padding:2px 7px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}'
-		. '.f2000cs-marketplaces .f2000cs-prom-status.is-auto{color:#0f834d;background:#e6f6ec}'
-		. '.f2000cs-marketplaces .f2000cs-prom-status.is-manual{color:#135e96;background:#e5f1f8}'
-		. '.f2000cs-marketplaces .f2000cs-prom-status.is-none{color:#b32d2e;background:#fbeaea}'
-		. '.f2000cs-marketplaces .f2000cs-mp-attr-select{width:100%;max-width:100%}'
-		. '.f2000cs-marketplaces .f2000cs-prom-attrs-table .select2-container{width:100%!important}'
-		. '.f2000cs-marketplaces .f2000cs-prom-attrs-dialog .select2-container--open{z-index:1000000}'
-		. '.f2000cs-marketplaces .f2000cs-prom-attrs-dialog .select2-dropdown{z-index:1000000;box-shadow:0 8px 24px rgba(0,0,0,.18)}'
-		. '.f2000cs-marketplaces .f2000cs-prom-attrs-dialog .select2-search--dropdown .select2-search__field{margin:0;width:100%}'
-		. '.f2000cs-marketplaces .f2000cs-prom-empty,.f2000cs-marketplaces .f2000cs-prom-empty-row td{color:#646970;font-style:italic}'
-		. '@media (max-width:782px){.f2000cs-marketplaces dialog.f2000cs-prom-attrs-dialog{width:96vw}.f2000cs-marketplaces .f2000cs-prom-table-wrap{max-height:52vh}.f2000cs-marketplaces .f2000cs-prom-attrs-table{min-width:720px}.f2000cs-marketplaces .f2000cs-modal__foot{flex-wrap:wrap}}'
+		F2000CS_URL . 'assets/css/admin-marketplaces.css',
+		array( 'f2000cs-admin-settings' ),
+		f2000cs_asset_version( 'assets/css/admin-marketplaces.css' )
 	);
 
 	wp_enqueue_script(

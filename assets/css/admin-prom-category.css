@@ -1,0 +1,24 @@
+/* «Категорія Prom» field: product, product category and Marketplaces screens. */
+
+.f2000cs-prom-cat-wrap {
+	display: block;
+	min-width: 260px;
+	max-width: 100%;
+}
+
+#f2000cs-prom-category .f2000cs-prom-cat-wrap {
+	min-width: 0;
+}
+
+.f2000cs-prom-cat-wrap .select2-container {
+	width: 100% !important;
+}
+
+.f2000cs-prom-cat-opt small {
+	opacity: 0.7;
+	margin-left: 6px;
+}
+
+.f2000cs-prom-cat-unknown {
+	color: #b32d2e;
+}

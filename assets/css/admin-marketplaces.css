@@ -1,0 +1,318 @@
+/* Marketplaces page (Pro): feed settings, Prom attribute modal. */
+
+.f2000cs-marketplaces .form-table td table {
+	margin: 0;
+}
+
+.f2000cs-marketplaces .form-table td table th,
+.f2000cs-marketplaces .form-table td table td {
+	width: auto;
+	padding: 8px 10px;
+	vertical-align: middle;
+	line-height: 1.4;
+}
+
+.f2000cs-marketplaces .form-table td table input[type=text] {
+	width: 100%;
+	max-width: none;
+}
+
+.f2000cs-marketplaces .f2000cs-mp-pairs .select2-container {
+	width: 100% !important;
+	min-width: 180px;
+}
+
+.f2000cs-marketplaces .form-table td .f2000cs-mp-cat-table input[type=text] {
+	width: 140px;
+}
+
+.f2000cs-marketplaces .f2000cs-mp-cat-table .f2000cs-prom-cat-wrap {
+	display: block;
+}
+
+.f2000cs-marketplaces .f2000cs-mp-pairs,
+.f2000cs-marketplaces .f2000cs-mp-cat-table {
+	table-layout: auto;
+}
+
+.f2000cs-marketplaces .f2000cs-mp-custom {
+	margin-left: 6px;
+	vertical-align: middle;
+}
+
+.f2000cs-marketplaces .f2000cs-mp-custom[hidden] {
+	display: none;
+}
+
+.f2000cs-marketplaces .form-table td select {
+	max-width: 100%;
+}
+
+.f2000cs-marketplaces .form-table td details textarea {
+	margin-top: 6px;
+}
+
+.f2000cs-marketplaces .card {
+	padding: 0.7em 2em 1em;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-summary {
+	color: var(--f2000cs-text-muted);
+	margin-left: 8px;
+}
+
+.f2000cs-marketplaces dialog.f2000cs-prom-attrs-dialog {
+	width: min(1120px,94vw);
+	max-height: 88vh;
+	padding: 0;
+	border: 1px solid var(--f2000cs-border);
+	border-radius: 4px;
+	box-shadow: 0 12px 40px rgba(0,0,0,.28);
+	overflow: visible;
+}
+
+.f2000cs-marketplaces dialog.f2000cs-prom-attrs-dialog[open] {
+	display: flex;
+	flex-direction: column;
+}
+
+.f2000cs-marketplaces dialog.f2000cs-prom-attrs-dialog::backdrop {
+	background: rgba(0,0,0,.45);
+}
+
+.f2000cs-marketplaces .f2000cs-modal__head {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 14px 18px;
+	border-bottom: 1px solid var(--f2000cs-border-light);
+	border-radius: 3px 3px 0 0;
+	background: var(--f2000cs-bg-header);
+}
+
+.f2000cs-marketplaces .f2000cs-modal__head h2 {
+	margin: 0;
+	font-size: 18px;
+	line-height: 1.3;
+}
+
+.f2000cs-marketplaces .f2000cs-modal__close {
+	font-size: 26px;
+	line-height: 1;
+	text-decoration: none;
+	color: var(--f2000cs-text-muted);
+	cursor: pointer;
+}
+
+.f2000cs-marketplaces .f2000cs-modal__body {
+	flex: 1 1 auto;
+	min-height: 0;
+	padding: 14px 18px;
+	overflow: auto;
+}
+
+.f2000cs-marketplaces .f2000cs-modal__body>p:first-child {
+	margin-top: 0;
+}
+
+.f2000cs-marketplaces .f2000cs-modal__foot {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 12px 18px;
+	border-top: 1px solid var(--f2000cs-border-light);
+	border-radius: 0 0 3px 3px;
+	background: var(--f2000cs-bg-header);
+}
+
+.f2000cs-marketplaces .f2000cs-prom-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin: 12px 0;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-toolbar .f2000cs-prom-search {
+	min-width: 240px;
+	max-width: 360px;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-table-wrap {
+	overflow: auto;
+	max-height: 56vh;
+	border: 1px solid var(--f2000cs-border-light);
+}
+
+.f2000cs-marketplaces .f2000cs-prom-attrs-table {
+	margin: 0;
+	table-layout: fixed;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-attrs-table th {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background: var(--f2000cs-bg-header);
+	font-weight: 600;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-attrs-table th:first-child {
+	width: 28%;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-attrs-table th:last-child {
+	width: 110px;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-attrs-table td {
+	vertical-align: middle;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-group td {
+	background: var(--f2000cs-blue-bg);
+	border-top: 1px solid var(--f2000cs-border);
+	font-weight: 600;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-group:first-child td {
+	border-top: 0;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-count {
+	color: var(--f2000cs-text-muted);
+	font-weight: 400;
+	margin-left: 6px;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-status {
+	display: inline-block;
+	padding: 2px 7px;
+	border-radius: 10px;
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-status.is-auto {
+	color: var(--f2000cs-green);
+	background: var(--f2000cs-green-bg);
+}
+
+.f2000cs-marketplaces .f2000cs-prom-status.is-manual {
+	color: var(--f2000cs-blue-dark);
+	background: #e5f1f8;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-status.is-none {
+	color: var(--f2000cs-red);
+	background: var(--f2000cs-red-bg);
+}
+
+.f2000cs-marketplaces .f2000cs-mp-attr-select {
+	width: 100%;
+	max-width: 100%;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-attrs-table .select2-container {
+	width: 100% !important;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-attrs-dialog .select2-container--open {
+	z-index: 1000000;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-attrs-dialog .select2-dropdown {
+	z-index: 1000000;
+	box-shadow: 0 8px 24px rgba(0,0,0,.18);
+}
+
+.f2000cs-marketplaces .f2000cs-prom-attrs-dialog .select2-search--dropdown .select2-search__field {
+	margin: 0;
+	width: 100%;
+}
+
+.f2000cs-marketplaces .f2000cs-prom-empty,
+.f2000cs-marketplaces .f2000cs-prom-empty-row td {
+	color: var(--f2000cs-text-muted);
+	font-style: italic;
+}
+
+@media (max-width:782px) {
+	.f2000cs-marketplaces dialog.f2000cs-prom-attrs-dialog {
+		width: 96vw;
+	}
+
+	.f2000cs-marketplaces .f2000cs-prom-table-wrap {
+		max-height: 52vh;
+	}
+
+	.f2000cs-marketplaces .f2000cs-prom-attrs-table {
+		min-width: 720px;
+	}
+
+	.f2000cs-marketplaces .f2000cs-modal__foot {
+		flex-wrap: wrap;
+	}
+}
+
+/*
+ * Page markup (was inline style attributes). The selectors are as specific as
+ * the WordPress .form-table rules they replace inline styles against.
+ */
+
+.f2000cs-marketplaces .form-table td .f2000cs-mp-scroll {
+	max-height: 420px;
+	max-width: 720px;
+	overflow: auto;
+	border: 1px solid var(--f2000cs-border);
+}
+
+.f2000cs-marketplaces .form-table td .f2000cs-mp-scroll--wide {
+	max-width: 960px;
+}
+
+.f2000cs-marketplaces .form-table td table.f2000cs-mp-pairs {
+	max-width: 720px;
+}
+
+.f2000cs-marketplaces .form-table td table th.f2000cs-mp-col-narrow {
+	width: 40px;
+}
+
+.f2000cs-marketplaces .form-table td table th.f2000cs-mp-col-count {
+	width: 70px;
+}
+
+.f2000cs-marketplaces .form-table td table th.f2000cs-mp-col-half {
+	width: 50%;
+}
+
+.f2000cs-marketplaces .form-table td details.f2000cs-mp-details {
+	margin-top: 8px;
+}
+
+.f2000cs-marketplaces .nav-tab.f2000cs-mp-tab-soon {
+	opacity: 0.55;
+	cursor: default;
+}
+
+.f2000cs-marketplaces .card.f2000cs-mp-card {
+	max-width: none;
+}
+
+.f2000cs-marketplaces .form-table td p.f2000cs-mp-link-line {
+	margin: 0 0 6px;
+}
+
+.f2000cs-marketplaces .f2000cs-mp-error {
+	color: var(--f2000cs-red);
+}
+
+.f2000cs-marketplaces .f2000cs-mp-progress {
+	margin-left: 10px;
+}
