@@ -97,11 +97,11 @@ class Missing_Offers_Importer extends XML_Parser {
 			return $offer_data;
 		}
 
-		foreach ( array( 'price', 'old_price' ) as $key ) {
-			if ( (float) ( $offer_data[ $key ] ?? 0 ) > 0 ) {
-				$offer_data[ $key ] = f2000cs_adjust_price( (float) $offer_data[ $key ], $this->price_adjust );
-			}
-		}
+		list( $offer_data['price'], $offer_data['old_price'] ) = f2000cs_adjust_price_pair(
+			(float) ( $offer_data['price'] ?? 0 ),
+			(float) ( $offer_data['old_price'] ?? 0 ),
+			$this->price_adjust
+		);
 
 		return $offer_data;
 	}

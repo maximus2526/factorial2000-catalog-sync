@@ -150,6 +150,27 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * A fixed subtraction is decided once, on the selling price, for both prices,
+	 * so the supplier's sale survives the 5 % limit.
+	 *
+	 * @return void
+	 */
+	public function test_adjust_price_pair_keeps_supplier_sale() {
+		$rule = array(
+			'type'      => 'fixed',
+			'direction' => 'subtract',
+			'value'     => 5,
+		);
+
+		$this->assertSame( array( 96.0, 100.0 ), f2000cs_adjust_price_pair( 96, 100, $rule ), 'Too big for 96: neither price changes' );
+		$this->assertSame( array( 995.0, 1995.0 ), f2000cs_adjust_price_pair( 1000, 2000, $rule ), 'Both lose the same amount' );
+		$this->assertSame( array( 100.0, 200.0 ), f2000cs_adjust_price_pair( 100, 200, array( 'value' => 6 ) + $rule ), '6 is over 5 % of 100: the sale stays as the supplier set it' );
+		$this->assertSame( array( 114.0, 194.0 ), f2000cs_adjust_price_pair( 120, 200, array( 'value' => 6 ) + $rule ), 'Fits 120: both lose 6' );
+		$this->assertSame( array( 995.0, 0.0 ), f2000cs_adjust_price_pair( 1000, 0, $rule ), 'No old price' );
+		$this->assertSame( array( 115.0, 230.0 ), f2000cs_adjust_price_pair( 100, 200, array( 'type' => 'markup', 'direction' => 'add', 'value' => 15 ) ), 'Markup applies to both' );
+	}
+
+	/**
 	 * The saved per-supplier limit is read with the price rule (default 5).
 	 *
 	 * @return void

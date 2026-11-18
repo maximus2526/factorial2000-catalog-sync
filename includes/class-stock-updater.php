@@ -766,8 +766,7 @@ class XML_Stock_Updater {
 					}
 
 					if ( ! $this->skip_price_updates && $this->price_adjust_value > 0 ) {
-						$price     = $this->apply_price_adjustment( $price );
-						$old_price = $this->apply_price_adjustment( $old_price );
+						list( $price, $old_price ) = f2000cs_adjust_price_pair( $price, $old_price, $this->price_adjust_rule() );
 					}
 
 					$vendor_code = isset( $offer_xml->vendorCode ) ? (string) $offer_xml->vendorCode : '';
@@ -818,7 +817,7 @@ class XML_Stock_Updater {
 	}
 
 	/**
-	 * Apply the configured price adjustment (margin, markup or fixed amount) to a supplier price.
+	 * Apply the configured price adjustment (margin, markup or fixed amount) to one price.
 	 *
 	 * @param float $price Original price from XML.
 	 * @return float Adjusted price.
@@ -828,14 +827,20 @@ class XML_Stock_Updater {
 			return $price;
 		}
 
-		return f2000cs_adjust_price(
-			$price,
-			array(
-				'type'      => $this->price_adjust_type,
-				'direction' => $this->price_adjust_direction,
-				'value'     => $this->price_adjust_value,
-				'max_share' => $this->price_adjust_max_share,
-			)
+		return f2000cs_adjust_price( $price, $this->price_adjust_rule() );
+	}
+
+	/**
+	 * The supplier's price adjustment rule in the form f2000cs_adjust_price() takes.
+	 *
+	 * @return array{type: string, direction: string, value: float, max_share: float}
+	 */
+	private function price_adjust_rule() {
+		return array(
+			'type'      => $this->price_adjust_type,
+			'direction' => $this->price_adjust_direction,
+			'value'     => $this->price_adjust_value,
+			'max_share' => $this->price_adjust_max_share,
 		);
 	}
 

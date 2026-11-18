@@ -647,6 +647,43 @@ function f2000cs_adjust_price( $price, $adjust ) {
 }
 
 /**
+ * Adjust a supplier's selling price and old price together.
+ *
+ * For «Фіксована сума» + «Відняти» the «не більше N % ціни» check is made once, on
+ * the selling price: when the amount is too big for it, neither price changes;
+ * otherwise both lose the same amount. Checking the two prices separately could
+ * leave the price as it is but lower the old price, which ends the supplier's sale.
+ *
+ * @param float $price     Selling price from the feed (0 when missing).
+ * @param float $old_price Old price from the feed (0 when missing).
+ * @param array $adjust    Rule: type, direction, value, max_share.
+ * @return array{0: float, 1: float}
+ */
+function f2000cs_adjust_price_pair( $price, $old_price, $adjust ) {
+	$price     = (float) $price;
+	$old_price = (float) $old_price;
+
+	$new_price = $price > 0 ? f2000cs_adjust_price( $price, $adjust ) : $price;
+
+	if ( $old_price <= 0 ) {
+		return array( $new_price, $old_price );
+	}
+
+	$fixed_subtract = 'fixed' === ( $adjust['type'] ?? '' ) && 'subtract' === ( $adjust['direction'] ?? '' );
+
+	if ( ! $fixed_subtract ) {
+		return array( $new_price, f2000cs_adjust_price( $old_price, $adjust ) );
+	}
+
+	if ( $price > 0 && round( $price, 2 ) === $new_price ) {
+		// The amount is too big for the selling price: keep both prices.
+		return array( $new_price, $old_price );
+	}
+
+	return array( $new_price, round( max( 0, $old_price - (float) ( $adjust['value'] ?? 0 ) ), 2 ) );
+}
+
+/**
  * Whether a stored checkbox option is on ('1', 'yes' or 'on').
  *
  * @param string $option Option name.
