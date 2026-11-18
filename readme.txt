@@ -5,7 +5,7 @@ Tags: woocommerce, prom-ua, xml-import, stock-sync, marketplace
 Requires at least: 5.8
 Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 0.7.9
+Stable tag: 0.7.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -189,6 +189,9 @@ This service is provided by Freemius. Terms of Service: https://freemius.com/ter
 
 == Upgrade Notice ==
 
+= 0.7.10 =
+Fixes the scheduled stock sync of 0.7.9: WP-Cron runs stopped with «Call to undefined function wp_tempnam()». Update right away. Pro users: update the Pro build from your Freemius account.
+
 = 0.7.9 =
 Prom fake discounts now match the percentage you set and start from the current site price; a fixed price subtraction gets an editable «не більше N % ціни» limit; safer stock sync. Pro users: update the Pro build from your Freemius account.
 
@@ -217,6 +220,16 @@ Large Prom feeds (over 180 MB) are now split into several links automatically, a
 Pro features moved to a separate Pro build. If you use a Pro license, stock quantity updates or the marketplace feed, install the Pro version from your Freemius account before updating. Price adjustment now works in the Free version too.
 
 == Changelog ==
+
+= 0.7.10 =
+Free:
+* Fixed: in 0.7.9 the scheduled (WP-Cron) stock sync stopped with «Call to undefined function wp_tempnam()», so stock and prices were not updated on schedule. The «Run update» button was not affected.
+* A feed download shorter than its Content-Length (a cut transfer) counts as an unreachable feed — stock is kept and you get an alert — instead of a broken feed that sets every product of the supplier out of stock.
+* The run lock of a feed is owned by the run that took it: of two runs started at the same moment only one goes on, and a run that outlived the 2 h lock no longer removes a newer run's lock.
+
+Pro:
+* Fixed: the missing-offers import hit the same «wp_tempnam()» error when run from WP-Cron.
+* Prom feed: identical variations are left out also when the parent itself is not published (they still share one group on Prom, which rejects such groups).
 
 = 0.7.9 =
 Free:
