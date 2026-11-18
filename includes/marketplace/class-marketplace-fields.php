@@ -409,7 +409,7 @@ class Marketplace_Fields {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- checked above.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked above; each value goes through its field sanitize_callback below.
 		$posted = isset( $_POST[ self::FORM_KEY ] ) && is_array( $_POST[ self::FORM_KEY ] ) ? wp_unslash( $_POST[ self::FORM_KEY ] ) : array();
 		if ( ! is_array( $posted ) ) {
 			return;
