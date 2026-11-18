@@ -431,6 +431,9 @@ final class F2000CS_Unit_FunctionsTest extends F2000CS_Unit_TestCase {
 		$this->assertSame( 0, $q( '<offer><qty_stock>-3</qty_stock></offer>' ) );
 		$this->assertNull( $q( '<offer><qty_stock></qty_stock></offer>' ) );
 		$this->assertNull( $q( '<offer><price>1</price></offer>' ) );
+		$this->assertSame( 36, $q( '<offer><quantity_in_stock>36</quantity_in_stock></offer>' ), 'Vik-Tailor / BM / Horoshop tag' );
+		$this->assertSame( 4, $q( '<offer><quantityInStock>4</quantityInStock></offer>' ), 'powerplay extra_fields tag' );
+		$this->assertSame( 0, $q( '<offer><quantity_in_stock>0</quantity_in_stock></offer>' ) );
 	}
 
 	// ---- f2000cs_parse_price -----------------------------------------------
@@ -640,19 +643,22 @@ final class F2000CS_Unit_FunctionsTest extends F2000CS_Unit_TestCase {
 	/**
 	 * @return void
 	 */
-	public function test_sync_price_lookup_prefers_sale_for_min() {
+	public function test_sync_price_lookup_uses_the_selling_price() {
 		$GLOBALS['wpdb']->var_queue     = array( 10 );
 		$GLOBALS['wpdb']->update_return = 1;
 
-		update_post_meta( 10, '_price', '100.00' );
+		update_post_meta( 10, '_price', '80.00' );
 		update_post_meta( 10, '_regular_price', '120.00' );
 		update_post_meta( 10, '_sale_price', '80.00' );
 
 		f2000cs_sync_price_lookup( 10 );
 
+		// Like WooCommerce: a simple product or variation has one price, _price,
+		// so the price filter and «most expensive» sorting see what the buyer pays.
 		$last_args = $GLOBALS['wpdb']->last_update_data;
 		$this->assertSame( 80.0, $last_args['min_price'] );
-		$this->assertSame( 120.0, $last_args['max_price'] );
+		$this->assertSame( 80.0, $last_args['max_price'] );
+		$this->assertSame( 1, $last_args['onsale'] );
 	}
 
 	/**

@@ -553,6 +553,27 @@ if ( ! function_exists( 'update_option' ) ) {
 	}
 }
 
+if ( ! function_exists( 'add_option' ) ) {
+	/**
+	 * Adds an option only when it does not exist yet (atomic in WordPress).
+	 *
+	 * @param string $option   Option name.
+	 * @param mixed  $value    Value.
+	 * @param string $deprecated Unused.
+	 * @param bool   $autoload Autoload flag (ignored).
+	 * @return bool
+	 */
+	function add_option( $option, $value = '', $deprecated = '', $autoload = null ) {
+		if ( array_key_exists( $option, F2000CS_Test_State::$options ) ) {
+			return false;
+		}
+
+		F2000CS_Test_State::$options[ $option ] = $value;
+
+		return true;
+	}
+}
+
 if ( ! function_exists( 'delete_option' ) ) {
 	/**
 	 * @param string $option Option name.
@@ -918,7 +939,15 @@ if ( ! function_exists( 'wp_remote_get' ) ) {
 	 */
 	function wp_remote_get( $url, $args = array() ) {
 		if ( isset( F2000CS_Test_State::$http_get_responses[ $url ] ) ) {
-			return F2000CS_Test_State::$http_get_responses[ $url ];
+			$response = F2000CS_Test_State::$http_get_responses[ $url ];
+
+			// Streamed requests write the body to the given file, like WP_Http does.
+			if ( ! empty( $args['stream'] ) && ! empty( $args['filename'] ) && is_array( $response ) ) {
+				file_put_contents( $args['filename'], (string) ( $response['body'] ?? '' ) );
+				$response['body'] = '';
+			}
+
+			return $response;
 		}
 
 		return new WP_Error( 'http_request_failed', 'No stub response for ' . $url );

@@ -116,6 +116,27 @@ class XML_Stock_Updater {
 	private $feed_unreachable = false;
 
 	/**
+	 * Local file the feed is parsed from (the downloaded copy, or the local path itself).
+	 *
+	 * @var string
+	 */
+	private $feed_source = '';
+
+	/**
+	 * Downloaded copy of a remote feed, deleted at the end of the run.
+	 *
+	 * @var string
+	 */
+	private $feed_temp = '';
+
+	/**
+	 * Offer count of the previous run of this feed (0 = unknown).
+	 *
+	 * @var int
+	 */
+	private $previous_offer_count = 0;
+
+	/**
 	 * Data of the short Telegram report sent once at the end of a run.
 	 *
 	 * @var array<string,mixed>
@@ -264,6 +285,20 @@ class XML_Stock_Updater {
 			return;
 		}
 
+		// Cron, the «Run update» button and a background event can start the same feed at
+		// once: the second run would share the resume position and double every change.
+		if ( ! $this->acquire_run_lock() ) {
+			$this->report = array(
+				'level'  => 'ok',
+				'url'    => $this->xml_url,
+				'prefix' => $this->sku_prefix,
+			);
+			$this->report_problem( 'warn', 'Оновлення цієї вигрузки вже виконується — цей запуск пропущено.' );
+			$this->send_report( 0 );
+
+			return;
+		}
+
 		$this->set_max_execution_time();
 		$this->increase_memory_limit();
 
@@ -282,11 +317,18 @@ class XML_Stock_Updater {
 		);
 
 		try {
-			// Parse currency rates for conversion.
-			$this->currencies = $this->load_currencies_from_xml();
+			// The whole feed is downloaded to a local file first: a connection dropped half way
+			// is then a download failure (the feed is unreachable, stock is kept for a grace
+			// period), not a truncated document that would take every product off sale.
+			if ( $this->prepare_feed_source() ) {
+				// Parse currency rates for conversion.
+				$this->currencies = $this->load_currencies_from_xml();
 
-			// Process XML in chunks to extract stock and price data
-			$updates = $this->extract_data_from_xml();
+				// Process XML in chunks to extract stock and price data.
+				$updates = $this->extract_data_from_xml();
+			} else {
+				$updates = array();
+			}
 
 			if ( empty( $updates ) && '' === $this->feed_error ) {
 				$this->feed_error = 'у вигрузці немає жодної пропозиції (offer)';
@@ -316,8 +358,14 @@ class XML_Stock_Updater {
 			// Process updates in batches
 			$this->process_updates_in_batches( $updates );
 
-			// Find and report missing products
-			$this->find_missing_products_in_xml( $updates );
+			// Find and report missing products. A feed that suddenly lists far fewer offers is
+			// more likely cut on the supplier side than a real clear-out: the products it lacks
+			// are left alone for this run.
+			if ( $this->feed_shrank( $total_products ) ) {
+				$this->report_problem( 'warn', 'Вигрузка різко зменшилась (' . $total_products . ' пропозицій проти ' . $this->previous_offer_count . ' минулого разу) — товари, яких у ній немає, цього разу не змінювались.' );
+			} else {
+				$this->find_missing_products_in_xml( $updates );
+			}
 
 			// Offers of the feed that are not on the site yet (Pro option per supplier).
 			$this->import_missing_offers( $start_time );
@@ -327,8 +375,16 @@ class XML_Stock_Updater {
 		} catch ( Exception $e ) {
 			$this->report_problem( 'error', 'Помилка оновлення: ' . $e->getMessage() );
 		} finally {
+			if ( '' !== $this->feed_temp && file_exists( $this->feed_temp ) ) {
+				wp_delete_file( $this->feed_temp );
+			}
+
+			$this->feed_temp   = '';
+			$this->feed_source = '';
+
 			$this->cleanup_resources();
 			$this->send_report( microtime( true ) - $start_time );
+			delete_option( $this->run_lock_option() );
 		}
 	}
 
@@ -536,30 +592,24 @@ class XML_Stock_Updater {
 	private function load_currencies_from_xml(): array {
 		$currencies = array();
 		$reader     = new XMLReader();
-		$temp_file  = null;
+
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- An unreadable file returns an empty map; the offer pass reports the error.
+		if ( '' === $this->feed_source || ! @$reader->open( $this->feed_source, null, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET ) ) {
+			return $currencies;
+		}
 
 		try {
-			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Fallback path catches open failure.
-			if ( ! @$reader->open( $this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET ) ) {
-				$xml_data = $this->fetch_xml_data();
-				if ( ! $xml_data ) {
-					return $currencies;
+			while ( @$reader->read() ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- A broken tail is reported by the offer pass.
+				if ( XMLReader::ELEMENT !== $reader->nodeType ) {
+					continue;
 				}
 
-				$temp_file = wp_tempnam( 'f2000cs_curr_' );
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Temp file for XMLReader.
-				if ( ! file_put_contents( $temp_file, $xml_data ) ) {
-					return $currencies;
+				// <currencies> comes before <offers>: no need to read the whole feed twice.
+				if ( 'offer' === $reader->name ) {
+					break;
 				}
 
-				// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Local temp open failure returns empty map.
-				if ( ! @$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET ) ) {
-					return $currencies;
-				}
-			}
-
-			while ( $reader->read() ) {
-				if ( XMLReader::ELEMENT === $reader->nodeType && 'currency' === $reader->name ) {
+				if ( 'currency' === $reader->name ) {
 					$currency_id = $reader->getAttribute( 'id' );
 					$rate        = $reader->getAttribute( 'rate' );
 					if ( $currency_id && is_numeric( $rate ) && (float) $rate > 0 ) {
@@ -569,13 +619,70 @@ class XML_Stock_Updater {
 			}
 		} finally {
 			$reader->close();
-
-			if ( $temp_file !== null && file_exists( $temp_file ) ) {
-				wp_delete_file( $temp_file );
-			}
 		}
 
 		return $currencies;
+	}
+
+	/**
+	 * Make the feed available as a local file.
+	 *
+	 * A readable local path is used as is. Anything else is downloaded in full to a
+	 * temp file (streamed to disk, so a 150 MB feed does not sit in memory). A failed
+	 * or cut download marks the feed unreachable.
+	 *
+	 * @return bool Whether a local file is ready.
+	 */
+	private function prepare_feed_source() {
+		$this->feed_source = '';
+		$this->feed_temp   = '';
+
+		if ( ! preg_match( '#^[a-z][a-z0-9+.-]*://#i', (string) $this->xml_url ) && is_readable( $this->xml_url ) ) {
+			$this->feed_source = (string) $this->xml_url;
+
+			return true;
+		}
+
+		$temp = wp_tempnam( 'f2000cs_' );
+
+		/**
+		 * Seconds allowed for downloading a supplier feed.
+		 *
+		 * @param int    $timeout Timeout.
+		 * @param string $url     Feed URL.
+		 */
+		$timeout  = (int) apply_filters( 'f2000cs_feed_download_timeout', 600, $this->xml_url );
+		$response = wp_remote_get(
+			$this->xml_url,
+			array(
+				'timeout'     => max( 30, $timeout ),
+				'httpversion' => '1.1',
+				'sslverify'   => f2000cs_ssl_verify_enabled(),
+				'stream'      => true,
+				'filename'    => $temp,
+			)
+		);
+
+		$code = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
+
+		if ( is_wp_error( $response ) || 200 !== $code || ! file_exists( $temp ) || 0 === (int) filesize( $temp ) ) {
+			if ( file_exists( $temp ) ) {
+				wp_delete_file( $temp );
+			}
+
+			$reason = is_wp_error( $response ) ? $response->get_error_message() : ( 200 !== $code ? 'HTTP ' . $code : 'порожня відповідь' );
+
+			$this->feed_unreachable = true;
+			$this->feed_error       = 'не вдалося завантажити вигрузку (' . $reason . ')';
+			$this->send_telegram_message( 'Помилка завантаження XML: ' . $reason );
+
+			return false;
+		}
+
+		$this->feed_source = $temp;
+		$this->feed_temp   = $temp;
+
+		return true;
 	}
 
 	/**
@@ -591,33 +698,19 @@ class XML_Stock_Updater {
 		$previous_errors        = libxml_use_internal_errors( true );
 		libxml_clear_errors();
 
+		// Called on its own (tests, tools): get the local copy first.
+		if ( '' === $this->feed_source && ! $this->prepare_feed_source() ) {
+			libxml_use_internal_errors( $previous_errors );
+
+			return $updates;
+		}
+
 		try {
 			$reader = new XMLReader();
 
-			// LIBXML_NOERROR/LIBXML_NOWARNING only silence libxml parse warnings, not the
-			// PHP-level stream-wrapper warnings (SSL failures, DNS errors, timeouts, etc.)
-			// that XMLReader::open() emits for a bad/unreachable URL. Since the return value
-			// is already checked and failures are handled below (fallback + exception +
-			// Telegram notification), these are intentionally silenced to avoid spamming the
-			// PHP error log or leaking warning output before wp_safe_redirect() on hosts with
-			// display_errors enabled.
-			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Failure path is fully handled via the return-value check and fallback below.
-			if ( ! @$reader->open( $this->xml_url, null, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET ) ) {
-				// If direct URL open fails, try to download the file first
-				$xml_data = $this->fetch_xml_data();
-				if ( ! $xml_data ) {
-					$this->feed_unreachable = true;
-					throw new Exception( 'не вдалося завантажити вигрузку' );
-				}
-
-				$temp_file = wp_tempnam( 'f2000cs_' );
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Temp file is consumed by XMLReader; WP_Filesystem cannot write to a wp_tempnam() path outside the uploads dir.
-				if ( file_put_contents( $temp_file, $xml_data ) ) {
-					// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Local temp file open failure is caught by the subsequent read() check below.
-					@$reader->open( $temp_file, null, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET );
-				} else {
-					throw new Exception( 'не вдалося створити тимчасовий файл вигрузки' );
-				}
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Failure is reported below as an invalid feed.
+			if ( ! @$reader->open( $this->feed_source, null, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET ) ) {
+				throw new Exception( 'вигрузка не відкривається як XML' );
 			}
 
 			if ( ! $reader->read() ) {
@@ -709,10 +802,6 @@ class XML_Stock_Updater {
 			if ( $reader !== null ) {
 				$reader->close();
 			}
-
-			if ( isset( $temp_file ) && file_exists( $temp_file ) ) {
-				wp_delete_file( $temp_file );
-			}
 		}
 
 		return $updates;
@@ -739,7 +828,108 @@ class XML_Stock_Updater {
 		);
 	}
 
-	private function sync_parent_stock_status( $parent_id ) {
+	/**
+	 * Option that holds the run lock of this feed (the time the run started).
+	 *
+	 * @return string
+	 */
+	private function run_lock_option() {
+		return 'f2000cs_sync_lock_' . md5( (string) $this->xml_url );
+	}
+
+	/**
+	 * Take the run lock of this feed. A lock older than the TTL belongs to a run that died
+	 * (fatal error, killed process) and is taken over.
+	 *
+	 * @return bool Whether this run may go on.
+	 */
+	private function acquire_run_lock() {
+		$option = $this->run_lock_option();
+
+		if ( add_option( $option, time(), '', false ) ) {
+			return true;
+		}
+
+		/**
+		 * Seconds after which a run lock is considered stale.
+		 *
+		 * @param int    $ttl Lock lifetime.
+		 * @param string $url Feed URL.
+		 */
+		$ttl     = (int) apply_filters( 'f2000cs_sync_lock_ttl', 2 * HOUR_IN_SECONDS, $this->xml_url );
+		$started = (int) get_option( $option, 0 );
+
+		if ( $started > 0 && time() - $started < $ttl ) {
+			return false;
+		}
+
+		delete_option( $option );
+
+		return add_option( $option, time(), '', false );
+	}
+
+	/**
+	 * Whether the feed lists far fewer offers than the previous run (and remember this count).
+	 *
+	 * The count is stored every time, so a shrink that is real is trusted on the next run.
+	 * Feeds under 50 offers are not guarded.
+	 *
+	 * @param int $count Offers in this run.
+	 * @return bool
+	 */
+	private function feed_shrank( $count ) {
+		$option   = 'f2000cs_feed_count_' . md5( (string) $this->xml_url );
+		$previous = (int) get_option( $option, 0 );
+
+		$this->previous_offer_count = $previous;
+		update_option( $option, (int) $count, false );
+
+		/**
+		 * Share of the previous offer count below which a feed counts as cut (0.5 = half).
+		 *
+		 * @param float  $ratio Ratio, 0 turns the guard off.
+		 * @param string $url   Feed URL.
+		 */
+		$ratio = (float) apply_filters( 'f2000cs_feed_shrink_ratio', 0.5, $this->xml_url );
+
+		return $ratio > 0 && $previous >= 50 && $count < $previous * $ratio;
+	}
+
+	/**
+	 * An offer that matches a variable parent is never written onto it.
+	 *
+	 * Older imports gave the parent the SKU of an offer whose id equals its group_id
+	 * (BM sends such a group offer with available="false"). The parent follows its
+	 * variations instead: its stock status is recounted from them, which also repairs a
+	 * status left stale by an earlier version. Written directly, without a product save
+	 * (a save fires indexing APIs and feed plugins for ~1 400 parents on every run).
+	 *
+	 * @param \WC_Product $product Matched product.
+	 * @return bool Whether the product is a variable parent (and was skipped).
+	 */
+	private function skip_variable_parent( $product ) {
+		if ( ! $product->is_type( 'variable' ) ) {
+			return false;
+		}
+
+		$parent_id = (int) $product->get_id();
+		$expected  = $this->parent_stock_status_from_children( $parent_id );
+
+		if ( (string) get_post_meta( $parent_id, '_stock_status', true ) !== $expected ) {
+			f2000cs_update_stock_status( $parent_id, $expected );
+			wc_delete_product_transients( $parent_id );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Stock status a variable parent should have: in stock when any variation is.
+	 *
+	 * @param int $parent_id Parent ID.
+	 * @return string
+	 */
+	private function parent_stock_status_from_children( $parent_id ) {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Real-time variation stock count; cache would return stale data.
@@ -757,9 +947,11 @@ class XML_Stock_Updater {
 			)
 		);
 
-		$parent_status = $instock_count > 0 ? 'instock' : 'outofstock';
+		return $instock_count > 0 ? 'instock' : 'outofstock';
+	}
 
-		f2000cs_update_stock_status( $parent_id, $parent_status );
+	private function sync_parent_stock_status( $parent_id ) {
+		f2000cs_update_stock_status( $parent_id, $this->parent_stock_status_from_children( $parent_id ) );
 		wc_delete_product_transients( $parent_id );
 	}
 
@@ -836,10 +1028,7 @@ class XML_Stock_Updater {
 						continue;
 					}
 
-					// An offer that matches a variable parent (older imports gave the parent the
-					// SKU of an offer whose id equals its group_id): the parent follows its
-					// variations, so one size's status and price are never written onto it.
-					if ( $product->is_type( 'variable' ) ) {
+					if ( $this->skip_variable_parent( $product ) ) {
 						++$skipped_unchanged;
 						continue;
 					}
@@ -853,10 +1042,7 @@ class XML_Stock_Updater {
 						$changes_made = true;
 					}
 
-					// Quantity must be updated BEFORE stock status and price:
-					// WC_Product::save() writes every prop from the in-memory
-					// object, so a stale object would otherwise overwrite the
-					// stock status and prices written directly via postmeta below.
+					// Quantity first, then the stock status from the same offer.
 					if ( $this->update_stock_qty && isset( $product_data['quantity'] ) && null !== $product_data['quantity'] ) {
 						$qty_changed = $this->update_product_quantity( $product, (int) $product_data['quantity'] );
 						if ( $qty_changed ) {
@@ -974,28 +1160,6 @@ class XML_Stock_Updater {
 	}
 
 	/**
-	 * Fetch XML data from the specified URL.
-	 *
-	 * @return string|false XML data or false on failure.
-	 */
-	private function fetch_xml_data() {
-		$response = wp_remote_get(
-			$this->xml_url,
-			array(
-				'timeout'     => 60,
-				'httpversion' => '1.1',
-				'sslverify'   => f2000cs_ssl_verify_enabled(),
-			)
-		);
-
-		if ( ! is_wp_error( $response ) && wp_remote_retrieve_response_code( $response ) === 200 ) {
-			return wp_remote_retrieve_body( $response );
-		}
-
-		return false;
-	}
-
-	/**
 	 * Find the product IDs by SKUs using optimized query.
 	 *
 	 * @param array $skus SKUs of the products.
@@ -1063,9 +1227,11 @@ class XML_Stock_Updater {
 			return false;
 		}
 
-		$product->set_manage_stock( true );
-		$product->set_stock_quantity( $quantity );
-		$product->save();
+		// Written straight to the stock meta, like the status: WC_Product::save() would fire
+		// every product hook on the site (indexing APIs, Merchant Center sync, feed plugins)
+		// for thousands of products per run.
+		f2000cs_update_stock_quantity( $product->get_id(), $quantity );
+		wc_delete_product_transients( $product->get_id() );
 
 		return true;
 	}

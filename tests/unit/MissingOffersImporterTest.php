@@ -316,7 +316,7 @@ final class F2000CS_Unit_MissingOffersImporterTest extends F2000CS_Unit_TestCase
 		update_option( 'f2000cs_import_missing_3', '1' );
 		F2000CS_Test_State::$http_get_responses['http://example.com/feed.xml'] = array(
 			'response' => array( 'code' => 200 ),
-			'body'     => '<?xml version="1.0"?><yml_catalog><shop><offers><offer id="50297" available="true"><name>X</name><price>600</price></offer></offers></shop></yml_catalog>',
+			'body'     => '',
 		);
 		$this->assertNull( f2000cs_pro_import_missing_offers( null, $args ), 'Pro, option on, but the stream download left an empty file: skipped safely' );
 	}

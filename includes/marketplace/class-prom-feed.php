@@ -163,14 +163,14 @@ class Prom_Feed extends Marketplace_Feed {
 				'type'        => 'checkbox',
 				'label'       => __( 'Знижки', 'factorial2000-catalog-sync' ),
 				'checkbox'    => __( 'Не передавати знижки — лише основну ціну', 'factorial2000-catalog-sync' ),
-				'description' => __( 'У <price> іде звичайна ціна товару, <oldprice> не додається, навіть якщо на сайті діє акційна ціна.', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Справжня знижка сайту (<oldprice>) на Prom не передається. Без фейкової знижки в <price> іде звичайна ціна товару, навіть якщо на сайті діє акція; з фейковою знижкою — поточна ціна сайту (з акцією).', 'factorial2000-catalog-sync' ),
 				'default'     => '0',
 			),
 			'fake_discount_percent'        => array(
 				'group'       => 'products',
 				'type'        => 'number',
 				'label'       => __( 'Фейкова знижка для Prom, %', 'factorial2000-catalog-sync' ),
-				'description' => __( 'Працює лише разом із «Не передавати знижки — лише основну ціну». Ціна товару стане акційною, а <oldprice> буде на вказаний відсоток вищою: ціна 1000 і 20% → <price>1000</price>, <oldprice>1200</oldprice>. Prom покаже знижку лише для товарів у наявності.', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Працює лише разом із «Не передавати знижки — лише основну ціну». У <price> іде поточна ціна товару на сайті (якщо діє акція — акційна), а <oldprice> підбирається так, щоб Prom показав саме цю знижку: ціна 1000 і 20% → <price>1000</price>, <oldprice>1250</oldprice> (−20 %). Справжня стара ціна сайту на Prom не передається. Prom покаже знижку лише для товарів у наявності.', 'factorial2000-catalog-sync' ),
 				'min'         => 0,
 				'max'         => 90,
 				'default'     => '0',
@@ -183,7 +183,7 @@ class Prom_Feed extends Marketplace_Feed {
 				'group'       => 'products',
 				'type'        => 'text',
 				'label'       => __( 'Розкид фейкової знижки, %', 'factorial2000-catalog-sync' ),
-				'description' => __( 'Необов’язково. Перелічіть відсотки через кому, наприклад 30, 40, 50 (можна писати -30%, -40%, -50%). Кожен товар стабільно отримає один із них, тому знижки виглядають різними, але не змінюються при кожній перегенерації. Для групи різновидів — один відсоток на всю групу. Якщо поле заповнене, воно замінює фіксований відсоток вище.', 'factorial2000-catalog-sync' ),
+				'description' => __( 'Необов’язково. Перелічіть знижки через кому, наприклад 30, 40, 50 (можна писати -30%, -40%, -50%) — саме такі відсотки покаже Prom. Кожен товар стабільно отримає один із них, тому знижки виглядають різними, але не змінюються при кожній перегенерації. Для групи різновидів — один відсоток на всю групу. Якщо поле заповнене, воно замінює фіксований відсоток вище.', 'factorial2000-catalog-sync' ),
 				'default'     => '',
 				'show_if'     => array(
 					'field' => 'regular_price_only',
@@ -382,10 +382,10 @@ class Prom_Feed extends Marketplace_Feed {
 	}
 
 	/**
-	 * Raise the old price by a fixed percentage when the feed sends no real discounts.
+	 * Add a fake old price when the feed sends no real discounts.
 	 *
-	 * The current price stays the selling price; Prom shows the difference to the
-	 * inflated old price as a discount.
+	 * The current price stays the selling price. The old price is chosen so that Prom
+	 * shows exactly the configured discount: 1000 at 20 % → old price 1250 (−20 %).
 	 *
 	 * @param float|null          $price     Selling price.
 	 * @param float|null          $old_price Real old price, if any.
@@ -405,9 +405,27 @@ class Prom_Feed extends Marketplace_Feed {
 		}
 
 		$price    = (float) number_format( (float) $price, 2, '.', '' );
-		$inflated = (float) number_format( $price * ( 1 + $percent / 100 ), 2, '.', '' );
+		$inflated = (float) number_format( $price / ( 1 - $percent / 100 ), 2, '.', '' );
 
 		return array( $price, $inflated > $price ? $inflated : $price );
+	}
+
+	/**
+	 * Whether the feed adds a fake discount (regular-price-only mode with a percentage or a spread).
+	 *
+	 * @param array<string,mixed> $settings Feed settings.
+	 * @return bool
+	 */
+	public static function fake_discount_enabled( array $settings ): bool {
+		if ( '1' !== (string) ( $settings['regular_price_only'] ?? '0' ) ) {
+			return false;
+		}
+
+		if ( self::parse_fake_discount_spread( (string) ( $settings['fake_discount_spread'] ?? '' ) ) ) {
+			return true;
+		}
+
+		return self::fake_discount_percent( $settings ) > 0;
 	}
 
 	/**
@@ -1242,8 +1260,10 @@ class Prom_Feed extends Marketplace_Feed {
 	 * @return array{xml:string,exported:int,skipped:int,excluded:array<int,string>,used_ids:array<int,string>,reasons:array<string,array{count:int,examples:array<int,string>}>}
 	 */
 	public function process_unit( array $unit, Marketplace_Category_Tree $tree, array $settings ): array {
-		$settings      = $this->with_defaults( $settings );
-		$unit          = self::without_sale_prices( $unit, $settings );
+		$settings = $this->with_defaults( $settings );
+		// With a fake discount the Prom price is the current site price (an active
+		// sale included); the real old price is replaced by the inflated one later.
+		$unit          = self::fake_discount_enabled( $settings ) ? $unit : self::without_sale_prices( $unit, $settings );
 		$this->reasons = array();
 
 		$tree->use_stable_ids( (bool) apply_filters( 'f2000cs_prom_stable_category_ids', true ) );
@@ -1413,6 +1433,52 @@ class Prom_Feed extends Marketplace_Feed {
 	}
 
 	/**
+	 * Drop the variations whose characteristics repeat the main offer or another variation.
+	 *
+	 * Of two identical variations the one in stock is kept. The dropped ones are marked
+	 * as used (they are not exported on their own either) and counted one by one.
+	 *
+	 * @param array<string,string>                       $parent_row  Parent row.
+	 * @param array<int,array{0:string,1:string}>        $main_params Main offer params.
+	 * @param array<int,array{0:string,1:array,2:array}> $entries Entries [vid, row, params].
+	 * @param array<string,mixed>                        $res         Unit result (by reference).
+	 * @param array|null                                 $main_entry  Main variation entry (by reference): an
+	 *                                                                identical variation in stock replaces one that is not.
+	 * @return array<int,array{0:string,1:array,2:array}> Entries without duplicates.
+	 */
+	private function without_duplicate_variations( $parent_row, array $main_params, array $entries, array &$res, &$main_entry = null ): array {
+		$seen = array( Prom_Variations::effective_param_signature( $main_params, $main_params ) => -1 );
+		$kept = array();
+
+		foreach ( $entries as $entry ) {
+			$sig = Prom_Variations::effective_param_signature( $main_params, $entry[2] );
+
+			if ( ! isset( $seen[ $sig ] ) ) {
+				$seen[ $sig ] = count( $kept );
+				$kept[]       = $entry;
+				continue;
+			}
+
+			$at      = $seen[ $sig ];
+			$dropped = $entry;
+
+			if ( $at >= 0 && ! self::row_in_stock( $kept[ $at ][1] ) && self::row_in_stock( $entry[1] ) ) {
+				$dropped     = $kept[ $at ];
+				$kept[ $at ] = $entry;
+			} elseif ( $at < 0 && is_array( $main_entry ) && ! self::row_in_stock( $main_entry[1] ) && self::row_in_stock( $entry[1] ) ) {
+				$dropped    = $main_entry;
+				$main_entry = $entry;
+			}
+
+			$res['used_ids'][] = $dropped[0];
+			++$res['skipped'];
+			$this->skip( 'duplicate_variations', $dropped[1], $parent_row );
+		}
+
+		return $kept;
+	}
+
+	/**
 	 * Variable product: main offer + variations.
 	 *
 	 * @param array<string,string>|null        $parent_row Parent row.
@@ -1542,30 +1608,11 @@ class Prom_Feed extends Marketplace_Feed {
 			array_splice( $slot_entries, $main_idx, 1 );
 		}
 
-		Prom_Variations::dedupe_variation_param_sets_for_group( $parent_row, $slot_entries );
-
-		// Prom rejects a group whose members share the same characteristics: skip it entirely.
-		$group_params = $try_parent ? array( $main_params ) : array();
-
-		foreach ( $slot_entries as $entry ) {
-			$group_params[] = $entry[2];
-		}
-
-		if ( $try_parent && Prom_Variations::has_duplicate_param_sets( $main_params, $group_params ) ) {
-			$res['excluded'][] = Marketplace_Text::clean( $parent_row['SKU'] ?? '' ) ? Marketplace_Text::clean( $parent_row['SKU'] ?? '' ) : $gid;
-			$dropped           = 1 + count( $slot_entries ) + ( $main_entry ? 1 : 0 );
-			$res['skipped']   += $dropped;
-			$this->skip( 'duplicate_variations', $parent_row, null, $dropped );
-
-			foreach ( $slot_entries as $entry ) {
-				$res['used_ids'][] = $entry[0];
-			}
-
-			if ( $main_entry ) {
-				$res['used_ids'][] = $main_entry[0];
-			}
-
-			return $res;
+		// Prom rejects a group whose members share the same characteristics. Only the
+		// duplicate is left out (the one in stock is kept); the product and its other
+		// variations stay on Prom. Nothing is invented to tell duplicates apart.
+		if ( $try_parent ) {
+			$slot_entries = $this->without_duplicate_variations( $parent_row, $main_params, $slot_entries, $res, $main_entry );
 		}
 
 		if ( $try_parent ) {

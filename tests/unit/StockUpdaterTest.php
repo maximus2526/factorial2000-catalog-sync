@@ -128,7 +128,7 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 	public function test_price_adjustment_rounding() {
 		$updater = new XML_Stock_Updater( 'http://shop.test/feed.xml', '', false, array( 'type' => 'fixed', 'direction' => 'subtract', 'value' => 200 ) );
 
-		$this->assertSame( 0.0, F2000CS_Test_Reflection::invoke( $updater, 'apply_price_adjustment', array( 100 ) ) );
+		$this->assertSame( 100.0, F2000CS_Test_Reflection::invoke( $updater, 'apply_price_adjustment', array( 100 ) ), 'A fixed subtraction above 5 % keeps the supplier price' );
 
 		$updater = new XML_Stock_Updater( 'http://shop.test/feed.xml', '', false, array( 'type' => 'markup', 'value' => 33 ) );
 		$this->assertSame( 133.0, F2000CS_Test_Reflection::invoke( $updater, 'apply_price_adjustment', array( 100 ) ) );
@@ -907,6 +907,49 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * An offer matching a variable parent is skipped; the parent's stock status is recounted
+	 * from its variations directly, without a product save and without queueing a resync.
+	 *
+	 * @return void
+	 */
+	public function test_offer_matching_variable_parent_recounts_its_stock() {
+		$updater = new XML_Stock_Updater( 'http://shop.test/feed.xml', 'SUP_' );
+		$parent  = new class() {
+			public $saved = false;
+
+			public function is_type( $type ) {
+				return 'variable' === $type;
+			}
+
+			public function get_id() {
+				return 77;
+			}
+
+			public function save() {
+				$this->saved = true;
+			}
+		};
+		$simple  = new class() {
+			public function is_type( $type ) {
+				return 'simple' === $type;
+			}
+
+			public function get_id() {
+				return 78;
+			}
+		};
+
+		update_post_meta( 77, '_stock_status', 'outofstock' );
+		$GLOBALS['wpdb']->var_queue = array( 3 ); // Three variations in stock.
+
+		$this->assertTrue( F2000CS_Test_Reflection::invoke( $updater, 'skip_variable_parent', array( $parent ) ) );
+		$this->assertSame( 'instock', get_post_meta( 77, '_stock_status', true ), 'The parent follows its variations' );
+		$this->assertFalse( $parent->saved );
+		$this->assertSame( array(), F2000CS_Test_Reflection::get( $updater, 'price_changed_parents' ), 'No product save is queued' );
+		$this->assertFalse( F2000CS_Test_Reflection::invoke( $updater, 'skip_variable_parent', array( $simple ) ) );
+	}
+
+	/**
 	 * Queued parents are resynced through the global WooCommerce class (the updater lives in a namespace).
 	 *
 	 * @return void
@@ -1254,5 +1297,219 @@ final class F2000CS_Unit_StockUpdaterTest extends F2000CS_Unit_TestCase {
 
 		// Once for the first batch (every 10 batches) + once in cleanup_resources().
 		$this->assertSame( 2, F2000CS_Test_State::$cache_runtime_flush_calls );
+	}
+	/**
+	 * Run a full update against a remote URL served by the HTTP stub.
+	 *
+	 * @param string         $url      Feed URL.
+	 * @param array|WP_Error $response Stubbed response.
+	 * @param array          $rows     Rows the "products with this prefix" query returns.
+	 * @return string All Telegram messages.
+	 */
+	private function run_remote( string $url, $response, array $rows = array() ): string {
+		update_option( 'f2000cs_telegram_token_id', '123:abc' );
+		update_option( 'f2000cs_telegram_user_ids', '111' );
+		$GLOBALS['wpdb']->results_queue = array( $rows );
+
+		if ( null !== $response ) {
+			F2000CS_Test_State::$http_get_responses[ $url ] = $response;
+		}
+
+		( new XML_Stock_Updater( $url, 'SUP_' ) )->update_products_stock_status();
+
+		$texts = array();
+		foreach ( F2000CS_Test_State::$http_posts as $post ) {
+			$texts[] = $post['args']['body']['text'];
+		}
+
+		return implode( "\n", $texts );
+	}
+
+	/**
+	 * A remote feed is downloaded in full to a temp file, parsed from it, and the file is removed.
+	 *
+	 * @return void
+	 */
+	public function test_remote_feed_is_downloaded_then_parsed() {
+		$before = (array) glob( get_temp_dir() . 'f2000cs_*' );
+
+		$all = $this->run_remote(
+			'https://supplier.test/feed.xml',
+			array(
+				'response' => array( 'code' => 200 ),
+				'body'     => '<?xml version="1.0"?><yml_catalog><shop><offers><offer id="1" available="true"><price>10</price></offer></offers></shop></yml_catalog>',
+			)
+		);
+
+		$this->assertStringContainsString( 'У вигрузці: 1', $all );
+		$this->assertSame( array(), array_values( array_diff( (array) glob( get_temp_dir() . 'f2000cs_*' ), $before ) ), 'The downloaded copy is deleted' );
+	}
+
+	/**
+	 * A download cut half way (curl error 18) is an unreachable feed: the stock stays,
+	 * instead of a «truncated XML» that would take every product off sale.
+	 *
+	 * @return void
+	 */
+	public function test_cut_download_keeps_stock() {
+		update_post_meta( 11, '_stock_status', 'instock' );
+		update_post_meta( 12, '_stock_status', 'instock' );
+
+		$all = $this->run_remote(
+			'https://supplier.test/cut.xml',
+			new WP_Error( 'http_request_failed', 'cURL error 18: transfer closed with 1048576 bytes remaining to read' ),
+			$this->supplier_rows()
+		);
+
+		$this->assertStringContainsString( 'недоступна', $all );
+		$this->assertSame( 'instock', get_post_meta( 11, '_stock_status', true ) );
+		$this->assertSame( 'instock', get_post_meta( 12, '_stock_status', true ) );
+	}
+
+	/**
+	 * An HTTP error page is an unreachable feed too, not a broken one.
+	 *
+	 * @return void
+	 */
+	public function test_http_error_keeps_stock() {
+		update_post_meta( 11, '_stock_status', 'instock' );
+
+		$all = $this->run_remote(
+			'https://supplier.test/503.xml',
+			array(
+				'response' => array( 'code' => 503 ),
+				'body'     => '<html>Service Unavailable</html>',
+			),
+			$this->supplier_rows()
+		);
+
+		$this->assertStringContainsString( 'HTTP 503', $all );
+		$this->assertSame( 'instock', get_post_meta( 11, '_stock_status', true ) );
+	}
+
+	/**
+	 * A feed that suddenly lists far fewer offers than last time leaves the missing
+	 * products alone for one run; the next run with the same size trusts it.
+	 *
+	 * @return void
+	 */
+	public function test_shrunk_feed_skips_missing_products_once() {
+		$updater = new XML_Stock_Updater( 'https://supplier.test/feed.xml', 'SUP_' );
+
+		$this->assertFalse( F2000CS_Test_Reflection::invoke( $updater, 'feed_shrank', array( 1000 ) ), 'First run: nothing to compare with' );
+		$this->assertFalse( F2000CS_Test_Reflection::invoke( $updater, 'feed_shrank', array( 950 ) ), 'A normal change' );
+		$this->assertTrue( F2000CS_Test_Reflection::invoke( $updater, 'feed_shrank', array( 100 ) ), 'Less than half of the last run' );
+		$this->assertFalse( F2000CS_Test_Reflection::invoke( $updater, 'feed_shrank', array( 100 ) ), 'Same size again: the shrink is real' );
+		$this->assertFalse( F2000CS_Test_Reflection::invoke( $updater, 'feed_shrank', array( 1000 ) ), 'Growing back is fine' );
+	}
+
+	/**
+	 * Small feeds are not guarded: a few offers can come and go.
+	 *
+	 * @return void
+	 */
+	public function test_small_feed_is_not_guarded() {
+		$updater = new XML_Stock_Updater( 'https://supplier.test/small.xml', 'SUP_' );
+
+		F2000CS_Test_Reflection::invoke( $updater, 'feed_shrank', array( 20 ) );
+
+		$this->assertFalse( F2000CS_Test_Reflection::invoke( $updater, 'feed_shrank', array( 3 ) ) );
+	}
+
+	/**
+	 * Two runs of the same feed never overlap: the second one stops at once.
+	 *
+	 * @return void
+	 */
+	public function test_parallel_run_of_the_same_feed_is_skipped() {
+		$url = 'https://supplier.test/locked.xml';
+		update_option( 'f2000cs_sync_lock_' . md5( $url ), time() );
+
+		$all = $this->run_remote(
+			$url,
+			array(
+				'response' => array( 'code' => 200 ),
+				'body'     => '<?xml version="1.0"?><yml_catalog><shop><offers><offer id="1" available="true"><price>10</price></offer></offers></shop></yml_catalog>',
+			)
+		);
+
+		$this->assertStringContainsString( 'вже виконується', $all );
+		$this->assertStringNotContainsString( 'У вигрузці:', $all );
+		$this->assertNotFalse( get_option( 'f2000cs_sync_lock_' . md5( $url ) ), 'The other run keeps its lock' );
+	}
+
+	/**
+	 * A lock left by a run that died long ago is taken over; the run releases it at the end.
+	 *
+	 * @return void
+	 */
+	public function test_stale_lock_is_taken_over_and_released() {
+		$url = 'https://supplier.test/stale.xml';
+		update_option( 'f2000cs_sync_lock_' . md5( $url ), time() - 3 * HOUR_IN_SECONDS );
+
+		$all = $this->run_remote(
+			$url,
+			array(
+				'response' => array( 'code' => 200 ),
+				'body'     => '<?xml version="1.0"?><yml_catalog><shop><offers><offer id="1" available="true"><price>10</price></offer></offers></shop></yml_catalog>',
+			)
+		);
+
+		$this->assertStringContainsString( 'У вигрузці: 1', $all );
+		$this->assertFalse( get_option( 'f2000cs_sync_lock_' . md5( $url ) ), 'Released after the run' );
+	}
+	/**
+	 * A WC_Product stand-in for quantity writes: reads stock props from post meta and
+	 * fails the test if save() is called (save() fires every product hook on the site).
+	 *
+	 * @param int $id Product ID.
+	 * @return object
+	 */
+	private function quantity_product( int $id ) {
+		return new class( $id ) {
+			public $saved = false;
+			private $id;
+
+			public function __construct( $id ) {
+				$this->id = $id;
+			}
+
+			public function get_id() {
+				return $this->id;
+			}
+
+			public function get_manage_stock() {
+				return 'yes' === get_post_meta( $this->id, '_manage_stock', true );
+			}
+
+			public function get_stock_quantity() {
+				$v = get_post_meta( $this->id, '_stock', true );
+
+				return '' === $v ? null : (int) $v;
+			}
+
+			public function save() {
+				$this->saved = true;
+			}
+		};
+	}
+
+	/**
+	 * The supplier quantity is written straight to the stock meta, without WC_Product::save().
+	 *
+	 * @return void
+	 */
+	public function test_quantity_is_written_without_saving_the_product() {
+		$updater = new XML_Stock_Updater( 'http://shop.test/feed.xml', 'SUP_', false, array(), true );
+		$product = $this->quantity_product( 41 );
+
+		$this->assertTrue( F2000CS_Test_Reflection::invoke( $updater, 'update_product_quantity', array( $product, 36 ) ) );
+		$this->assertSame( 'yes', get_post_meta( 41, '_manage_stock', true ) );
+		$this->assertSame( '36', (string) get_post_meta( 41, '_stock', true ) );
+		$this->assertFalse( $product->saved, 'No save(): other plugins must not see 14 000 product updates' );
+
+		$this->assertFalse( F2000CS_Test_Reflection::invoke( $updater, 'update_product_quantity', array( $product, 36 ) ), 'Same quantity: nothing written' );
+		$this->assertTrue( F2000CS_Test_Reflection::invoke( $updater, 'update_product_quantity', array( $product, -2 ) ) );
+		$this->assertSame( '0', (string) get_post_meta( 41, '_stock', true ), 'Never negative' );
 	}
 }

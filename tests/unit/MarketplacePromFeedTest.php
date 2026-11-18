@@ -409,10 +409,10 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		$this->settings['regular_price_only']    = '1';
 		$this->settings['fake_discount_percent'] = '20';
 
-		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Sale price' => '800' ) ) ) );
+		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row() ) );
 
 		$this->assertStringContainsString( '<price>1000</price>', $res['xml'] );
-		$this->assertStringContainsString( '<oldprice>1200</oldprice>', $res['xml'] );
+		$this->assertStringContainsString( '<oldprice>1250</oldprice>', $res['xml'], 'Prom shows exactly −20 %: 1000 of 1250' );
 
 		$this->settings['fake_discount_percent'] = '0';
 
@@ -425,6 +425,64 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		$out = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'In stock?' => '0', 'Stock' => '0' ) ) ) );
 
 		$this->assertStringNotContainsString( 'oldprice', $out['xml'], 'Prom rejects a discount on unavailable items' );
+	}
+
+	/**
+	 * A fake discount starts from the price the site sells at now: an active sale
+	 * price is the Prom price, and the real old price is replaced by the inflated one.
+	 *
+	 * @return void
+	 */
+	public function test_fake_discount_starts_from_current_sale_price() {
+		$this->settings['regular_price_only']    = '1';
+		$this->settings['fake_discount_percent'] = '20';
+
+		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Sale price' => '800' ) ) ) );
+
+		$this->assertStringContainsString( '<price>800</price>', $res['xml'], 'Prom gets the current site price, not the regular (RRP) one' );
+		$this->assertStringContainsString( '<oldprice>1000</oldprice>', $res['xml'], 'The fake old price is built on the current price: 800 is −20 % of 1000' );
+	}
+
+	/**
+	 * Variations on sale: each offer gets its current price; the group shares the percentage.
+	 *
+	 * @return void
+	 */
+	public function test_fake_discount_on_group_uses_current_prices() {
+		$this->settings['regular_price_only']    = '1';
+		$this->settings['fake_discount_percent'] = '10';
+
+		$unit = $this->group_unit( array( 'S' => 'S', 'M' => 'M' ) );
+
+		foreach ( $unit['children'] as $i => $child ) {
+			$unit['children'][ $i ]['Sale price'] = '200';
+		}
+
+		$res = $this->process( $unit );
+		$xml = simplexml_load_string( '<offers>' . $res['xml'] . '</offers>' );
+
+		$this->assertCount( 2, $xml->offer );
+
+		foreach ( $xml->offer as $offer ) {
+			$this->assertSame( '200', (string) $offer->price );
+			$this->assertSame( '222.22', (string) $offer->oldprice );
+		}
+	}
+
+	/**
+	 * Without a fake discount the "regular price only" mode still sends the regular price.
+	 *
+	 * @return void
+	 */
+	public function test_regular_price_only_without_fake_discount_keeps_regular_price() {
+		$this->settings['regular_price_only']    = '1';
+		$this->settings['fake_discount_percent'] = '0';
+		$this->settings['fake_discount_spread']  = '';
+
+		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Sale price' => '800' ) ) ) );
+
+		$this->assertStringContainsString( '<price>1000</price>', $res['xml'] );
+		$this->assertStringNotContainsString( 'oldprice', $res['xml'] );
 	}
 
 	/**
@@ -454,7 +512,7 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		$xml = simplexml_load_string( '<offers>' . $res['xml'] . '</offers>' );
 
 		$this->assertCount( 2, $xml->offer );
-		$this->assertCount( 2, $xml->xpath( '//oldprice[text()="330"]' ) );
+		$this->assertCount( 2, $xml->xpath( '//oldprice[text()="333.33"]' ) );
 
 		foreach ( $xml->offer as $offer ) {
 			$this->assertSame( '300', (string) $offer->price );
@@ -485,9 +543,9 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 			$res = $this->process( array( 'kind' => 'simple', 'row' => $row ) );
 			$xml = simplexml_load_string( '<offers>' . $res['xml'] . '</offers>' );
 
-			$ratio = round( (float) $xml->offer[0]->oldprice / (float) $xml->offer[0]->price, 2 );
+			$ratio = round( 1 - (float) $xml->offer[0]->price / (float) $xml->offer[0]->oldprice, 2 );
 
-			$this->assertContains( $ratio, array( 1.3, 1.4, 1.5 ) );
+			$this->assertContains( $ratio, array( 0.3, 0.4, 0.5 ) );
 			$ratios[] = $ratio;
 		}
 
@@ -498,7 +556,7 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 
 		$this->assertSame(
 			$ratio,
-			round( (float) $again->offer[0]->oldprice / (float) $again->offer[0]->price, 2 ),
+			round( 1 - (float) $again->offer[0]->price / (float) $again->offer[0]->oldprice, 2 ),
 			'The same product keeps its percentage on the next build'
 		);
 	}
@@ -517,12 +575,12 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 
 		$this->assertCount( 2, $xml->offer );
 
-		$ratio = round( (float) $xml->offer[0]->oldprice / (float) $xml->offer[0]->price, 2 );
+		$ratio = round( 1 - (float) $xml->offer[0]->price / (float) $xml->offer[0]->oldprice, 2 );
 
-		$this->assertContains( $ratio, array( 1.3, 1.4, 1.5 ) );
+		$this->assertContains( $ratio, array( 0.3, 0.4, 0.5 ) );
 
 		foreach ( $xml->offer as $offer ) {
-			$this->assertSame( $ratio, round( (float) $offer->oldprice / (float) $offer->price, 2 ) );
+			$this->assertSame( $ratio, round( 1 - (float) $offer->price / (float) $offer->oldprice, 2 ) );
 		}
 	}
 
@@ -538,7 +596,7 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 
 		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row() ) );
 
-		$this->assertStringContainsString( '<oldprice>1200</oldprice>', $res['xml'] );
+		$this->assertStringContainsString( '<oldprice>1250</oldprice>', $res['xml'] );
 	}
 
 	/**
@@ -553,9 +611,9 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row() ) );
 		$xml = simplexml_load_string( '<offers>' . $res['xml'] . '</offers>' );
 
-		$ratio = round( (float) $xml->offer[0]->oldprice / (float) $xml->offer[0]->price, 2 );
+		$ratio = round( 1 - (float) $xml->offer[0]->price / (float) $xml->offer[0]->oldprice, 2 );
 
-		$this->assertContains( $ratio, array( 1.3, 1.4, 1.5 ) );
+		$this->assertContains( $ratio, array( 0.3, 0.4, 0.5 ) );
 	}
 
 	/**
@@ -846,6 +904,51 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * Two variations with the same characteristics: Prom would reject the group, so only
+	 * the duplicate is left out; the product and its other variations stay on Prom.
+	 *
+	 * @return void
+	 */
+	public function test_duplicate_variation_drops_only_the_duplicate() {
+		$unit = $this->group_unit( array( 'M1' => 'M', 'M2' => 'M', 'L' => 'L' ) );
+
+		$res = $this->process( $unit );
+		$xml = simplexml_load_string( '<offers>' . $res['xml'] . '</offers>' );
+
+		$this->assertSame( 2, $res['exported'], 'One offer per distinct set: M and L' );
+		$this->assertCount( 2, $xml->offer );
+		$this->assertSame( 1, $res['reasons']['duplicate_variations']['count'] ?? 0, 'Exactly one variation is counted as dropped' );
+
+		$sizes = array();
+		foreach ( $xml->offer as $offer ) {
+			foreach ( $offer->param as $param ) {
+				if ( 'Розмір' === (string) $param['name'] || 'Міжнародний розмір' === (string) $param['name'] ) {
+					$sizes[] = (string) $param;
+				}
+			}
+		}
+		sort( $sizes );
+		$this->assertSame( array( 'L', 'M' ), $sizes, 'Real sizes, nothing invented' );
+	}
+
+	/**
+	 * Of two identical variations the one in stock is kept.
+	 *
+	 * @return void
+	 */
+	public function test_duplicate_variation_keeps_the_one_in_stock() {
+		$unit = $this->group_unit( array( 'L' => 'L', 'M1' => 'M', 'M2' => 'M' ) );
+
+		$unit['children'][1]['In stock?'] = '0';
+		$unit['children'][1]['Stock']     = '0';
+
+		$res = $this->process( $unit );
+
+		$this->assertStringContainsString( '<vendorCode>P-100-M2</vendorCode>', $res['xml'] );
+		$this->assertStringNotContainsString( '<vendorCode>P-100-M1</vendorCode>', $res['xml'] );
+	}
+
+	/**
 	 * Main offer + one offer per variation, all in one group.
 	 *
 	 * @return void
@@ -875,11 +978,12 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
-	 * Prom rejects groups with identical characteristics; those are left out.
+	 * Prom rejects groups with identical characteristics: the product still goes to Prom
+	 * with one of the identical variations, the other is left out.
 	 *
 	 * @return void
 	 */
-	public function test_group_with_identical_variations_is_excluded() {
+	public function test_group_with_identical_variations_keeps_one() {
 		$unit = $this->group_unit( array( 'A' => 'M', 'B' => 'M' ) );
 
 		// Parent offers a single size so no axis can tell the two variations apart.
@@ -887,9 +991,9 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 
 		$res = $this->process( $unit );
 
-		$this->assertSame( 0, $res['exported'] );
-		$this->assertSame( array( 'P-100' ), $res['excluded'] );
-		$this->assertGreaterThan( 0, $res['skipped'] );
+		$this->assertSame( 1, $res['exported'] );
+		$this->assertSame( array(), $res['excluded'] );
+		$this->assertSame( 1, $res['skipped'] );
 	}
 
 	/**

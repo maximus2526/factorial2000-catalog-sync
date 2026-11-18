@@ -102,15 +102,31 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
-	 * Fixed amount: subtracting more than the price clamps to zero.
+	 * Fixed amount: adding has no limit; subtracting never takes more than 5 % off,
+	 * so a flat «−3» does not turn a 4 UAH nut into 1 UAH.
 	 *
 	 * @return void
 	 */
 	public function test_fixed_boundaries() {
 		$this->assertSame( 150.0, $this->adjust( 100, 'fixed', 50 ) );
-		$this->assertSame( 0.0, $this->adjust( 100, 'fixed', 100, 'subtract' ) );
-		$this->assertSame( 0.0, $this->adjust( 100, 'fixed', 1000, 'subtract' ) );
 		$this->assertSame( 10.0, $this->adjust( 10, 'fixed', 0.004 ) );
+		$this->assertSame( 10637.0, $this->adjust( 10640, 'fixed', 3, 'subtract' ), 'Normal price: the flat amount applies' );
+		$this->assertSame( 57.0, $this->adjust( 60, 'fixed', 3, 'subtract' ), 'Exactly 5 %: still applies' );
+		$this->assertSame( 50.0, $this->adjust( 50, 'fixed', 3, 'subtract' ), 'More than 5 %: the supplier price stays' );
+		$this->assertSame( 4.0, $this->adjust( 4, 'fixed', 3, 'subtract' ) );
+		$this->assertSame( 100.0, $this->adjust( 100, 'fixed', 100, 'subtract' ), 'Never down to zero' );
+		$this->assertSame( 100.0, $this->adjust( 100, 'fixed', 1000, 'subtract' ) );
+	}
+
+	/**
+	 * The 5 % cap of a fixed subtraction can be changed or switched off by a filter.
+	 *
+	 * @return void
+	 */
+	public function test_fixed_subtract_cap_filter() {
+		add_filter( 'f2000cs_fixed_subtract_max_share', static function () { return 1; } );
+		$this->assertSame( 1.0, $this->adjust( 4, 'fixed', 3, 'subtract' ), 'Cap off: the old behaviour' );
+		remove_filter( 'f2000cs_fixed_subtract_max_share' );
 	}
 
 	/**

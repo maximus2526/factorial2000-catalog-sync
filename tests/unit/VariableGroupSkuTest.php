@@ -151,6 +151,7 @@ final class F2000CS_Unit_VariableGroupSkuTest extends F2000CS_Unit_TestCase {
 		F2000CS_Test_State::$products[40] = $this->variable_parent();
 		update_post_meta( 40, '_stock_status', 'instock' );
 		$GLOBALS['wpdb']->results_queue = array( array( (object) array( 'sku' => 'SUP_9845', 'ID' => 40 ) ) );
+		$GLOBALS['wpdb']->var_queue     = array( 2 ); // Its variations: two in stock.
 
 		( new XML_Stock_Updater( $tmp, 'SUP_' ) )->update_products_stock_status();
 		unlink( $tmp );

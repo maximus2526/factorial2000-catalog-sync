@@ -371,13 +371,14 @@ function f2000cs_reader_element( XMLReader $reader, DOMDocument $dom ) {
  * Read the stock quantity of a YML offer.
  *
  * Supported tags (first non-empty wins): <quantity>, <stock_quantity>,
- * <qty_stock> (OneBox). Decimal notations such as "1.000" are read as 1.
+ * <qty_stock> (OneBox), <quantity_in_stock> (Horoshop, Vik-Tailor, BM) and
+ * <quantityInStock> (powerplay extra_fields). Decimal notations such as "1.000" are read as 1.
  *
  * @param SimpleXMLElement $offer Offer element.
  * @return int|null Quantity, or null when the offer carries none.
  */
 function f2000cs_parse_offer_quantity( $offer ) {
-	foreach ( array( 'quantity', 'stock_quantity', 'qty_stock' ) as $tag ) {
+	foreach ( array( 'quantity', 'stock_quantity', 'qty_stock', 'quantity_in_stock', 'quantityInStock' ) as $tag ) {
 		if ( ! isset( $offer->{$tag} ) ) {
 			continue;
 		}
@@ -592,6 +593,23 @@ function f2000cs_adjust_price( $price, $adjust ) {
 			break;
 
 		case 'fixed':
+			/**
+			 * Largest share of the price a fixed subtraction may take off (0.05 = 5 %).
+			 *
+			 * A flat «−3» meant to undercut a 1 000 UAH item would otherwise turn a 4 UAH
+			 * nut into 1 UAH. When the amount is bigger than the share, the supplier price
+			 * stays as it is. Return 1 to subtract without a limit.
+			 *
+			 * @param float $share Share of the price, 0–1.
+			 * @param float $price Supplier price.
+			 * @param float $value Fixed amount.
+			 */
+			$share = (float) apply_filters( 'f2000cs_fixed_subtract_max_share', 0.05, $price, $value );
+
+			if ( $sign < 0 && $share < 1 && $value > $price * $share + 0.000001 ) {
+				return round( $price, 2 );
+			}
+
 			$price = $price + ( $sign * $value );
 			break;
 
@@ -1082,6 +1100,38 @@ function f2000cs_update_stock_status( $product_id, $stock_status ) {
 }
 
 /**
+ * Set a managed stock quantity directly (post meta and the lookup table).
+ *
+ * The stock status is written separately from the same offer, so the two never disagree.
+ *
+ * @param int $product_id Product or variation ID.
+ * @param int $quantity   Quantity, negative values become 0.
+ * @return void
+ */
+function f2000cs_update_stock_quantity( $product_id, $quantity ) {
+	global $wpdb;
+
+	$product_id = absint( $product_id );
+	$quantity   = max( 0, (int) $quantity );
+
+	update_post_meta( $product_id, '_manage_stock', 'yes' );
+	update_post_meta( $product_id, '_stock', (string) $quantity );
+
+	if ( empty( $wpdb->wc_product_meta_lookup ) ) {
+		return;
+	}
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Real-time lookup sync; cache would be stale.
+	$wpdb->query(
+		$wpdb->prepare(
+			"INSERT INTO {$wpdb->wc_product_meta_lookup} (product_id, stock_quantity) VALUES (%d, %f) ON DUPLICATE KEY UPDATE stock_quantity = VALUES(stock_quantity)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$product_id,
+			$quantity
+		)
+	);
+}
+
+/**
  * Sync a single product's stock status into the HPOS-compatible lookup table.
  *
  * @param int    $product_id   Product or variation ID.
@@ -1167,8 +1217,11 @@ function f2000cs_sync_price_lookup( $product_id ) {
 	$regular_price = '' !== $regular_price ? (float) $regular_price : null;
 	$sale_price    = '' !== $sale_price ? (float) $sale_price : null;
 
-	$min_price = $sale_price > 0 ? $sale_price : $price;
-	$max_price = $regular_price > 0 ? $regular_price : $price;
+	// WooCommerce stores one price for a simple product or a variation: _price, the price
+	// the buyer pays. Fall back to the sale or regular price only when _price is empty.
+	$selling   = null !== $price ? $price : ( $sale_price > 0 ? $sale_price : $regular_price );
+	$min_price = $selling;
+	$max_price = $selling;
 
 	if ( null === $min_price && null === $max_price ) {
 		return;

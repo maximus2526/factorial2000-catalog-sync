@@ -1300,27 +1300,10 @@ class Prom_Variations {
 	 * @return bool
 	 */
 	public static function has_duplicate_param_sets( array $main_params, array $group_params ): bool {
-		$base = array();
-
-		foreach ( $main_params as $pair ) {
-			$base[ self::normalized_attr_key( $pair[0] ) ] = Marketplace_Text::lower( Marketplace_Text::clean( $pair[1] ) );
-		}
-
 		$seen = array();
 
 		foreach ( $group_params as $params ) {
-			$eff = $base;
-
-			foreach ( $params as $pair ) {
-				$eff[ self::normalized_attr_key( $pair[0] ) ] = Marketplace_Text::lower( Marketplace_Text::clean( $pair[1] ) );
-			}
-
-			$items = array();
-			foreach ( $eff as $k => $v ) {
-				$items[] = $k . "\x1e" . $v;
-			}
-			sort( $items );
-			$sig = implode( "\x1f", $items );
+			$sig = self::effective_param_signature( $main_params, $params );
 
 			if ( isset( $seen[ $sig ] ) ) {
 				return true;
@@ -1330,6 +1313,30 @@ class Prom_Variations {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Signature of the characteristics an offer of a group shows on Prom: the main
+	 * offer's params, overridden by the offer's own. Equal signatures = duplicates.
+	 *
+	 * @param array<int,array{0:string,1:string}> $main_params Main offer params.
+	 * @param array<int,array{0:string,1:string}> $params      Offer params.
+	 * @return string
+	 */
+	public static function effective_param_signature( array $main_params, array $params ): string {
+		$eff = array();
+
+		foreach ( array_merge( $main_params, $params ) as $pair ) {
+			$eff[ self::normalized_attr_key( $pair[0] ) ] = Marketplace_Text::lower( Marketplace_Text::clean( $pair[1] ) );
+		}
+
+		$items = array();
+		foreach ( $eff as $k => $v ) {
+			$items[] = $k . "\x1e" . $v;
+		}
+		sort( $items );
+
+		return implode( "\x1f", $items );
 	}
 
 	/**
