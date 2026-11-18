@@ -130,6 +130,39 @@ final class F2000CS_Unit_ProFeaturesTest extends F2000CS_Unit_TestCase {
 	}
 
 	/**
+	 * The supplier's «не більше N % ціни» setting replaces the 5 % default.
+	 *
+	 * @return void
+	 */
+	public function test_fixed_subtract_cap_from_settings() {
+		$rule = array(
+			'type'      => 'fixed',
+			'direction' => 'subtract',
+			'value'     => 3,
+		);
+
+		$this->assertSame( 50.0, f2000cs_adjust_price( 50, $rule ), 'Default 5 %: 3 of 50 is too much' );
+		$this->assertSame( 47.0, f2000cs_adjust_price( 50, $rule + array( 'max_share' => 10 ) ), '10 %: 3 of 50 fits' );
+		$this->assertSame( 1.0, f2000cs_adjust_price( 4, $rule + array( 'max_share' => 100 ) ), '100 %: no limit' );
+		$this->assertSame( 1000.0, f2000cs_adjust_price( 1000, $rule + array( 'max_share' => 0 ) ), '0 %: never subtract' );
+		$this->assertSame( 50.0, f2000cs_adjust_price( 50, $rule + array( 'max_share' => 'abc' ) ), 'Junk falls back to 5 %' );
+		$this->assertSame( 1.0, f2000cs_adjust_price( 4, $rule + array( 'max_share' => 500 ) ), 'Above 100 is clamped to 100' );
+	}
+
+	/**
+	 * The saved per-supplier limit is read with the price rule (default 5).
+	 *
+	 * @return void
+	 */
+	public function test_max_share_option_is_read() {
+		$this->assertSame( 5.0, f2000cs_get_price_adjust_settings( 3 )['max_share'], 'Default' );
+
+		update_option( 'f2000cs_price_adjust_max_share_3', '12.5' );
+		$this->assertSame( 12.5, f2000cs_get_price_adjust_settings( 3 )['max_share'] );
+		delete_option( 'f2000cs_price_adjust_max_share_3' );
+	}
+
+	/**
 	 * No-op cases leave the price exactly as it was.
 	 *
 	 * @return void

@@ -546,6 +546,13 @@ function f2000cs_get_settings_url() {
 	return admin_url( 'admin.php?page=f2000cs-update' );
 }
 
+if ( ! defined( 'F2000CS_FIXED_SUBTRACT_MAX_SHARE' ) ) {
+	/**
+	 * Default: a fixed subtraction takes at most 5 % of the price.
+	 */
+	define( 'F2000CS_FIXED_SUBTRACT_MAX_SHARE', 5 );
+}
+
 /**
  * Saved price adjustment rule (type, direction, value) of a supplier slot.
  *
@@ -559,7 +566,22 @@ function f2000cs_get_price_adjust_settings( $index ) {
 		'type'      => (string) get_option( 'f2000cs_price_adjust_type_' . $index, 'markup' ),
 		'direction' => (string) get_option( 'f2000cs_price_adjust_direction_' . $index, 'add' ),
 		'value'     => (float) get_option( 'f2000cs_price_adjust_value_' . $index, '0' ),
+		'max_share' => f2000cs_sanitize_max_share( get_option( 'f2000cs_price_adjust_max_share_' . $index, F2000CS_FIXED_SUBTRACT_MAX_SHARE ) ),
 	);
+}
+
+/**
+ * Clamp the «fixed subtraction may take at most N % of the price» setting to 0–100.
+ *
+ * @param mixed $value Stored or posted value.
+ * @return float Percent; 100 means no limit.
+ */
+function f2000cs_sanitize_max_share( $value ) {
+	if ( ! is_numeric( $value ) ) {
+		return (float) F2000CS_FIXED_SUBTRACT_MAX_SHARE;
+	}
+
+	return round( max( 0, min( 100, (float) $value ) ), 2 );
 }
 
 /**
@@ -598,13 +620,15 @@ function f2000cs_adjust_price( $price, $adjust ) {
 			 *
 			 * A flat «−3» meant to undercut a 1 000 UAH item would otherwise turn a 4 UAH
 			 * nut into 1 UAH. When the amount is bigger than the share, the supplier price
-			 * stays as it is. Return 1 to subtract without a limit.
+			 * stays as it is. The default comes from the supplier's «не більше N % ціни»
+			 * setting (5 %); 100 % or a returned 1 subtracts without a limit.
 			 *
 			 * @param float $share Share of the price, 0–1.
 			 * @param float $price Supplier price.
 			 * @param float $value Fixed amount.
 			 */
-			$share = (float) apply_filters( 'f2000cs_fixed_subtract_max_share', 0.05, $price, $value );
+			$max_share = isset( $adjust['max_share'] ) ? f2000cs_sanitize_max_share( $adjust['max_share'] ) : (float) F2000CS_FIXED_SUBTRACT_MAX_SHARE;
+			$share     = (float) apply_filters( 'f2000cs_fixed_subtract_max_share', $max_share / 100, $price, $value );
 
 			if ( $sign < 0 && $share < 1 && $value > $price * $share + 0.000001 ) {
 				return round( $price, 2 );

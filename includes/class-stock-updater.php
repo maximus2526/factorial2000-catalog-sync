@@ -172,6 +172,13 @@ class XML_Stock_Updater {
 	private $price_adjust_value = 0.0;
 
 	/**
+	 * Largest share of the price (in %) a fixed subtraction may take off.
+	 *
+	 * @var float
+	 */
+	private $price_adjust_max_share = 5.0;
+
+	/**
 	 * Supplier slot of this feed (0 = a URL that matches no slot).
 	 *
 	 * @var int
@@ -197,6 +204,7 @@ class XML_Stock_Updater {
 	 *     @type string $type      'margin', 'markup' or 'fixed'. Default 'markup'.
 	 *     @type string $direction 'add' or 'subtract'. Ignored for 'margin'. Default 'add'.
 	 *     @type float  $value     Percentage (margin/markup) or currency amount (fixed). Default 0.
+	 *     @type float  $max_share A fixed subtraction takes at most this % of the price. Default 5.
 	 * }
 	 * @param bool   $update_stock_qty Whether to update stock quantity from XML.
 	 * @param bool   $keep_managed_status Leave the stock status of products with managed
@@ -220,12 +228,14 @@ class XML_Stock_Updater {
 				'type'      => 'markup',
 				'direction' => 'add',
 				'value'     => 0,
+				'max_share' => F2000CS_FIXED_SUBTRACT_MAX_SHARE,
 			)
 		);
 
 		$this->price_adjust_type      = in_array( $price_adjust['type'], array( 'margin', 'markup', 'fixed' ), true ) ? $price_adjust['type'] : 'markup';
 		$this->price_adjust_direction = 'subtract' === $price_adjust['direction'] ? 'subtract' : 'add';
 		$this->price_adjust_value     = max( 0, (float) $price_adjust['value'] );
+		$this->price_adjust_max_share = f2000cs_sanitize_max_share( $price_adjust['max_share'] );
 
 		// Get the current PHP max execution time and set our limit slightly below it
 		$current_limit            = ini_get( 'max_execution_time' );
@@ -824,6 +834,7 @@ class XML_Stock_Updater {
 				'type'      => $this->price_adjust_type,
 				'direction' => $this->price_adjust_direction,
 				'value'     => $this->price_adjust_value,
+				'max_share' => $this->price_adjust_max_share,
 			)
 		);
 	}

@@ -13,6 +13,8 @@
 		var valueInput  = document.getElementById( 'f2000cs_price_adjust_value_' + index );
 		var unitEl      = document.getElementById( 'f2000cs_price_adjust_unit_' + index );
 		var wrap        = document.getElementById( 'f2000cs_price_adjust_' + index + '_wrap' );
+		var shareWrap   = document.getElementById( 'f2000cs_price_adjust_max_share_' + index + '_wrap' );
+		var dirInputs   = document.querySelectorAll( 'input[name="f2000cs_price_adjust_direction_' + index + '"]' );
 
 		if ( ! typeSelect || ! wrap ) {
 			return;
@@ -33,6 +35,17 @@
 				unitEl.textContent = isFixed ? currencyUnit : percentUnit;
 			}
 
+			if ( shareWrap ) {
+				var subtract = false;
+				Array.prototype.forEach.call( dirInputs, function ( el ) {
+					if ( el.checked && 'subtract' === el.value ) {
+						subtract = true;
+					}
+				} );
+				// The limit only matters for «Фіксована сума» + «Відняти».
+				shareWrap.style.display = isFixed && subtract ? '' : 'none';
+			}
+
 			if ( valueInput ) {
 				if ( isMargin ) {
 					valueInput.setAttribute( 'max', '99.99' );
@@ -43,6 +56,9 @@
 		};
 
 		typeSelect.addEventListener( 'change', updateForType );
+		Array.prototype.forEach.call( dirInputs, function ( el ) {
+			el.addEventListener( 'change', updateForType );
+		} );
 		updateForType();
 	}
 

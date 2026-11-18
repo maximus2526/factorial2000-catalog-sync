@@ -52,6 +52,7 @@ function f2000cs_uninstall_cleanup() {
 		delete_option( 'f2000cs_price_adjust_type_' . $i );
 		delete_option( 'f2000cs_price_adjust_direction_' . $i );
 		delete_option( 'f2000cs_price_adjust_value_' . $i );
+		delete_option( 'f2000cs_price_adjust_max_share_' . $i );
 	}
 
 	delete_option( 'f2000cs_update_interval' );

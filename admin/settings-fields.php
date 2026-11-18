@@ -56,6 +56,16 @@ function f2000cs_settings_init() {
 		register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_value_' . $i, $price_adjust_value_args );
 	}
 
+	$max_share_args = array(
+		'sanitize_callback' => function ( $value ) {
+			return (string) f2000cs_sanitize_max_share( $value );
+		},
+	);
+
+	for ( $i = 1; $i <= $slot_max; $i++ ) {
+		register_setting( 'f2000cs_settings', 'f2000cs_price_adjust_max_share_' . $i, $max_share_args );
+	}
+
 	register_setting(
 		'f2000cs_settings',
 		'f2000cs_update_interval',
@@ -558,6 +568,8 @@ function f2000cs_render_supplier_price_adjust( $slot ) {
 	$type_name   = 'f2000cs_price_adjust_type_' . $slot;
 	$dir_name    = 'f2000cs_price_adjust_direction_' . $slot;
 	$val_name    = 'f2000cs_price_adjust_value_' . $slot;
+	$share_name  = 'f2000cs_price_adjust_max_share_' . $slot;
+	$max_share   = $num ? f2000cs_sanitize_max_share( get_option( $share_name, F2000CS_FIXED_SUBTRACT_MAX_SHARE ) ) : (float) F2000CS_FIXED_SUBTRACT_MAX_SHARE;
 	$wrap_id     = 'f2000cs_price_adjust_' . $slot . '_wrap';
 	$dir_wrap_id = 'f2000cs_price_adjust_direction_' . $slot . '_wrap';
 	$unit_id     = 'f2000cs_price_adjust_unit_' . $slot;
@@ -590,6 +602,18 @@ function f2000cs_render_supplier_price_adjust( $slot ) {
 			</span>
 			<input type="number" name="<?php echo esc_attr( $val_name ); ?>" id="<?php echo esc_attr( $val_name ); ?>" value="<?php echo esc_attr( $value ); ?>" min="0" step="0.01" style="width: 100px;">
 			<span class="f2000cs-price-adjust__unit" id="<?php echo esc_attr( $unit_id ); ?>"><?php echo esc_html( 'fixed' === $type ? $currency : '%' ); ?></span>
+		</div>
+		<div class="f2000cs-price-adjust__max-share" id="<?php echo esc_attr( $share_name . '_wrap' ); ?>">
+			<label for="<?php echo esc_attr( $share_name ); ?>">
+				<?php esc_html_e( 'Віднімати не більше', 'factorial2000-catalog-sync' ); ?>
+				<input type="number" name="<?php echo esc_attr( $share_name ); ?>" id="<?php echo esc_attr( $share_name ); ?>" value="<?php echo esc_attr( (string) $max_share ); ?>" min="0" max="100" step="0.01" style="width: 80px;">
+				<?php esc_html_e( '% ціни', 'factorial2000-catalog-sync' ); ?>
+			</label>
+			<?php
+			echo f2000cs_tip_html( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes.
+				__( 'Захист дешевих товарів: якщо фіксована сума більша за цей відсоток ціни, ціна постачальника лишається без змін. Наприклад, «відняти 3» при 5 %: товар за 1 000 стане 997, а за 40 лишиться 40. 100 % — віднімати завжди.', 'factorial2000-catalog-sync' )
+			);
+			?>
 		</div>
 	</div>
 	<?php

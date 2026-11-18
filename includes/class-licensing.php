@@ -800,6 +800,7 @@ function f2000cs_register_missing_post_preservers() {
 		'f2000cs_price_adjust_type_1',
 		'f2000cs_price_adjust_direction_1',
 		'f2000cs_price_adjust_value_1',
+		'f2000cs_price_adjust_max_share_1',
 	);
 
 	$max = function_exists( 'f2000cs_get_supplier_option_register_max' )
@@ -814,6 +815,7 @@ function f2000cs_register_missing_post_preservers() {
 		$keys[] = 'f2000cs_price_adjust_type_' . $i;
 		$keys[] = 'f2000cs_price_adjust_direction_' . $i;
 		$keys[] = 'f2000cs_price_adjust_value_' . $i;
+		$keys[] = 'f2000cs_price_adjust_max_share_' . $i;
 	}
 
 	foreach ( $keys as $key ) {
