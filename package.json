@@ -1,6 +1,6 @@
 {
   "name": "factorial2000-catalog-sync",
-  "version": "0.7.8",
+  "version": "0.7.9",
   "private": true,
   "description": "Gulp build system: release/SVN packaging, version bumping, phpcs + phpunit runs.",
   "devDependencies": {

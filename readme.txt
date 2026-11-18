@@ -5,7 +5,7 @@ Tags: woocommerce, prom-ua, xml-import, stock-sync, marketplace
 Requires at least: 5.8
 Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 0.7.8
+Stable tag: 0.7.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -189,6 +189,9 @@ This service is provided by Freemius. Terms of Service: https://freemius.com/ter
 
 == Upgrade Notice ==
 
+= 0.7.9 =
+Prom fake discounts now match the percentage you set and start from the current site price; a fixed price subtraction gets an editable «не більше N % ціни» limit; safer stock sync. Pro users: update the Pro build from your Freemius account.
+
 = 0.7.7 =
 Clearer Pro trial and download prompts, plus new Pro stock-sync and Prom feed options. Pro users: update the Pro build from your Freemius account.
 
@@ -214,6 +217,23 @@ Large Prom feeds (over 180 MB) are now split into several links automatically, a
 Pro features moved to a separate Pro build. If you use a Pro license, stock quantity updates or the marketplace feed, install the Pro version from your Freemius account before updating. Price adjustment now works in the Free version too.
 
 == Changelog ==
+
+= 0.7.9 =
+Free:
+* New «Віднімати не більше N % ціни» field in «Коригування ціни» (shown for «Фіксована сума» + «Відняти»; default 5 %, 100 % = always subtract). When the amount is bigger than that share of the price, the supplier price stays as it is, so a flat «−3» no longer turns a 4 UAH item into 1 UAH.
+* The limit is decided once, on the selling price, and the same amount comes off the old price too, so a supplier's sale is never ended by the limit.
+* Stock sync reads `<quantity_in_stock>` / `<quantityInStock>` and writes quantities straight to the product meta and lookup table, without a full product save on every run.
+* An offer that matches a variable parent recounts the parent's stock status from its variations.
+* The feed is downloaded in full to a temporary file before parsing; a cut download or an HTTP error counts as an unreachable feed (grace period), not a broken one.
+* A feed that suddenly has less than half of the previous offers leaves missing products alone for one run.
+* Two syncs of the same feed no longer run at the same time (run lock, 2 h).
+* Lookup min/max price follows `_price`, like WooCommerce.
+
+Pro:
+* Prom fake discount shows exactly the percentage you set: `<oldprice>` = price / (1 − %), e.g. 1000 at 20 % → 1250 (−20 %). Before, 20 % showed as −16.7 %.
+* With a fake discount, `<price>` is the current site price, an active sale included.
+* Prom feed: of identical variations only the duplicate is left out (the one in stock is kept), instead of the whole group.
+* «Купити на Prom» button (shortcode, Prom product ID meta box, settings) and per-product Prom keywords meta box — shipped in 0.7.8.
 
 = 0.7.8 =
 New:
