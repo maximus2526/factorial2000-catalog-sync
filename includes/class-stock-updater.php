@@ -660,7 +660,8 @@ class XML_Stock_Updater {
 			return true;
 		}
 
-		$temp = wp_tempnam( 'f2000cs_' );
+		// Not wp_tempnam(): WP-Cron does not load wp-admin/includes/file.php.
+		$temp = f2000cs_tempnam( 'f2000cs_' );
 
 		/**
 		 * Seconds allowed for downloading a supplier feed.

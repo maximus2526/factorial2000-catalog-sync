@@ -684,6 +684,29 @@ function f2000cs_adjust_price_pair( $price, $old_price, $adjust ) {
 }
 
 /**
+ * A temporary file name that works outside wp-admin too.
+ *
+ * wp_tempnam() lives in wp-admin/includes/file.php, which WP-Cron and the front end
+ * do not load; calling it there stops the run with a fatal error.
+ *
+ * @param string $prefix File name prefix.
+ * @return string Path of a new empty file, '' on failure.
+ */
+function f2000cs_tempnam( $prefix = 'f2000cs_' ) {
+	if ( ! function_exists( 'wp_tempnam' ) && defined( 'ABSPATH' ) && file_exists( ABSPATH . 'wp-admin/includes/file.php' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+	}
+
+	if ( function_exists( 'wp_tempnam' ) ) {
+		return (string) wp_tempnam( $prefix );
+	}
+
+	$dir = function_exists( 'get_temp_dir' ) ? get_temp_dir() : sys_get_temp_dir();
+
+	return (string) tempnam( $dir, $prefix );
+}
+
+/**
  * Whether a stored checkbox option is on ('1', 'yes' or 'on').
  *
  * @param string $option Option name.

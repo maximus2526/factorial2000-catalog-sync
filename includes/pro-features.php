@@ -67,7 +67,7 @@ function f2000cs_pro_import_missing_offers( $result, $args ) {
 		return $result;
 	}
 
-	$file = wp_tempnam( 'f2000cs_missing_' );
+	$file = f2000cs_tempnam( 'f2000cs_missing_' );
 	if ( ! $file ) {
 		return $result;
 	}

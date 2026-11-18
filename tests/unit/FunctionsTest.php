@@ -831,4 +831,45 @@ final class F2000CS_Unit_FunctionsTest extends F2000CS_Unit_TestCase {
 		$this->assertSame( null, get_option( 'f2000cs_sku_prefix', null ) );
 		$this->assertSame( F2000CS_DB_VERSION, (int) get_option( 'f2000cs_db_version' ) );
 	}
+
+	/**
+	 * Code that can run from WP-Cron never calls wp_tempnam() directly: it is defined in
+	 * wp-admin/includes/file.php, which cron does not load (0.7.9 stopped the scheduled
+	 * sync with «Call to undefined function wp_tempnam()»).
+	 *
+	 * @return void
+	 */
+	public function test_no_direct_wp_tempnam_calls() {
+		$root  = dirname( __DIR__, 2 );
+		$found = array();
+
+		foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root . '/includes' ) ) as $file ) {
+			if ( 'php' !== $file->getExtension() ) {
+				continue;
+			}
+
+			foreach ( file( $file->getPathname() ) as $n => $line ) {
+				$code = trim( $line );
+
+				if ( preg_match( '/(?<![\w>])wp_tempnam\s*\(/', $code ) && 0 !== strpos( $code, '*' ) && 0 !== strpos( $code, '//' ) && false === strpos( $code, 'function_exists' ) && false === strpos( $code, 'return (string) wp_tempnam' ) ) {
+					$found[] = basename( $file->getPathname() ) . ':' . ( $n + 1 );
+				}
+			}
+		}
+
+		$this->assertSame( array(), $found, 'Use f2000cs_tempnam() instead' );
+	}
+
+	/**
+	 * f2000cs_tempnam() returns a new file.
+	 *
+	 * @return void
+	 */
+	public function test_tempnam_creates_a_file() {
+		$file = f2000cs_tempnam( 'f2000cs_test_' );
+
+		$this->assertNotSame( '', $file );
+		$this->assertFileExists( $file );
+		unlink( $file );
+	}
 }

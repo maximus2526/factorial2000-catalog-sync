@@ -1662,7 +1662,7 @@ class XML_Parser {
 					return $currencies;
 				}
 
-				$temp_file = wp_tempnam( 'f2000cs_curr_' );
+				$temp_file = f2000cs_tempnam( 'f2000cs_curr_' );
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Temp file for XMLReader.
 				if ( ! file_put_contents( $temp_file, $xml_data ) ) {
 					return $currencies;
