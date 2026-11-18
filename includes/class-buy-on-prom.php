@@ -286,7 +286,7 @@ class Buy_On_Prom {
 		$args = array( 'utm_medium' => 'buy_on_prom' );
 
 		if ( function_exists( 'get_site_url' ) ) {
-			$host = parse_url( (string) get_site_url(), PHP_URL_HOST );
+			$host = function_exists( 'wp_parse_url' ) ? wp_parse_url( (string) get_site_url(), PHP_URL_HOST ) : parse_url( (string) get_site_url(), PHP_URL_HOST ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- fallback outside WordPress.
 			if ( is_string( $host ) && '' !== $host ) {
 				$args = array( 'utm_source' => $host ) + $args;
 			}

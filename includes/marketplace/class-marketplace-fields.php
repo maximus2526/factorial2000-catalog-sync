@@ -112,7 +112,7 @@ class Marketplace_Fields {
 				'marketplace'       => 'prom',
 				'marketplace_label' => __( 'Prom.ua', 'factorial2000-catalog-sync' ),
 				'label'             => __( 'Ключові запити', 'factorial2000-catalog-sync' ),
-				'meta_key'          => '_f2000tr_prom_keywords',
+				'meta_key'          => '_f2000tr_prom_keywords', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- field config, not a query.
 				'post_types'        => array( 'product' ),
 				'context'           => 'side',
 				'priority'          => 'default',
@@ -234,7 +234,7 @@ class Marketplace_Fields {
 			'marketplace'       => $marketplace,
 			'marketplace_label' => $marketplace_label,
 			'label'             => isset( $field['label'] ) ? (string) $field['label'] : $id,
-			'meta_key'          => $meta_key,
+			'meta_key'          => $meta_key, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- field config, not a query.
 			'post_types'        => $post_types,
 			'context'           => $context,
 			'priority'          => $priority,
