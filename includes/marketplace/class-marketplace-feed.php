@@ -127,6 +127,7 @@ abstract class Marketplace_Feed {
 			'no_category' => __( 'немає категорії', 'factorial2000-catalog-sync' ),
 			'no_id'       => __( 'немає ID', 'factorial2000-catalog-sync' ),
 			'unpublished' => __( 'не опубліковано', 'factorial2000-catalog-sync' ),
+			'excluded'    => __( 'виключено правилами «Не вивантажувати»', 'factorial2000-catalog-sync' ),
 		);
 	}
 
@@ -190,7 +191,7 @@ abstract class Marketplace_Feed {
 	public function defaults(): array {
 		$out = array();
 
-		foreach ( $this->fields() as $key => $field ) {
+		foreach ( $this->settings_fields() as $key => $field ) {
 			$out[ $key ] = $field['default'] ?? '';
 		}
 
@@ -252,7 +253,7 @@ abstract class Marketplace_Feed {
 	public function sanitize( array $raw ): array {
 		$out = array();
 
-		foreach ( $this->fields() as $key => $field ) {
+		foreach ( $this->settings_fields() as $key => $field ) {
 			$type    = $field['type'] ?? 'text';
 			$default = $field['default'] ?? '';
 			$value   = $raw[ $key ] ?? null;
@@ -396,5 +397,279 @@ abstract class Marketplace_Feed {
 		}
 
 		return $out;
+	}
+
+	// ------------------------------------------------------------------
+	// Exclusion rules (every feed)
+	// ------------------------------------------------------------------
+
+	/**
+	 * Settings schema of the feed plus the fields every feed has.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function settings_fields(): array {
+		return $this->fields() + array(
+			'exclude_rules' => array(
+				'group'       => 'exclude',
+				'type'        => 'textarea',
+				'label'       => __( 'Не вивантажувати товари', 'factorial2000-catalog-sync' ),
+				'description' => __( 'По одному правилу в рядку: бренд: Mil-Tec · категорія: Одяг > Куртки (разом з підкатегоріями) · артикул: AR_ (початок артикула) · атрибут: Колір = Червоний · назва: слово з назви · id: 123. Правило, під яке підпадає товар, прибирає його разом з усіма різновидами; правило, під яке підпадає різновид, прибирає лише його. Товари, яких немає у файлі, маркетплейс обробляє за своїми налаштуваннями імпорту.', 'factorial2000-catalog-sync' ),
+				'default'     => '',
+			),
+		);
+	}
+
+	/**
+	 * Section titles of the settings form, with the exclusion section.
+	 *
+	 * @return array<string,string>
+	 */
+	public function settings_groups(): array {
+		return $this->groups() + array( 'exclude' => __( 'Виключення з вигрузки', 'factorial2000-catalog-sync' ) );
+	}
+
+	/**
+	 * Parse the «type: value» lines of the exclusion setting.
+	 *
+	 * Types: brand/бренд/виробник, category/категорія, sku/артикул, attribute/атрибут
+	 * («Name = Value»), name/назва, id. Unknown lines are ignored.
+	 *
+	 * @param string $text Rules text.
+	 * @return array<int, array<string,string>>
+	 */
+	public static function parse_exclusion_rules( string $text ): array {
+		$aliases = array(
+			'brand'     => 'brand',
+			'бренд'     => 'brand',
+			'виробник'  => 'brand',
+			'vendor'    => 'brand',
+			'category'  => 'category',
+			'категорія' => 'category',
+			'категория' => 'category',
+			'sku'       => 'sku',
+			'артикул'   => 'sku',
+			'attribute' => 'attribute',
+			'атрибут'   => 'attribute',
+			'name'      => 'name',
+			'назва'     => 'name',
+			'название'  => 'name',
+			'id'        => 'id',
+		);
+		$rules   = array();
+
+		foreach ( (array) preg_split( '/\r\n|\r|\n/', $text ) as $line ) {
+			$line = trim( (string) $line );
+			$at   = strpos( $line, ':' );
+
+			if ( '' === $line || false === $at ) {
+				continue;
+			}
+
+			$type  = Marketplace_Text::lower( trim( substr( $line, 0, $at ) ) );
+			$value = trim( substr( $line, $at + 1 ) );
+
+			if ( ! isset( $aliases[ $type ] ) || '' === $value ) {
+				continue;
+			}
+
+			$rule = array(
+				'type'  => $aliases[ $type ],
+				'value' => Marketplace_Text::lower( $value ),
+			);
+
+			if ( 'attribute' === $rule['type'] ) {
+				$eq = strpos( $value, '=' );
+
+				if ( false === $eq ) {
+					continue;
+				}
+
+				$rule['attr']  = Marketplace_Text::lower( trim( substr( $value, 0, $eq ) ) );
+				$rule['value'] = Marketplace_Text::lower( trim( substr( $value, $eq + 1 ) ) );
+
+				if ( '' === $rule['attr'] || '' === $rule['value'] ) {
+					continue;
+				}
+			}
+
+			if ( 'category' === $rule['type'] ) {
+				$rule['value'] = (string) preg_replace( '/\s*>\s*/u', '>', $rule['value'] );
+			}
+
+			$rules[] = $rule;
+		}
+
+		return $rules;
+	}
+
+	/**
+	 * Whether a product or variation row falls under any exclusion rule.
+	 *
+	 * A variation inherits the brand, categories, name and attributes of its product.
+	 *
+	 * @param array<int, array<string,string>> $rules      Parsed rules.
+	 * @param array<string,string>             $row        Row.
+	 * @param array<string,string>|null        $parent_row Parent row.
+	 * @return bool
+	 */
+	public static function row_excluded( array $rules, array $row, $parent_row = null ): bool {
+		foreach ( $rules as $rule ) {
+			switch ( $rule['type'] ) {
+				case 'brand':
+					$vendor = Marketplace_Text::lower( Prom_Feed::extract_vendor( $row, $parent_row ) );
+
+					foreach ( (array) preg_split( '/\s*,\s*/u', $vendor ) as $part ) {
+						if ( '' !== $part && $part === $rule['value'] ) {
+							return true;
+						}
+					}
+					break;
+
+				case 'category':
+					$cats = Marketplace_Text::clean( $row['Categories'] ?? '' );
+
+					if ( '' === $cats && $parent_row ) {
+						$cats = Marketplace_Text::clean( $parent_row['Categories'] ?? '' );
+					}
+
+					foreach ( Marketplace_Text::parse_category_paths( $cats ) as $path ) {
+						$key = Marketplace_Text::lower( implode( '>', $path ) );
+
+						if ( $key === $rule['value'] || 0 === strpos( $key, $rule['value'] . '>' ) ) {
+							return true;
+						}
+					}
+					break;
+
+				case 'sku':
+					$sku = Marketplace_Text::lower( Marketplace_Text::clean( $row['SKU'] ?? '' ) );
+
+					if ( '' !== $sku && 0 === strpos( $sku, $rule['value'] ) ) {
+						return true;
+					}
+					break;
+
+				case 'attribute':
+					foreach ( array( $row, $parent_row ) as $source ) {
+						if ( ! is_array( $source ) ) {
+							continue;
+						}
+
+						for ( $i = 1; $i <= 40; $i++ ) {
+							$name = Marketplace_Text::lower( Marketplace_Text::clean( $source[ "Attribute {$i} name" ] ?? '' ) );
+
+							if ( '' === $name || $name !== $rule['attr'] ) {
+								continue;
+							}
+
+							$values = array_map( 'trim', explode( ',', Marketplace_Text::lower( (string) ( $source[ "Attribute {$i} value(s)" ] ?? '' ) ) ) );
+
+							if ( in_array( $rule['value'], $values, true ) ) {
+								return true;
+							}
+						}
+					}
+					break;
+
+				case 'name':
+					$name = Marketplace_Text::lower( Marketplace_Text::clean( $row['Name'] ?? '' ) );
+
+					if ( '' === $name && $parent_row ) {
+						$name = Marketplace_Text::lower( Marketplace_Text::clean( $parent_row['Name'] ?? '' ) );
+					}
+
+					if ( false !== mb_strpos( $name, $rule['value'] ) ) {
+						return true;
+					}
+					break;
+
+				case 'id':
+					if ( Marketplace_Text::clean( $row['ID'] ?? '' ) === $rule['value'] ) {
+						return true;
+					}
+					break;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Drop what the exclusion rules forbid from one unit, before the feed sees it.
+	 *
+	 * A product that falls under a rule goes with all its variations; a variation is
+	 * dropped on its own. Dropped offers are reported under the «excluded» reason.
+	 *
+	 * @param array<string,mixed> $unit     Unit (simple, lone or group).
+	 * @param array<string,mixed> $settings Feed settings.
+	 * @return array{0:?array,1:int,2:array<string,array{count:int,examples:array<int,string>}>} Unit (null when nothing is left), dropped offers, reasons.
+	 */
+	public function apply_exclusions( array $unit, array $settings ): array {
+		$rules = self::parse_exclusion_rules( (string) ( $settings['exclude_rules'] ?? '' ) );
+
+		if ( ! $rules ) {
+			return array( $unit, 0, array() );
+		}
+
+		$label  = static function ( $row ): string {
+			$row = is_array( $row ) ? $row : array();
+			$sku = Marketplace_Text::clean( $row['SKU'] ?? '' );
+
+			return '' !== $sku ? $sku : 'ID ' . Marketplace_Text::clean( $row['ID'] ?? '' );
+		};
+		$report = static function ( int $count, array $examples ): array {
+			return array(
+				'excluded' => array(
+					'count'    => $count,
+					'examples' => array_slice( array_values( array_unique( $examples ) ), 0, 5 ),
+				),
+			);
+		};
+
+		if ( 'group' === ( $unit['kind'] ?? '' ) ) {
+			$parent   = is_array( $unit['parent'] ?? null ) ? $unit['parent'] : null;
+			$children = (array) ( $unit['children'] ?? array() );
+
+			if ( $parent && self::row_excluded( $rules, $parent, null ) ) {
+				$count = max( 1, count( $children ) );
+
+				return array( null, $count, $report( $count, array( $label( $parent ) ) ) );
+			}
+
+			$kept     = array();
+			$dropped  = 0;
+			$examples = array();
+
+			foreach ( $children as $child ) {
+				if ( self::row_excluded( $rules, (array) $child, $parent ) ) {
+					++$dropped;
+					$examples[] = $label( $child );
+				} else {
+					$kept[] = $child;
+				}
+			}
+
+			if ( ! $dropped ) {
+				return array( $unit, 0, array() );
+			}
+
+			if ( ! $kept ) {
+				return array( null, $dropped, $report( $dropped, $examples ) );
+			}
+
+			$unit['children'] = $kept;
+
+			return array( $unit, $dropped, $report( $dropped, $examples ) );
+		}
+
+		$row    = (array) ( $unit['row'] ?? array() );
+		$parent = is_array( $unit['parent'] ?? null ) ? $unit['parent'] : null;
+
+		if ( self::row_excluded( $rules, $row, $parent ) || ( $parent && self::row_excluded( $rules, $parent, null ) ) ) {
+			return array( null, 1, $report( 1, array( $label( $row ) ) ) );
+		}
+
+		return array( $unit, 0, array() );
 	}
 }

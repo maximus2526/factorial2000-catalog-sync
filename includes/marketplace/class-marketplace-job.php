@@ -275,6 +275,18 @@ class Marketplace_Job {
 				$page = $source->fetch( $phase, (int) $state['offset'], self::PAGE_SIZE );
 
 				foreach ( $page['units'] as $unit ) {
+					// «Не вивантажувати» rules of the feed, before the feed sees the unit.
+					list( $unit, $dropped, $why ) = $feed->apply_exclusions( $unit, $settings );
+
+					if ( $dropped ) {
+						$state['skipped'] += $dropped;
+						$state['reasons']  = Marketplace_Feed::merge_reasons( (array) $state['reasons'], $why );
+					}
+
+					if ( null === $unit ) {
+						continue;
+					}
+
 					$res = $feed->process_unit( $unit, $tree, $settings );
 
 					if ( '' !== $res['xml'] ) {

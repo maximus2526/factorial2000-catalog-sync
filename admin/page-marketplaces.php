@@ -727,7 +727,7 @@ function f2000cs_marketplaces_page() {
 		$result   = Marketplace_Job::last_result( $id );
 		$running  = Marketplace_Job::state( $id );
 		$labels   = f2000cs_marketplace_schedule_labels();
-		$fields   = $feed->fields();
+		$fields   = $feed->settings_fields();
 
 		// Prom refuses prices in a currency it does not know.
 		$feed_currency = Marketplace_Form::resolve( $settings['currency'] ?? '{wc_currency}' );
@@ -902,7 +902,7 @@ function f2000cs_marketplaces_page() {
 				</tr>
 			</table>
 
-			<?php foreach ( $feed->groups() as $group => $title ) : ?>
+			<?php foreach ( $feed->settings_groups() as $group => $title ) : ?>
 				<?php
 				$in_group = array_filter(
 					$fields,
@@ -947,7 +947,7 @@ function f2000cs_marketplace_collect_post( $feed ): array {
 	$extra           = isset( $_POST['mp_extra'] ) && is_array( $_POST['mp_extra'] ) ? wp_unslash( $_POST['mp_extra'] ) : array();
 	// phpcs:enable
 
-	foreach ( $feed->fields() as $key => $field ) {
+	foreach ( $feed->settings_fields() as $key => $field ) {
 		if ( 'category_map' !== ( $field['type'] ?? '' ) ) {
 			continue;
 		}
