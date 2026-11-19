@@ -199,6 +199,144 @@ function f2000cs_marketplace_render_brand_pairs( string $key, array $field, $val
 }
 
 /**
+ * Suggestions for the product filter: brands, category paths and attribute names of the shop.
+ *
+ * Brands include the values of «Виробник» / «Бренд» attributes, which some shops use
+ * instead of a brand taxonomy.
+ *
+ * @return array{brand:array<int,string>,category:array<int,string>,attribute:array<int,string>}
+ */
+function f2000cs_marketplace_filter_suggestions(): array {
+	$brands     = Marketplace_Form::load_brands();
+	$attributes = array();
+
+	if ( function_exists( 'wc_get_attribute_taxonomies' ) ) {
+		foreach ( (array) wc_get_attribute_taxonomies() as $tax ) {
+			$label        = (string) ( $tax->attribute_label ?? '' );
+			$attributes[] = $label;
+
+			if ( in_array( Marketplace_Text::lower( $label ), array( 'виробник', 'бренд', 'производитель', 'brand' ), true ) ) {
+				$names = get_terms(
+					array(
+						'taxonomy'   => 'pa_' . $tax->attribute_name,
+						'hide_empty' => true,
+						'fields'     => 'names',
+						'number'     => 500,
+					)
+				);
+
+				if ( is_array( $names ) ) {
+					$brands = array_merge( $brands, $names );
+				}
+			}
+		}
+	}
+
+	$categories = array();
+
+	foreach ( Marketplace_Form::load_categories() as $cat ) {
+		$categories[] = (string) $cat['path'];
+	}
+
+	$clean = static function ( array $items ): array {
+		$items = array_values( array_unique( array_filter( array_map( 'strval', $items ), 'strlen' ) ) );
+		natcasesort( $items );
+
+		return array_values( $items );
+	};
+
+	return array(
+		'brand'     => $clean( $brands ),
+		'category'  => $clean( $categories ),
+		'attribute' => $clean( $attributes ),
+	);
+}
+
+/**
+ * Product filter: rows «action · field · (attribute) · condition · value».
+ *
+ * @param string              $key   Field key.
+ * @param array<string,mixed> $field Field schema.
+ * @param mixed               $value Stored JSON (or older text rules).
+ * @return void
+ */
+function f2000cs_marketplace_render_filter_rules( string $key, array $field, $value ): void {
+	$rules   = Marketplace_Feed::parse_filter_rules( (string) $value );
+	$rules[] = array(
+		'action' => 'exclude',
+		'field'  => 'brand',
+		'attr'   => '',
+		'op'     => 'is',
+		'value'  => '',
+	);
+	$fields  = Marketplace_Feed::filter_fields();
+	$ops     = Marketplace_Feed::filter_operators();
+	$actions = Marketplace_Feed::filter_actions();
+	$suggest = f2000cs_marketplace_filter_suggestions();
+	$list_id = 'f2000cs-mp-filter-' . $key;
+	?>
+	<table class="widefat striped f2000cs-mp-filters" data-key="<?php echo esc_attr( $key ); ?>" data-lists="<?php echo esc_attr( $list_id ); ?>">
+		<thead>
+			<tr>
+				<th class="f2000cs-mp-filters__action"><?php esc_html_e( 'Дія', 'factorial2000-catalog-sync' ); ?></th>
+				<th class="f2000cs-mp-filters__field"><?php esc_html_e( 'Поле', 'factorial2000-catalog-sync' ); ?></th>
+				<th class="f2000cs-mp-filters__op"><?php esc_html_e( 'Умова', 'factorial2000-catalog-sync' ); ?></th>
+				<th><?php esc_html_e( 'Значення', 'factorial2000-catalog-sync' ); ?></th>
+				<th class="f2000cs-mp-col-narrow"></th>
+			</tr>
+		</thead>
+		<tbody>
+			<?php
+			foreach ( $rules as $i => $rule ) :
+				$base = 'mp_filters[' . $key . '][' . (int) $i . ']';
+				?>
+				<tr class="f2000cs-mp-filter" data-field="<?php echo esc_attr( $rule['field'] ); ?>">
+					<td>
+						<select name="<?php echo esc_attr( $base . '[action]' ); ?>" class="f2000cs-mp-filter__action">
+							<?php foreach ( $actions as $k => $label ) : ?>
+								<option value="<?php echo esc_attr( $k ); ?>" <?php selected( $rule['action'], $k ); ?>><?php echo esc_html( $label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</td>
+					<td>
+						<select name="<?php echo esc_attr( $base . '[field]' ); ?>" class="f2000cs-mp-filter__field">
+							<?php foreach ( $fields as $k => $label ) : ?>
+								<option value="<?php echo esc_attr( $k ); ?>" <?php selected( $rule['field'], $k ); ?>><?php echo esc_html( $label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<input type="text" name="<?php echo esc_attr( $base . '[attr]' ); ?>" value="<?php echo esc_attr( $rule['attr'] ); ?>" class="f2000cs-mp-filter__attr" list="<?php echo esc_attr( $list_id . '-attribute' ); ?>" placeholder="<?php esc_attr_e( 'Назва атрибута', 'factorial2000-catalog-sync' ); ?>">
+					</td>
+					<td>
+						<select name="<?php echo esc_attr( $base . '[op]' ); ?>" class="f2000cs-mp-filter__op">
+							<?php foreach ( $ops as $k => $label ) : ?>
+								<option value="<?php echo esc_attr( $k ); ?>" <?php selected( $rule['op'], $k ); ?>><?php echo esc_html( $label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</td>
+					<td>
+						<input type="text" name="<?php echo esc_attr( $base . '[value]' ); ?>" value="<?php echo esc_attr( 'stock' === $rule['field'] ? '' : $rule['value'] ); ?>" class="f2000cs-mp-filter__value" placeholder="<?php esc_attr_e( 'Значення; кілька — через кому', 'factorial2000-catalog-sync' ); ?>">
+						<select name="<?php echo esc_attr( $base . '[stock]' ); ?>" class="f2000cs-mp-filter__stock">
+							<option value="outofstock" <?php selected( 'stock' === $rule['field'] ? $rule['value'] : '', 'outofstock' ); ?>><?php esc_html_e( 'немає в наявності', 'factorial2000-catalog-sync' ); ?></option>
+							<option value="instock" <?php selected( 'stock' === $rule['field'] ? $rule['value'] : '', 'instock' ); ?>><?php esc_html_e( 'в наявності', 'factorial2000-catalog-sync' ); ?></option>
+						</select>
+					</td>
+					<td><button type="button" class="button-link f2000cs-mp-filter__remove" aria-label="<?php esc_attr_e( 'Видалити правило', 'factorial2000-catalog-sync' ); ?>">✕</button></td>
+				</tr>
+			<?php endforeach; ?>
+		</tbody>
+	</table>
+	<p><button type="button" class="button f2000cs-mp-filter__add" data-target="<?php echo esc_attr( $key ); ?>"><?php esc_html_e( '+ Додати правило', 'factorial2000-catalog-sync' ); ?></button></p>
+	<?php foreach ( $suggest as $kind => $items ) : ?>
+		<datalist id="<?php echo esc_attr( $list_id . '-' . $kind ); ?>">
+			<?php foreach ( $items as $item ) : ?>
+				<option value="<?php echo esc_attr( $item ); ?>"></option>
+			<?php endforeach; ?>
+		</datalist>
+	<?php endforeach; ?>
+	<?php
+}
+
+/**
  * Repeater of "left → right" rows (stored as left=right lines).
  *
  * @param string              $key   Field key.
@@ -623,11 +761,13 @@ function f2000cs_marketplace_render_field( string $key, array $field, $value, ar
 	}
 	?>
 	<tr class="<?php echo esc_attr( $row_class ); ?>"<?php echo $row_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above. ?>>
-		<th scope="row"><?php echo in_array( $type, array( 'pairs', 'category_map', 'prom_attribute_map' ), true ) ? esc_html( (string) ( $field['label'] ?? $key ) ) : '<label for="' . esc_attr( $id ) . '">' . esc_html( (string) ( $field['label'] ?? $key ) ) . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above. ?></th>
+		<th scope="row"><?php echo in_array( $type, array( 'pairs', 'category_map', 'prom_attribute_map', 'filter_rules' ), true ) ? esc_html( (string) ( $field['label'] ?? $key ) ) : '<label for="' . esc_attr( $id ) . '">' . esc_html( (string) ( $field['label'] ?? $key ) ) . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above. ?></th>
 		<td>
 			<?php
 			if ( 'preset' === $type ) {
 				f2000cs_marketplace_render_preset( $key, $field, $value );
+			} elseif ( 'filter_rules' === $type ) {
+				f2000cs_marketplace_render_filter_rules( $key, $field, $value );
 			} elseif ( 'pairs' === $type ) {
 				f2000cs_marketplace_render_pairs( $key, $field, $value );
 			} elseif ( 'category_map' === $type ) {
@@ -940,11 +1080,12 @@ function f2000cs_marketplaces_page() {
  */
 function f2000cs_marketplace_collect_post( $feed ): array {
 	// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified by the caller; every value is sanitized by the feed schema (Marketplace_Registry::save_settings()).
-	$raw             = isset( $_POST['mp'] ) && is_array( $_POST['mp'] ) ? wp_unslash( $_POST['mp'] ) : array();
-	$raw['__custom'] = isset( $_POST['mp_custom'] ) && is_array( $_POST['mp_custom'] ) ? wp_unslash( $_POST['mp_custom'] ) : array();
-	$raw['__rows']   = isset( $_POST['mp_rows'] ) && is_array( $_POST['mp_rows'] ) ? wp_unslash( $_POST['mp_rows'] ) : array();
-	$map             = isset( $_POST['mp_map'] ) && is_array( $_POST['mp_map'] ) ? wp_unslash( $_POST['mp_map'] ) : array();
-	$extra           = isset( $_POST['mp_extra'] ) && is_array( $_POST['mp_extra'] ) ? wp_unslash( $_POST['mp_extra'] ) : array();
+	$raw              = isset( $_POST['mp'] ) && is_array( $_POST['mp'] ) ? wp_unslash( $_POST['mp'] ) : array();
+	$raw['__custom']  = isset( $_POST['mp_custom'] ) && is_array( $_POST['mp_custom'] ) ? wp_unslash( $_POST['mp_custom'] ) : array();
+	$raw['__rows']    = isset( $_POST['mp_rows'] ) && is_array( $_POST['mp_rows'] ) ? wp_unslash( $_POST['mp_rows'] ) : array();
+	$raw['__filters'] = isset( $_POST['mp_filters'] ) && is_array( $_POST['mp_filters'] ) ? wp_unslash( $_POST['mp_filters'] ) : array();
+	$map              = isset( $_POST['mp_map'] ) && is_array( $_POST['mp_map'] ) ? wp_unslash( $_POST['mp_map'] ) : array();
+	$extra            = isset( $_POST['mp_extra'] ) && is_array( $_POST['mp_extra'] ) ? wp_unslash( $_POST['mp_extra'] ) : array();
 	// phpcs:enable
 
 	foreach ( $feed->settings_fields() as $key => $field ) {
@@ -1118,6 +1259,13 @@ function f2000cs_marketplace_enqueue( $hook ) {
 		. '.f2000cs-marketplaces .form-table td table th,.f2000cs-marketplaces .form-table td table td{width:auto;padding:8px 10px;vertical-align:middle;line-height:1.4}'
 		. '.f2000cs-marketplaces .form-table td table input[type=text]{width:100%;max-width:none}'
 		. '.f2000cs-marketplaces .f2000cs-mp-pairs .select2-container{width:100%!important;min-width:180px}'
+		. '.f2000cs-marketplaces .f2000cs-mp-filters{max-width:960px;table-layout:auto}'
+		. '.f2000cs-marketplaces .f2000cs-mp-filters select,.f2000cs-marketplaces .f2000cs-mp-filters input[type=text]{width:100%;max-width:none}'
+		. '.f2000cs-marketplaces .form-table td table th.f2000cs-mp-filters__action{width:170px}'
+		. '.f2000cs-marketplaces .form-table td table th.f2000cs-mp-filters__field{width:190px}'
+		. '.f2000cs-marketplaces .form-table td table th.f2000cs-mp-filters__op{width:150px}'
+		. '.f2000cs-marketplaces .f2000cs-mp-filter__attr{margin-top:6px}'
+		. '.f2000cs-marketplaces .f2000cs-mp-filter__remove{font-size:16px;color:#b32d2e;text-decoration:none}'
 		. '.f2000cs-marketplaces .form-table td .f2000cs-mp-cat-table input[type=text]{width:140px}'
 		. '.f2000cs-marketplaces .f2000cs-mp-cat-table .f2000cs-prom-cat-wrap{display:block}'
 		. '.f2000cs-marketplaces .f2000cs-mp-pairs,.f2000cs-marketplaces .f2000cs-mp-cat-table{table-layout:auto}'

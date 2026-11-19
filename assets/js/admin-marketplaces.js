@@ -598,4 +598,81 @@
 				$button.prop('disabled', false).text(oldText);
 			});
 	});
+
+	// Product filter rules: «action · field · condition · value» rows.
+	function filterRowState($row) {
+		var field = $row.find('.f2000cs-mp-filter__field').val();
+		var lists = $row.closest('.f2000cs-mp-filters').data('lists');
+		var $op = $row.find('.f2000cs-mp-filter__op');
+		var isStock = field === 'stock';
+		var isPrice = field === 'price';
+
+		$row.attr('data-field', field);
+		$row.find('.f2000cs-mp-filter__attr').toggle(field === 'attribute');
+		$row.find('.f2000cs-mp-filter__value').toggle(!isStock)
+			.attr('list', (field === 'brand' || field === 'category') ? lists + '-' + field : null)
+			.attr('inputmode', isPrice ? 'decimal' : null);
+		$row.find('.f2000cs-mp-filter__stock').toggle(isStock);
+
+		// Only the conditions that make sense for the field.
+		$op.find('option').each(function () {
+			var v = this.value;
+			var ok = isStock ? (v === 'is' || v === 'is_not')
+				: isPrice ? (v === 'is' || v === 'is_not' || v === 'gt' || v === 'lt')
+				: (v !== 'gt' && v !== 'lt');
+
+			$(this).prop('disabled', !ok).toggle(ok);
+		});
+
+		if ($op.find('option:selected').prop('disabled')) {
+			$op.val('is');
+		}
+	}
+
+	$('.f2000cs-mp-filter').each(function () {
+		filterRowState($(this));
+	});
+
+	$(document).on('change', '.f2000cs-mp-filter__field', function () {
+		filterRowState($(this).closest('tr'));
+	});
+
+	$(document).on('click', '.f2000cs-mp-filter__add', function () {
+		var $body = $('.f2000cs-mp-filters[data-key="' + $(this).data('target') + '"] tbody');
+		var $row = $body.find('tr').last().clone();
+		var index = 0;
+
+		$body.find('tr').each(function () {
+			$(this).find('[name]').each(function () {
+				var m = this.name.match(/\]\[(\d+)\]\[/);
+				if (m) {
+					index = Math.max(index, parseInt(m[1], 10) + 1);
+				}
+			});
+		});
+
+		$row.find('[name]').each(function () {
+			this.name = this.name.replace(/\]\[\d+\]\[/, '][' + index + '][');
+		});
+		$row.find('input').val('');
+		$row.find('.f2000cs-mp-filter__action').val('exclude');
+		$row.find('.f2000cs-mp-filter__field').val('brand');
+		$row.find('.f2000cs-mp-filter__op').val('is');
+		$body.append($row);
+		filterRowState($row);
+		$row.find('.f2000cs-mp-filter__value').trigger('focus');
+	});
+
+	$(document).on('click', '.f2000cs-mp-filter__remove', function () {
+		var $row = $(this).closest('tr');
+
+		if ($row.siblings().length) {
+			$row.remove();
+		} else {
+			$row.find('input').val('');
+			$row.find('.f2000cs-mp-filter__field').val('brand');
+			$row.find('.f2000cs-mp-filter__op').val('is');
+			filterRowState($row);
+		}
+	});
 })(jQuery);
