@@ -933,6 +933,7 @@ class Prom_Feed extends Marketplace_Feed {
 		}
 
 		list( $name, $name_ua ) = self::split_languages( $name_raw );
+		list( $name, $name_ua ) = self::apply_prom_title( $name, $name_ua, $row, $parent_row );
 
 		// Prom rejects a name without letters (only digits, dashes or spaces).
 		if ( ! preg_match( '/\p{L}/u', $name ) ) {
@@ -1153,6 +1154,39 @@ class Prom_Feed extends Marketplace_Feed {
 		}
 
 		return '';
+	}
+
+	/**
+	 * Names of an offer with the product's «Заголовок для Prom» (per language) when it is set.
+	 *
+	 * The title lives on the product; a variation uses its parent's. A language left empty
+	 * takes the other language's title, so the name and name_ua always match the override.
+	 *
+	 * @param string                    $name       Main (Russian) name.
+	 * @param string                    $name_ua    Ukrainian name.
+	 * @param array<string,string>      $row        Row.
+	 * @param array<string,string>|null $parent_row Parent row.
+	 * @return array{0:string,1:string}
+	 */
+	public static function apply_prom_title( string $name, string $name_ua, array $row, $parent_row ): array {
+		foreach ( array( $row, $parent_row ? $parent_row : array() ) as $source ) {
+			$tagged = Marketplace_Text::clean( $source['Meta: prom_title'] ?? '' );
+
+			if ( '' === $tagged ) {
+				continue;
+			}
+
+			list( $main, $ua ) = self::split_languages( $tagged );
+
+			$main = Marketplace_Text::clean( $main );
+			$ua   = Marketplace_Text::clean( $ua );
+
+			if ( '' !== $main || '' !== $ua ) {
+				return array( '' !== $main ? $main : $ua, '' !== $ua ? $ua : $main );
+			}
+		}
+
+		return array( $name, $name_ua );
 	}
 
 	/**

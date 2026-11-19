@@ -59,6 +59,11 @@ class Marketplace_Fields {
 	const PROM_KEYWORDS = 'prom_keywords';
 
 	/**
+	 * Prom.ua product title field id (overrides the product name in the Prom feed).
+	 */
+	const PROM_TITLE = 'prom_title';
+
+	/**
 	 * Fields registered by other plugins.
 	 *
 	 * @var array<string, array>
@@ -108,6 +113,18 @@ class Marketplace_Fields {
 	 */
 	public static function fields() {
 		$fields = array(
+			self::PROM_TITLE    => array(
+				'marketplace'       => 'prom',
+				'marketplace_label' => __( 'Prom.ua', 'factorial2000-catalog-sync' ),
+				'label'             => __( 'Заголовок для Prom', 'factorial2000-catalog-sync' ),
+				'meta_key'          => '_f2000tr_prom_title', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- field config, not a query.
+				'post_types'        => array( 'product' ),
+				'context'           => 'side',
+				'priority'          => 'default',
+				'rows'              => 2,
+				'translatable'      => true,
+				'description'       => __( 'Якщо заповнено, у вигрузці Prom замість назви товару йде цей заголовок (і для всіх його різновидів). З Factorial2000 Translator — окремо для української та російської.', 'factorial2000-catalog-sync' ),
+			),
 			self::PROM_KEYWORDS => array(
 				'marketplace'       => 'prom',
 				'marketplace_label' => __( 'Prom.ua', 'factorial2000-catalog-sync' ),

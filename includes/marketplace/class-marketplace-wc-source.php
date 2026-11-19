@@ -245,6 +245,8 @@ class Marketplace_WC_Source implements Marketplace_Unit_Source {
 			'Tags'                    => $is_variation ? '' : $this->tags( $product ),
 			// Translator's per-language Prom keywords, still language-tagged; kept on the product only.
 			'Meta: prom_keywords'     => $is_variation ? '' : (string) $product->get_meta( '_f2000tr_prom_keywords', true ),
+			// Prom title (per language), on the product only: variations use their parent's.
+			'Meta: prom_title'        => $is_variation ? '' : (string) $product->get_meta( '_f2000tr_prom_title', true ),
 		);
 
 		// Set on the product, not on variations: the feed falls back to the parent row.

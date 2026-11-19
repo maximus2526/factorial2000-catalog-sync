@@ -1790,4 +1790,55 @@ final class F2000CS_Unit_MarketplacePromFeedTest extends F2000CS_Unit_TestCase {
 		$this->assertSame( 'done', $result['status'] );
 		$this->assertSame( 45, $result['exported'] );
 	}
+
+	/**
+	 * «Заголовок для Prom» replaces the product name in <name> and <name_ua>.
+	 *
+	 * @return void
+	 */
+	public function test_prom_title_overrides_the_name() {
+		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Meta: prom_title' => 'Куртка зимова тактична' ) ) ) );
+
+		$this->assertStringContainsString( '<name>Куртка зимова тактична</name>', $res['xml'] );
+		$this->assertStringContainsString( '<name_ua>Куртка зимова тактична</name_ua>', $res['xml'] );
+		$this->assertStringNotContainsString( '<name>Куртка</name>', $res['xml'] );
+	}
+
+	/**
+	 * Without a Prom title the product name stays.
+	 *
+	 * @return void
+	 */
+	public function test_empty_prom_title_keeps_the_name() {
+		$res = $this->process( array( 'kind' => 'simple', 'row' => $this->simple_row( array( 'Meta: prom_title' => '  ' ) ) ) );
+
+		$this->assertStringContainsString( '<name>Куртка</name>', $res['xml'] );
+	}
+
+	/**
+	 * Variations take the Prom title of their product.
+	 *
+	 * @return void
+	 */
+	public function test_prom_title_applies_to_variations() {
+		$unit                                 = $this->group_unit( array( 'S' => 'S', 'M' => 'M' ) );
+		$unit['parent']['Meta: prom_title'] = 'Футболка бавовняна Prom';
+
+		$res = $this->process( $unit );
+
+		$this->assertSame( 2, $res['exported'] );
+		$this->assertSame( 2, substr_count( $res['xml'], '<name>Футболка бавовняна Prom</name>' ), 'Every offer of the group' );
+		$this->assertSame( 2, substr_count( $res['xml'], '<name_ua>Футболка бавовняна Prom</name_ua>' ) );
+	}
+
+	/**
+	 * One language filled: both names take it.
+	 *
+	 * @return void
+	 */
+	public function test_prom_title_one_language_fills_both() {
+		$this->assertSame( array( 'Назва', 'Назва' ), Prom_Feed::apply_prom_title( 'A', 'B', array( 'Meta: prom_title' => 'Назва' ), null ) );
+		$this->assertSame( array( 'A', 'B' ), Prom_Feed::apply_prom_title( 'A', 'B', array(), array( 'Meta: prom_title' => '' ) ) );
+		$this->assertSame( array( 'P', 'P' ), Prom_Feed::apply_prom_title( 'A', 'B', array(), array( 'Meta: prom_title' => 'P' ) ), 'From the parent' );
+	}
 }

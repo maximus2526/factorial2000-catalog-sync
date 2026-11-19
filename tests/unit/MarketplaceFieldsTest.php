@@ -102,6 +102,20 @@ if ( ! function_exists( 'esc_textarea' ) ) {
 final class F2000CS_Unit_MarketplaceFieldsTest extends F2000CS_Unit_TestCase {
 
 	/**
+	 * The Prom title field is registered next to the keywords, translatable.
+	 *
+	 * @return void
+	 */
+	public function test_prom_title_field_registered(): void {
+		$fields = Marketplace_Fields::fields();
+
+		$this->assertArrayHasKey( 'prom_title', $fields );
+		$this->assertSame( '_f2000tr_prom_title', $fields['prom_title']['meta_key'] );
+		$this->assertSame( 'prom', $fields['prom_title']['marketplace'] );
+		$this->assertTrue( $fields['prom_title']['translatable'] );
+	}
+
+	/**
 	 * Default Prom.ua field keeps the legacy meta key.
 	 *
 	 * @return void
