@@ -90,6 +90,7 @@ if ( function_exists( 'f2000cs_fs' ) ) {
 		require_once F2000CS_PATH . 'includes/marketplace/class-prom-term-values.php';
 		require_once F2000CS_PATH . 'includes/marketplace/class-prom-feed.php';
 		require_once F2000CS_PATH . 'includes/marketplace/class-google-merchant-feed.php';
+		require_once F2000CS_PATH . 'includes/marketplace/class-rozetka-feed.php';
 		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-form.php';
 		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-registry.php';
 		require_once F2000CS_PATH . 'includes/marketplace/class-marketplace-storage.php';

@@ -132,7 +132,7 @@ function f2000cs_docs_page() {
 							<li><strong><?php esc_html_e( 'Оновлення XML', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'постачальники, розклад, Telegram, ручний запуск оновлення, стан автооновлення.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Імпорт XML', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'імпорт товарів, оновлення окремих полів (Pro), налаштування обробки зображень (Pro).', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Налаштування вигрузки', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'фільтр і редактор XML (лише Pro).', 'factorial2000-catalog-sync' ); ?></li>
-							<li><strong><?php esc_html_e( 'Маркетплейси', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'вигрузка товарів сайту на Prom.ua і в Google Merchant Center за постійним посиланням (лише Pro).', 'factorial2000-catalog-sync' ); ?></li>
+							<li><strong><?php esc_html_e( 'Маркетплейси', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'вигрузка товарів сайту на Prom.ua, ROZETKA і в Google Merchant Center за постійним посиланням (лише Pro).', 'factorial2000-catalog-sync' ); ?></li>
 							<li><strong><?php esc_html_e( 'Документація', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'ця сторінка.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
 						<div class="f2000cs-docs-note">
@@ -547,6 +547,21 @@ function f2000cs_docs_page() {
 						<div class="f2000cs-docs-note"><strong><?php esc_html_e( 'Безпека:', 'factorial2000-catalog-sync' ); ?></strong> <?php esc_html_e( 'посилання містить секретний код. Кожен, хто його знає, може прочитати дані ваших товарів — так само, як Prom. Не публікуйте його відкрито.', 'factorial2000-catalog-sync' ); ?></div>
 				</div>
 
+				<div class="f2000cs-docs-card" id="marketplaces-rozetka">
+					<h3><?php esc_html_e( 'Прайс-лист для ROZETKA', 'factorial2000-catalog-sync' ); ?></h3>
+					<p><?php esc_html_e( 'Вкладка «ROZETKA» на сторінці «Маркетплейси» збирає з товарів сайту прайс-лист (YML) за вимогами ROZETKA. Посилання на файл вказується в кабінеті продавця ROZETKA; ціни й наявність ROZETKA забирає за ним щогодини.', 'factorial2000-catalog-sync' ); ?></p>
+					<ul>
+						<li><?php esc_html_e( 'Кожен товар і кожен різновид — окрема пропозиція: у ROZETKA немає груп, різновиди розрізняються назвою та характеристиками. До назви різновиду додаються його розмір, колір тощо, щоб назви не повторювались. Однакові назви різних товарів (наприклад, товар продубльований на сайті) розрізнить опція «Артикул у назві».', 'factorial2000-catalog-sync' ); ?></li>
+						<li><strong><?php esc_html_e( 'Кількість', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'ROZETKA вимагає stock_quantity для кожного товару. Береться залишок із сайту; товари в наявності без керування залишком отримують число з налаштування «Кількість, якщо залишок не ведеться» (за замовчуванням 10). Немає в наявності — 0 і available="false".', 'factorial2000-catalog-sync' ); ?></li>
+						<li><strong><?php esc_html_e( 'Бренд', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'обов’язковий. Береться з поля «Бренди» або атрибута «Виробник»/«Бренд» (з кількох брендів лишається один, як у вигрузці Prom); якщо його немає, підставляється «Бренд, якщо його не вказано». Товари без бренду пропускаються, причина видно в останній генерації.', 'factorial2000-catalog-sync' ); ?></li>
+						<li><strong><?php esc_html_e( 'Ціна і знижка', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'у price іде поточна ціна сайту; якщо діє акція, звичайна ціна йде в price_old. «Не передавати знижки» лишає лише звичайну ціну. ROZETKA вимагає, щоб ціна не була вищою, ніж на вашому сайті.', 'factorial2000-catalog-sync' ); ?></li>
+						<li><strong><?php esc_html_e( 'Фото', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'до 15 на товар, лише https (http замінюється на https). Сайт має віддавати фото по https.', 'factorial2000-catalog-sync' ); ?></li>
+						<li><strong><?php esc_html_e( 'Категорії', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'у файлі ваші категорії сайту. Правилом «категорія=номер» можна вказати номер категорії ROZETKA (rz_id): він має пріоритет над назвою під час зіставлення.', 'factorial2000-catalog-sync' ); ?></li>
+						<li><strong><?php esc_html_e( 'id товару', 'factorial2000-catalog-sync' ); ?></strong> — <?php esc_html_e( 'ID товару на сайті (з префіксом, якщо задано; лише латиниця й цифри). ROZETKA не дозволяє змінювати id після публікації, тому не міняйте префікс пізніше.', 'factorial2000-catalog-sync' ); ?></li>
+						<li><?php esc_html_e( 'Команда для сервера: wp f2000cs marketplace build rozetka.', 'factorial2000-catalog-sync' ); ?></li>
+					</ul>
+				</div>
+
 				<div class="f2000cs-docs-card" id="marketplaces-google">
 					<h3><?php esc_html_e( 'Фід для Google Merchant Center', 'factorial2000-catalog-sync' ); ?></h3>
 					<p><?php esc_html_e( 'Друга вкладка на сторінці «Маркетплейси» збирає з товарів сайту фід для Google Merchant Center (безкоштовні лістинги й Shopping-реклама): RSS 2.0 з простором імен g:. Кожен товар і кожен різновид — окремий item; різновиди одного товару зв’язані через g:item_group_id і мають свої g:color та g:size.', 'factorial2000-catalog-sync' ); ?></p>
@@ -600,7 +615,7 @@ function f2000cs_docs_page() {
 							<li><?php esc_html_e( 'Файл понад 180 МБ ділиться на кілька файлів приблизно однакового розміру. Усі файли повні (з тими самими категоріями), а різновиди однієї групи завжди в одному файлі. Перше посилання не змінюється, наступні мають суфікс «-2», «-3»; файли, які більше не потрібні, видаляються.', 'factorial2000-catalog-sync' ); ?></li>
 							<li><?php esc_html_e( 'Без активної Pro-ліцензії чи тріалу вигрузка не оновлюється. Файл, якому більше 3 днів, знімається, щоб Prom не брав застарілі ціни. Після поновлення ліцензії збирання продовжується само.', 'factorial2000-catalog-sync' ); ?></li>
 						</ul>
-						<div class="f2000cs-docs-note"><strong><?php esc_html_e( 'Далі:', 'factorial2000-catalog-sync' ); ?></strong> <?php esc_html_e( 'Rozetka та Hotline додаватимуться як окремі вкладки тієї ж сторінки.', 'factorial2000-catalog-sync' ); ?></div>
+						<div class="f2000cs-docs-note"><strong><?php esc_html_e( 'Далі:', 'factorial2000-catalog-sync' ); ?></strong> <?php esc_html_e( 'Hotline додаватиметься як окрема вкладка тієї ж сторінки.', 'factorial2000-catalog-sync' ); ?></div>
 				</div>
 
 				</section>

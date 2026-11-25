@@ -85,6 +85,9 @@ class Marketplace_Registry {
 		$google                       = new Google_Merchant_Feed();
 		self::$feeds[ $google->id() ] = $google;
 
+		$rozetka                       = new Rozetka_Feed();
+		self::$feeds[ $rozetka->id() ] = $rozetka;
+
 		/**
 		 * Add marketplace feeds.
 		 *

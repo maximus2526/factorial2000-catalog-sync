@@ -17,6 +17,7 @@ use F2000CS\Marketplace_Storage;
 use F2000CS\Marketplace_Text;
 use F2000CS\Prom_Categories;
 use F2000CS\Prom_Feed;
+use F2000CS\Rozetka_Feed;
 use F2000CS\Prom_Recommendations;
 
 /**
@@ -852,7 +853,6 @@ function f2000cs_marketplaces_page() {
 				?>
 									"><?php echo esc_html( $item->label() ); ?></a>
 			<?php endforeach; ?>
-			<span class="nav-tab" style="opacity:.55;cursor:default"><?php esc_html_e( 'Rozetka — незабаром', 'factorial2000-catalog-sync' ); ?></span>
 			<span class="nav-tab" style="opacity:.55;cursor:default"><?php esc_html_e( 'Hotline — незабаром', 'factorial2000-catalog-sync' ); ?></span>
 		</h2>
 
@@ -930,6 +930,8 @@ function f2000cs_marketplaces_page() {
 									<?php if ( $many ) : ?>
 										<?php esc_html_e( 'Prom застосовує це до кожного джерела окремо.', 'factorial2000-catalog-sync' ); ?>
 									<?php endif; ?>
+								<?php elseif ( $feed instanceof Rozetka_Feed ) : ?>
+									<?php esc_html_e( 'У кабінеті продавця ROZETKA додайте це посилання як прайс-лист (XML). Товари, яких немає у файлі або з stock_quantity 0, ROZETKA показує як «Немає в наявності»; id товару після публікації не змінюйте.', 'factorial2000-catalog-sync' ); ?>
 								<?php else : ?>
 									<?php esc_html_e( 'У Merchant Center: Products → Data sources → Add product source → Scheduled fetch. Вкажіть це посилання й розклад завантаження; назва файлу в Merchant Center має закінчуватися на .xml.', 'factorial2000-catalog-sync' ); ?>
 								<?php endif; ?>
@@ -945,7 +947,7 @@ function f2000cs_marketplaces_page() {
 						<?php if ( ! empty( $result['status'] ) ) : ?>
 							<?php if ( 'done' === $result['status'] ) : ?>
 								<?php
-								if ( $feed instanceof Prom_Feed ) {
+								if ( $feed instanceof Prom_Feed || $feed instanceof Rozetka_Feed ) {
 									echo esc_html(
 										sprintf(
 											/* translators: 1: offers, 2: categories, 3: skipped, 4: seconds */
@@ -1023,6 +1025,8 @@ function f2000cs_marketplaces_page() {
 						<p class="description">
 							<?php if ( $feed instanceof Prom_Feed ) : ?>
 								<?php esc_html_e( 'Файл перегенеровується у фоні через WP-Cron; поки триває генерація, маркетплейс бачить попередній файл. Prom забирає ціни й наявність за посиланням раз на 4 години (з 6:00 до 22:00), решту полів і нові товари — раз на добу вночі, тому оновлювати файл частіше немає сенсу.', 'factorial2000-catalog-sync' ); ?>
+							<?php elseif ( $feed instanceof Rozetka_Feed ) : ?>
+								<?php esc_html_e( 'Файл перегенеровується у фоні через WP-Cron; поки триває генерація, маркетплейс бачить попередній файл. ROZETKA забирає ціни й наявність за посиланням щогодини, тому для неї має сенс оновлювати файл щогодини або після кожного оновлення наявності.', 'factorial2000-catalog-sync' ); ?>
 							<?php else : ?>
 								<?php esc_html_e( 'Файл перегенеровується у фоні через WP-Cron; поки триває генерація, маркетплейс бачить попередній файл. Google Merchant завантажує файл за розкладом, який ви задали в джерелі даних (від раз на добу), тому оновлювати файл частіше немає сенсу.', 'factorial2000-catalog-sync' ); ?>
 							<?php endif; ?>
