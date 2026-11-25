@@ -96,7 +96,6 @@ function f2000cs_get_admin_script_config( $is_pro ) {
 		'canAdd'    => function_exists( 'f2000cs_can_add_supplier_slot' ) ? (bool) f2000cs_can_add_supplier_slot() : (bool) $is_pro,
 		'trialEnds' => function_exists( 'f2000cs_get_trial_ends_at' ) ? (int) f2000cs_get_trial_ends_at() : 0,
 		'proTip'    => __( 'Відкривається в Pro версії', 'factorial2000-catalog-sync' ),
-		'exportTip' => __( 'В Pro', 'factorial2000-catalog-sync' ),
 		'lockedIds' => $locked_ids,
 		'i18n'      => array(
 			/* translators: 1: days, 2: hours, 3: minutes */
@@ -115,10 +114,28 @@ function f2000cs_enqueue_admin_assets( $_hook_suffix ) {
 	$is_pro           = function_exists( 'f2000cs_is_pro' ) ? f2000cs_is_pro() : true;
 	$page             = f2000cs_get_admin_page_slug();
 
-	// Export menu soft-lock needs assets on all admin screens for free users.
-	$need_settings_assets = $is_plugin_screen || ( ! $is_pro && current_user_can( 'manage_options' ) );
+	// Free plan: the Pro-only «Export» menu item is soft-locked on every admin screen.
+	// Only this small file loads outside the plugin's own pages.
+	if ( ! $is_pro && current_user_can( 'manage_options' ) ) {
+		wp_enqueue_style(
+			'f2000cs-admin-global',
+			F2000CS_URL . 'assets/css/admin-global.css',
+			array(),
+			f2000cs_asset_version( 'assets/css/admin-global.css' )
+		);
 
-	if ( ! $need_settings_assets ) {
+		wp_enqueue_script(
+			'f2000cs-admin-menu-lock',
+			F2000CS_URL . 'assets/js/admin-menu-lock.js',
+			array(),
+			f2000cs_asset_version( 'assets/js/admin-menu-lock.js' ),
+			true
+		);
+
+		wp_localize_script( 'f2000cs-admin-menu-lock', 'f2000csMenuLock', array( 'tip' => __( 'В Pro', 'factorial2000-catalog-sync' ) ) );
+	}
+
+	if ( ! $is_plugin_screen ) {
 		return;
 	}
 
@@ -143,8 +160,19 @@ function f2000cs_enqueue_admin_assets( $_hook_suffix ) {
 		f2000cs_get_admin_script_config( $is_pro )
 	);
 
-	if ( ! $is_plugin_screen ) {
-		return;
+	// Page-only styles.
+	$page_styles = array(
+		'f2000cs-export' => 'assets/css/admin-export.css',
+		'f2000cs-docs'   => 'assets/css/admin-docs.css',
+	);
+
+	if ( isset( $page_styles[ $page ] ) ) {
+		wp_enqueue_style(
+			'f2000cs-admin-page',
+			F2000CS_URL . $page_styles[ $page ],
+			array( 'f2000cs-admin-settings' ),
+			f2000cs_asset_version( $page_styles[ $page ] )
+		);
 	}
 
 	wp_enqueue_style(

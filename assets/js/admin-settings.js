@@ -1,6 +1,6 @@
 /**
  * Admin settings: price adjust controls, extra-supplier repeater,
- * Free/Pro locks, export menu soft-lock, trial countdown.
+ * Free/Pro locks, trial countdown (the export menu lock is admin-menu-lock.js).
  */
 ( function () {
 	'use strict';
@@ -312,29 +312,6 @@
 		} );
 	}
 
-	function lockExportMenu() {
-		if ( cfg.isPro ) {
-			return;
-		}
-
-		var tip = cfg.exportTip || 'В Pro';
-		var links = document.querySelectorAll( '#adminmenu a[href*="page=f2000cs-export"]' );
-
-		links.forEach( function ( link ) {
-			var item = link.closest( 'li' ) || link;
-			item.classList.add( 'f2000cs-menu-pro-locked' );
-			item.setAttribute( 'data-pro-tip', tip );
-			item.setAttribute( 'title', tip );
-			link.setAttribute( 'title', tip );
-			link.setAttribute( 'aria-disabled', 'true' );
-
-			link.addEventListener( 'click', function ( event ) {
-				event.preventDefault();
-				event.stopPropagation();
-			} );
-		} );
-	}
-
 	function formatTrialLabel( days, hours, minutes ) {
 		var template = ( cfg.i18n && cfg.i18n.trialLeft ) ? cfg.i18n.trialLeft : 'залишилось %1$d дн. %2$d год. %3$d хв.';
 		return template
@@ -510,7 +487,6 @@
 	document.addEventListener( 'DOMContentLoaded', function () {
 		setupSuppliersRepeater();
 		lockProRows();
-		lockExportMenu();
 		startTrialCountdown();
 		setupImageQualitySlider();
 		setupImageMaxDimensionControls();

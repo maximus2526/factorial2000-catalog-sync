@@ -320,8 +320,8 @@ function f2000cs_premium_build_missing_notice() {
 	$download_url = $account_url;
 	$on_trial     = f2000cs_is_fs_trial();
 	?>
-	<div class="notice notice-error f2000cs-pro-download-notice" style="border-left-width:6px;padding:12px 16px;background:#fff8e5;">
-		<p style="font-size:15px;margin:0 0 6px;">
+	<div class="notice notice-error f2000cs-pro-download-notice">
+		<p class="f2000cs-pro-download-notice__title">
 			<strong>
 				<?php
 				echo esc_html(
@@ -332,10 +332,10 @@ function f2000cs_premium_build_missing_notice() {
 				?>
 			</strong>
 		</p>
-		<p style="margin:0 0 10px;">
+		<p class="f2000cs-pro-download-notice__text">
 			<?php esc_html_e( 'Зараз встановлена безкоштовна версія плагіна. Щоб працювали функції Pro (кілька постачальників, часті оновлення, оновлення кількості, маркетплейси, редактор вигрузок, оновлення полів, обробка зображень), завантажте Pro-збірку й встановіть її: Плагіни → Додати новий → Завантажити плагін. Налаштування збережуться.', 'factorial2000-catalog-sync' ); ?>
 		</p>
-		<p style="margin:0;">
+		<p class="f2000cs-pro-download-notice__actions">
 			<?php if ( '' !== $download_url ) : ?>
 				<a class="button button-primary button-hero" href="<?php echo esc_url( $download_url ); ?>"><?php esc_html_e( '⬇ Завантажити Pro-версію', 'factorial2000-catalog-sync' ); ?></a>
 			<?php endif; ?>
@@ -359,31 +359,6 @@ function f2000cs_account_page_extras() {
 	$fs->add_action( 'after_account_details', 'f2000cs_render_account_download_box' );
 }
 add_action( 'f2000cs_fs_loaded', 'f2000cs_account_page_extras' );
-
-/**
- * Inline CSS for the Freemius Account page (theme admin styles wash out tags).
- *
- * @return void
- */
-function f2000cs_account_page_styles() {
-	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-	if ( ! $screen || false === strpos( (string) $screen->id, 'f2000cs-update-account' ) ) {
-		return;
-	}
-	?>
-	<style>
-		#fs_account label.fs-tag,#fs_account span.fs-tag{color:#fff!important;font-weight:600;font-size:12px;line-height:12px;padding:5px 8px;border-radius:3px;text-shadow:none}
-		#fs_account label.fs-tag.fs-warn,#fs_account span.fs-tag.fs-warn{background:#b26200!important}
-		#fs_account label.fs-tag.fs-success,#fs_account span.fs-tag.fs-success{background:#1e7e34!important}
-		#fs_account label.fs-tag.fs-error{background:#c62828!important}
-		#fs_account_details .button-group{display:inline-flex;flex-wrap:wrap;margin-top:8px}
-		.f2000cs-account-download{max-width:800px;margin:16px 0;padding:16px 20px;background:#fff8e5;border:1px solid #f0c36d;border-left:6px solid #dba617;box-sizing:border-box}
-		.f2000cs-account-download h3{margin:0 0 6px;font-size:16px}
-		.f2000cs-account-download p{margin:0 0 12px}
-	</style>
-	<?php
-}
-add_action( 'admin_head', 'f2000cs_account_page_styles' );
 
 /**
  * "Download Pro" block under the Freemius account details (license or trial).

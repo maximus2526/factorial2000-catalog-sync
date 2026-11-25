@@ -1,0 +1,53 @@
+/*
+ * Free plan, every admin screen: the Pro-only «Export» menu item and the
+ * «install the Pro build» notice (Dashboard, Plugins and the plugin pages).
+ */
+
+.f2000cs-menu-pro-locked > a {
+	opacity: 0.45 !important;
+	cursor: not-allowed !important;
+	filter: grayscale(0.4);
+}
+
+.f2000cs-menu-pro-locked {
+	position: relative;
+}
+
+.f2000cs-menu-pro-locked:hover::after {
+	content: attr(data-pro-tip);
+	position: absolute;
+	left: 100%;
+	top: 50%;
+	transform: translateY(-50%);
+	margin-left: 8px;
+	z-index: 100000;
+	padding: 4px 8px;
+	border-radius: 3px;
+	background: #1d2327;
+	color: #fff;
+	font-size: 11px;
+	font-weight: 600;
+	white-space: nowrap;
+	pointer-events: none;
+}
+
+/* «Pro features need the Pro build» notice. */
+
+.f2000cs-pro-download-notice {
+	border-left-width: 6px;
+	padding: 12px 16px;
+	background: #fff8e5;
+}
+
+.f2000cs-pro-download-notice__title {
+	font-size: 15px;
+	margin: 0 0 6px;
+}
+
+.f2000cs-pro-download-notice__text {
+	margin: 0 0 10px;
+}
+
+.f2000cs-pro-download-notice__actions {
+	margin: 0;
+}

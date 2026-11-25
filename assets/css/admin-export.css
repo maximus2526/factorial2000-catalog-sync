@@ -1,0 +1,506 @@
+/* -------------------------------------------------------------------------
+   Export page: filter + editor side by side
+------------------------------------------------------------------------- */
+
+.f2000cs-export-tools {
+	display: grid;
+	grid-template-columns: minmax(220px, 20%) minmax(0, 1fr);
+	gap: 16px;
+	align-items: start;
+	margin: 16px 0;
+}
+
+.f2000cs-export-tools__main {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	min-width: 0;
+}
+
+.f2000cs-export-tools > .card,
+.f2000cs-export-tools__main > .card {
+	max-width: none;
+	width: 100%;
+	margin-top: 0;
+	box-sizing: border-box;
+}
+
+.f2000cs-export-filter-card .form-table th {
+	width: 120px;
+	padding-right: 12px;
+}
+
+.f2000cs-export-filter-card .form-table td .regular-text {
+	width: 100%;
+	max-width: 100%;
+}
+
+.f2000cs-export-recent__empty {
+	margin: 8px 0 0;
+	color: var(--f2000cs-text-muted);
+}
+
+.f2000cs-export-recent__table {
+	margin-top: 10px;
+}
+
+.f2000cs-export-recent__table code {
+	font-size: 12px;
+	word-break: break-all;
+}
+
+.f2000cs-export-recent__table th,
+.f2000cs-export-recent__table td {
+	vertical-align: middle;
+}
+
+.f2000cs-export-help {
+	margin-top: 16px;
+	padding-top: 14px;
+	border-top: 1px solid var(--f2000cs-border-light);
+	font-size: 13px;
+	line-height: 1.45;
+	color: #50575e;
+}
+
+.f2000cs-export-help h3,
+.f2000cs-export-help h4 {
+	margin: 0 0 8px;
+	font-size: 13px;
+	color: var(--f2000cs-text);
+}
+
+.f2000cs-export-help h4 {
+	margin-top: 12px;
+}
+
+.f2000cs-export-help ol,
+.f2000cs-export-help ul {
+	margin: 0 0 0 1.2em;
+	padding: 0;
+}
+
+.f2000cs-export-help li {
+	margin: 0 0 6px;
+}
+
+.f2000cs-export-help p {
+	margin: 0;
+}
+
+@media (max-width: 1200px) {
+	.f2000cs-export-tools {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* -------------------------------------------------------------------------
+   XML Editor (Редактор вигрузок XML)
+------------------------------------------------------------------------- */
+
+.f2000cs-xml-editor-card {
+	max-width: none;
+}
+
+.f2000cs-xml-editor__source {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 4px 0 12px;
+}
+
+.f2000cs-xml-editor__source .regular-text {
+	min-width: 320px;
+}
+
+.f2000cs-xml-editor__or {
+	color: var(--f2000cs-text-muted);
+	font-size: 13px;
+}
+
+.f2000cs-xml-editor__status.notice {
+	margin: 0 0 12px;
+}
+
+.f2000cs-xml-editor {
+	display: grid;
+	grid-template-columns: 300px minmax(0, 1fr) 260px;
+	gap: 16px;
+	margin-top: 8px;
+}
+
+/* Author display rules (grid/block) override the UA [hidden] rule, so
+   hidden elements must be forced back to display:none (WP admin pattern). */
+.f2000cs-xml-editor[hidden],
+.f2000cs-xml-editor__status[hidden],
+.f2000cs-xml-editor__result[hidden],
+.f2000cs-xml-editor__load-more[hidden] {
+	display: none !important;
+}
+
+.f2000cs-xml-editor__col {
+	display: flex;
+	flex-direction: column;
+	min-height: 340px;
+	background: var(--f2000cs-white);
+	border: 1px solid var(--f2000cs-border);
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.f2000cs-xml-editor__col-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 4px 8px;
+	padding: 8px 10px;
+	background: var(--f2000cs-bg-header);
+	border-bottom: 1px solid var(--f2000cs-border-light);
+}
+
+.f2000cs-xml-editor__col-head label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.f2000cs-xml-editor__col-head input[type='checkbox'] {
+	margin: 0;
+}
+
+.f2000cs-xml-editor__count {
+	min-width: 22px;
+	padding: 1px 7px;
+	border-radius: 10px;
+	background: var(--f2000cs-blue);
+	color: var(--f2000cs-white);
+	font-size: 11px;
+	font-weight: 600;
+	text-align: center;
+}
+
+.f2000cs-xml-editor__scroll {
+	flex: 1;
+	overflow: auto;
+	max-height: 480px;
+	padding: 4px 0;
+}
+
+.f2000cs-xml-editor__loading,
+.f2000cs-xml-editor__empty {
+	margin: 0;
+	padding: 14px;
+	color: var(--f2000cs-text-subtle);
+	font-size: 13px;
+}
+
+/* Category tree */
+
+.f2000cs-xml-editor__tree-item {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px 4px 6px;
+	border-radius: 3px;
+}
+
+.f2000cs-xml-editor__tree-item:hover {
+	background: var(--f2000cs-bg-light);
+}
+
+.f2000cs-xml-editor__chevron {
+	width: 16px;
+	height: 16px;
+	flex: none;
+	font-size: 16px;
+	color: var(--f2000cs-text-subtle);
+	cursor: pointer;
+	transition: transform 0.15s ease;
+}
+
+.f2000cs-xml-editor__chevron.is-open {
+	transform: rotate(90deg);
+}
+
+.f2000cs-xml-editor__chevron--placeholder {
+	visibility: hidden;
+}
+
+.f2000cs-xml-editor__tree-check {
+	margin: 0 !important;
+	flex: none;
+}
+
+.f2000cs-xml-editor__folder {
+	width: 16px;
+	height: 16px;
+	flex: none;
+	font-size: 16px;
+	color: #c08a3e;
+}
+
+.f2000cs-xml-editor__tree-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 13px;
+}
+
+.f2000cs-xml-editor__tree-count {
+	flex: none;
+	padding: 0 7px;
+	border-radius: 10px;
+	background: var(--f2000cs-bg-light);
+	color: var(--f2000cs-text-muted);
+	font-size: 11px;
+}
+
+.f2000cs-xml-editor__tree-children {
+	padding-left: 18px;
+}
+
+.f2000cs-xml-editor__tree-children.is-hidden {
+	display: none;
+}
+
+/* Product rows */
+
+.f2000cs-xml-editor__product {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 10px;
+	border-bottom: 1px solid var(--f2000cs-bg-light);
+}
+
+.f2000cs-xml-editor__product:last-child {
+	border-bottom: none;
+}
+
+.f2000cs-xml-editor__product:hover {
+	background: var(--f2000cs-bg-subtle);
+}
+
+.f2000cs-xml-editor__product-check {
+	margin: 0 !important;
+	flex: none;
+}
+
+.f2000cs-xml-editor__product-thumb {
+	width: 42px;
+	height: 42px;
+	flex: none;
+	border-radius: 4px;
+	object-fit: cover;
+	background: var(--f2000cs-bg-light);
+	border: 1px solid var(--f2000cs-border-light);
+}
+
+.f2000cs-xml-editor__product-thumb--empty {
+	visibility: hidden;
+}
+
+.f2000cs-xml-editor__product-body {
+	flex: 1;
+	min-width: 0;
+}
+
+.f2000cs-xml-editor__product-title {
+	margin: 0 0 3px;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.f2000cs-xml-editor__product-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	font-size: 11px;
+	color: var(--f2000cs-text-muted);
+}
+
+.f2000cs-xml-editor__badge {
+	padding: 1px 6px;
+	border-radius: 10px;
+	font-size: 11px;
+	font-weight: 600;
+}
+
+.f2000cs-xml-editor__badge--in {
+	background: var(--f2000cs-green-bg);
+	color: var(--f2000cs-green);
+}
+
+.f2000cs-xml-editor__badge--out {
+	background: var(--f2000cs-red-bg);
+	color: var(--f2000cs-red);
+}
+
+.f2000cs-xml-editor__load-more {
+	display: block;
+	width: calc(100% - 20px);
+	margin: 10px;
+	text-align: center;
+}
+
+/* Conditions column */
+
+.f2000cs-xml-editor__col--options {
+	min-height: 0;
+}
+
+.f2000cs-xml-editor__options {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 12px;
+}
+
+.f2000cs-xml-editor__options h3 {
+	margin: 0;
+}
+
+.f2000cs-xml-editor__option {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	font-size: 13px;
+}
+
+.f2000cs-xml-editor__option input[type='checkbox'] {
+	margin: 0;
+}
+
+.f2000cs-xml-editor__field label {
+	display: block;
+	margin-bottom: 3px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.f2000cs-xml-editor__field input {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.f2000cs-xml-editor__selected {
+	margin: 0;
+	padding-top: 10px;
+	border-top: 1px solid var(--f2000cs-border-light);
+	font-size: 13px;
+}
+
+.f2000cs-xml-editor__result {
+	padding: 10px;
+	background: var(--f2000cs-bg-header);
+	border: 1px solid var(--f2000cs-border);
+	border-radius: 4px;
+	font-size: 13px;
+}
+
+.f2000cs-xml-editor__result p {
+	margin: 0 0 8px;
+}
+
+.f2000cs-xml-editor__result p:last-child {
+	margin-bottom: 0;
+}
+
+@media (max-width: 1200px) {
+	.f2000cs-xml-editor {
+		grid-template-columns: 1fr;
+	}
+
+	.f2000cs-xml-editor__source .regular-text {
+		min-width: 100%;
+	}
+}
+
+/* Tree expand / collapse + search */
+
+.f2000cs-xml-editor__col-head-actions {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+	justify-content: flex-end;
+}
+
+.f2000cs-xml-editor__expand-btn {
+	padding: 0;
+	border: none;
+	background: none;
+	color: var(--f2000cs-blue);
+	font-size: 11px;
+	line-height: 1.6;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.f2000cs-xml-editor__expand-btn:hover {
+	color: var(--f2000cs-blue-dark);
+	text-decoration: underline;
+}
+
+.f2000cs-xml-editor__products-search {
+	padding: 8px 10px;
+	border-bottom: 1px solid var(--f2000cs-border-light);
+	background: var(--f2000cs-bg-subtle);
+}
+
+.f2000cs-xml-editor__products-search input {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+/* Onboarding hint */
+
+.f2000cs-xml-editor__hint {
+	margin: -4px 0 12px;
+	padding: 8px 12px;
+	background: var(--f2000cs-blue-bg);
+	border-left: 3px solid var(--f2000cs-blue);
+	border-radius: 3px;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+/* Conditions column: push the generate button to the bottom */
+
+.f2000cs-xml-editor__col--options .f2000cs-xml-editor__options {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+}
+
+.f2000cs-xml-editor__col--options .f2000cs-xml-editor__selected {
+	margin-top: auto;
+}
+
+/* Dimmed categories with zero offers */
+
+.f2000cs-xml-editor__tree-item--empty {
+	opacity: 0.4;
+}
+
+.f2000cs-xml-editor__tree-item--empty .f2000cs-xml-editor__tree-count {
+	background: var(--f2000cs-border-light);
+	color: #a7aaad;
+}
+
+.f2000cs-xml-editor__tree-item--empty input[type="checkbox"] {
+	cursor: not-allowed;
+}
