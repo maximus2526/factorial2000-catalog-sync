@@ -35,6 +35,10 @@ Planned work (not started; design agreed first):
 - [ ] Order forwarding to the supplier (email/CSV) and tracking numbers back — expected under the «Dropshipping» name.
 - [ ] Hide «fake discount» outside Ukraine (EU Omnibus directive).
 
+Later growth (owner's decision, 2026-11-25; after the product-data core above is done and stable):
+- [ ] **Analytics, tags and pixels**: GA4, Meta Pixel, TikTok Pixel, GTM `dataLayer`, server-side events (Conversions API), Consent Mode. A separate module, off by default. Start small: product data in `dataLayer` and the same product id in feeds and pixel events (catalog matching), then the pixels themselves. Known risks to plan for: platform requirements change often, cookie consent, event deduplication, strong free competitors (Site Kit, official Meta/TikTok plugins, PixelYourSite).
+- [ ] Storage: suppliers stay in options (`f2000cs_url_N` …) for now (owner's decision, 2026-11-25); a hidden post type for sources was discussed and postponed.
+
 ### Next up — Prom feed (planned for 2026-10-15)
 Found while comparing the feed with the Prom seller help (`support.prom.ua`, «Імпорт через YML — формат файлу», «Імпорт позицій із файла»).
 - [ ] **Weight and dimensions (`<dimensions>`).** Prom accepts `<dimensions><weight unit="kg">…</weight><width unit="cm">…</width><height unit="cm">…</height><length unit="cm">…</length></dimensions>`; the feed does not send it although WooCommerce has the fields. Read them in `Marketplace_WC_Source::row()` (`$product->get_weight() / get_width() / get_height() / get_length()`, convert from the store units `woocommerce_weight_unit` / `woocommerce_dimension_unit` to kg and cm), send them from `Prom_Feed::compose_offer()` only when set, and take the parent's values for a variation without its own. Tests: unit conversion, variation fallback, no tag when empty.
